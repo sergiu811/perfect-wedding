@@ -1,0 +1,87 @@
+import React, { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import {
+  Hero,
+  SearchBar,
+  CategoryCard,
+  SectionTitle,
+  PageContainer,
+  type Category,
+} from "~/components/common";
+import { CATEGORIES } from "~/constants";
+import { useRouter } from "~/contexts/router-context";
+
+export const HomePage = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const { navigate } = useRouter();
+
+  const handleCategoryClick = (category: Category) => {
+    console.log("Category clicked:", category.name);
+
+    // Navigate to appropriate page based on category
+    if (category.id === "venue") {
+      navigate("/venues");
+    } else if (category.id === "photo-video") {
+      navigate("/photo-video");
+    } else if (category.id === "music-dj") {
+      navigate("/music-dj");
+    }
+  };
+
+  return (
+    <PageContainer className="">
+      <Hero />
+
+      <div className="px-5 -mt-16 z-10 relative mb-8">
+        <SearchBar
+          value={searchQuery}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setSearchQuery(e.target.value)
+          }
+          placeholder="Find your perfect wedding venue, photographer, or DJ..."
+        />
+      </div>
+
+      <div className="px-5 mb-5">
+        <SectionTitle className="">Quick Categories</SectionTitle>
+      </div>
+
+      <div className="px-5 mb-8">
+        <div className="grid grid-cols-3 gap-5">
+          {CATEGORIES.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              onClick={handleCategoryClick}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="px-5 mb-4">
+        <Button
+          className="flex w-full items-center justify-center gap-3 rounded-full bg-rose-600/10 hover:bg-rose-600/20 h-14 px-6 text-rose-600 text-base font-bold transition-all duration-200 shadow-sm hover:shadow-md"
+          variant="ghost"
+        >
+          <Sparkles className="h-5 w-5" />
+          <span>Plan My Perfect Wedding (AI)</span>
+        </Button>
+      </div>
+
+      <div className="px-5">
+        <div className="flex gap-4">
+          <Button className="flex-1 rounded-full bg-rose-600 hover:bg-rose-700 h-14 px-6 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200">
+            Start Planning
+          </Button>
+          <Button
+            className="flex-1 rounded-full bg-white hover:bg-gray-50 h-14 px-6 text-gray-900 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-gray-100"
+            variant="outline"
+          >
+            Join as Vendor
+          </Button>
+        </div>
+      </div>
+    </PageContainer>
+  );
+};
