@@ -26,6 +26,12 @@ export const HomePage = () => {
       navigate("/photo-video");
     } else if (category.id === "music-dj") {
       navigate("/music-dj");
+    } else if (category.id === "decorations") {
+      navigate("/decorations");
+    } else if (category.id === "invitations") {
+      navigate("/invitations");
+    } else if (category.id === "sweets") {
+      navigate("/sweets");
     }
   };
 

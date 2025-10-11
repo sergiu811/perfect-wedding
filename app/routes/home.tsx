@@ -10,6 +10,12 @@ import {
   PhotographerDetailsPage,
   MusicDJPage,
   MusicianDetailsPage,
+  DecorationsPage,
+  DecorationDetailsPage,
+  InvitationsPage,
+  InvitationDetailsPage,
+  SweetsPage,
+  SweetDetailsPage,
   AIPlanner,
   MyWeddingPage,
   MorePage,
@@ -38,6 +44,25 @@ export default function App() {
           <Route
             path="/music-dj/:id"
             render={(params) => <MusicianDetailsPage musicianId={params.id} />}
+          />
+          <Route path="/decorations" element={<DecorationsPage />} />
+          <Route
+            path="/decorations/:id"
+            render={(params) => (
+              <DecorationDetailsPage decorationId={params.id} />
+            )}
+          />
+          <Route path="/invitations" element={<InvitationsPage />} />
+          <Route
+            path="/invitations/:id"
+            render={(params) => (
+              <InvitationDetailsPage invitationId={params.id} />
+            )}
+          />
+          <Route path="/sweets" element={<SweetsPage />} />
+          <Route
+            path="/sweets/:id"
+            render={(params) => <SweetDetailsPage sweetId={params.id} />}
           />
           <Route path="/ai-planner" element={<AIPlanner />} />
           <Route path="/my-wedding" element={<MyWeddingPage />} />
