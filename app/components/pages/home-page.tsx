@@ -86,7 +86,10 @@ export const HomePage = () => {
 
       <div className="px-5">
         <div className="flex gap-4">
-          <Button className="flex-1 rounded-full bg-rose-600 hover:bg-rose-700 h-14 px-6 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200">
+          <Button
+            onClick={() => navigate("/planning/step-1")}
+            className="flex-1 rounded-full bg-rose-600 hover:bg-rose-700 h-14 px-6 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200"
+          >
             Start Planning
           </Button>
           <Button

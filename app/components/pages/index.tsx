@@ -24,3 +24,8 @@ export { AddServiceStep4 } from "./add-service-step4";
 export { AIPlanner } from "./ai-planner-page";
 export { MyWeddingPage } from "./my-wedding-page";
 export { MorePage } from "./more-page";
+export { PlanningStep1 } from "./planning-step1";
+export { PlanningStep2 } from "./planning-step2";
+export { PlanningStep3 } from "./planning-step3";
+export { PlanningStep4 } from "./planning-step4";
+export { PlanningSuccess } from "./planning-success";
