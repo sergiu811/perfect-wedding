@@ -703,7 +703,10 @@ export const MyWeddingPage = () => {
             <Calendar className="w-8 h-8 text-blue-600 mb-2" />
             <p className="text-sm font-semibold text-gray-900">Timeline</p>
           </button>
-          <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
+          <button
+            onClick={() => navigate("/guest-list")}
+            className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
+          >
             <Users className="w-8 h-8 text-green-600 mb-2" />
             <p className="text-sm font-semibold text-gray-900">Guest List</p>
           </button>

@@ -29,3 +29,5 @@ export { PlanningStep2 } from "./planning-step2";
 export { PlanningStep3 } from "./planning-step3";
 export { PlanningStep4 } from "./planning-step4";
 export { PlanningSuccess } from "./planning-success";
+export { GuestListPage } from "./guest-list-page";
+export { SeatingPlannerPage } from "./seating-planner-page";
