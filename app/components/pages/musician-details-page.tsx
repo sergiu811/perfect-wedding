@@ -230,8 +230,11 @@ export const MusicianDetailsPage = ({
             >
               Request a Demo
             </Button>
-            <Button className="h-12 flex-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-sm font-bold text-white">
-              Book Now
+            <Button 
+              onClick={() => navigate(`/contact-vendor/${musician.id}?name=${encodeURIComponent(musician.name)}&category=music-dj`)}
+              className="h-12 flex-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-sm font-bold text-white"
+            >
+              Check Availability
             </Button>
           </div>
         </div>

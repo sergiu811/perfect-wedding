@@ -203,8 +203,11 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
 
       {/* Sticky Footer with CTA */}
       <div className="sticky bottom-0 bg-pink-50 border-t border-gray-200 px-6 py-4">
-        <Button className="w-full h-12 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-lg font-bold shadow-lg">
-          Request a Quote
+        <Button 
+          onClick={() => navigate(`/contact-vendor/${venue.id}?name=${encodeURIComponent(venue.name)}&category=venue`)}
+          className="w-full h-12 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-lg font-bold shadow-lg"
+        >
+          Check Availability
         </Button>
       </div>
     </div>

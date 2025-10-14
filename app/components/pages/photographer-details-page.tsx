@@ -251,8 +251,11 @@ export const PhotographerDetailsPage = ({
           >
             View Portfolio
           </Button>
-          <Button className="flex-1 py-3 text-center text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-full">
-            Contact Vendor
+          <Button 
+            onClick={() => navigate(`/contact-vendor/${photographer.id}?name=${encodeURIComponent(photographer.name)}&category=photo-video`)}
+            className="flex-1 py-3 text-center text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-full"
+          >
+            Check Availability
           </Button>
         </div>
       </footer>

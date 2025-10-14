@@ -202,8 +202,11 @@ export const InvitationDetailsPage = ({
           >
             Request Sample
           </Button>
-          <Button className="flex items-center justify-center rounded-lg h-12 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold">
-            Customize &amp; Order
+          <Button 
+            onClick={() => navigate(`/contact-vendor/${invitation.id}?name=${encodeURIComponent(invitation.name)}&category=invitations`)}
+            className="flex items-center justify-center rounded-lg h-12 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold"
+          >
+            Check Availability
           </Button>
         </div>
       </footer>

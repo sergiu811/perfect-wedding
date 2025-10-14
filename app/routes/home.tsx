@@ -42,6 +42,10 @@ import {
   GuestListPage,
   SeatingPlannerPage,
   BudgetDetailsPage,
+  ContactVendorWrapper,
+  MessagesPage,
+  ChatWrapper,
+  MyBookingsPage,
 } from "~/components/pages";
 
 export default function App() {
@@ -158,6 +162,18 @@ export default function App() {
                     path="/budget-details"
                     element={<BudgetDetailsPage />}
                   />
+                  <Route
+                    path="/contact-vendor/:id"
+                    render={(params) => (
+                      <ContactVendorWrapper vendorId={params.id} />
+                    )}
+                  />
+                  <Route path="/messages" element={<MessagesPage />} />
+                  <Route
+                    path="/chat/:id"
+                    render={(params) => <ChatWrapper vendorId={params.id} />}
+                  />
+                  <Route path="/my-bookings" element={<MyBookingsPage />} />
                 </main>
                 <Navigation />
               </div>

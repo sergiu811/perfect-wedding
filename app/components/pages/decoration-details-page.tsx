@@ -214,8 +214,11 @@ export const DecorationDetailsPage = ({
       {/* Sticky Footer */}
       <footer className="sticky bottom-0 bg-pink-50/95 backdrop-blur-sm shadow-t-sm">
         <div className="p-4">
-          <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-5 rounded-lg text-lg">
-            Inquire Now
+          <Button 
+            onClick={() => navigate(`/contact-vendor/${decoration.id}?name=${encodeURIComponent(decoration.name)}&category=decorations`)}
+            className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-5 rounded-lg text-lg"
+          >
+            Check Availability
           </Button>
         </div>
       </footer>

@@ -630,6 +630,174 @@ export const MyWeddingPage = () => {
           </div>
         </div>
 
+        {/* Messages & Inquiries */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-blue-600" />
+                Messages
+              </h2>
+              <button 
+                onClick={() => navigate("/messages")}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                View All
+              </button>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {/* Recent Messages */}
+            {[
+              {
+                id: 1,
+                vendor: "The Grand Ballroom",
+                category: "Venue",
+                message: "We have availability for your date!",
+                time: "2h ago",
+                unread: true,
+                avatar: "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80"
+              },
+              {
+                id: 2,
+                vendor: "Elegant Moments Photography",
+                category: "Photo & Video",
+                message: "Thank you for your inquiry!",
+                time: "1d ago",
+                unread: false,
+                avatar: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80"
+              },
+            ].map((msg) => (
+              <button
+                key={msg.id}
+                onClick={() => navigate(`/chat/${msg.id}`)}
+                className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+              >
+                <div
+                  className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                  style={{ backgroundImage: `url(${msg.avatar})` }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {msg.vendor}
+                      </p>
+                      <p className="text-xs text-gray-500">{msg.category}</p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      <p className="text-xs text-gray-500">{msg.time}</p>
+                      {msg.unread && (
+                        <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                      )}
+                    </div>
+                  </div>
+                  <p className={`text-xs ${msg.unread ? 'text-gray-900 font-medium' : 'text-gray-600'} truncate`}>
+                    {msg.message}
+                  </p>
+                </div>
+              </button>
+            ))}
+            
+            {/* View All Button */}
+            <button
+              onClick={() => navigate("/messages")}
+              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-2 py-2"
+            >
+              View All Messages
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* My Bookings */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-purple-600" />
+                My Bookings
+              </h2>
+              <button 
+                onClick={() => navigate("/my-bookings")}
+                className="text-sm font-medium text-purple-600 hover:text-purple-700"
+              >
+                View All
+              </button>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {/* Confirmed Bookings */}
+            {[
+              {
+                id: 1,
+                vendor: "The Grand Ballroom",
+                category: "Venue",
+                status: "Confirmed",
+                date: "July 12, 2026",
+                price: "$15,000",
+                image: "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80"
+              },
+              {
+                id: 2,
+                vendor: "Elegant Moments Photography",
+                category: "Photo & Video",
+                status: "Pending",
+                date: "July 12, 2026",
+                price: "$3,500",
+                image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80"
+              },
+            ].map((booking) => (
+              <button
+                key={booking.id}
+                onClick={() => navigate("/my-bookings")}
+                className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
+              >
+                <div
+                  className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
+                  style={{ backgroundImage: `url(${booking.image})` }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        {booking.vendor}
+                      </p>
+                      <p className="text-xs text-gray-500">{booking.category}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
+                      booking.status === 'Confirmed' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {booking.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {booking.date}
+                    </span>
+                    <span className="flex items-center gap-1 font-semibold text-purple-600">
+                      <DollarSign className="w-3 h-3" />
+                      {booking.price}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+            
+            {/* View All Button */}
+            <button
+              onClick={() => navigate("/my-bookings")}
+              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 mt-2 py-2"
+            >
+              View All Bookings
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
         {/* Budget Overview */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 border-b border-gray-100">

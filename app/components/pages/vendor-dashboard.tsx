@@ -284,6 +284,83 @@ export const VendorDashboard = () => {
                   </div>
                 </div>
 
+                {/* Inquiries & Messages */}
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 text-rose-600" />
+                      Recent Inquiries
+                    </h3>
+                    <button 
+                      onClick={() => navigate("/messages")}
+                      className="text-sm font-medium text-rose-600 hover:text-rose-700"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      {
+                        id: 1,
+                        coupleName: "Sarah & John",
+                        service: "Full Wedding Package",
+                        message: "We're interested in booking for July 2026",
+                        time: "1h ago",
+                        unread: true,
+                        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80"
+                      },
+                      {
+                        id: 2,
+                        coupleName: "Emma & Michael",
+                        service: "Day-of Coordination",
+                        message: "Can you provide more details about...",
+                        time: "3h ago",
+                        unread: true,
+                        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80"
+                      },
+                      {
+                        id: 3,
+                        coupleName: "Lisa & David",
+                        service: "Consultation Package",
+                        message: "Thank you for the quick response!",
+                        time: "1d ago",
+                        unread: false,
+                        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80"
+                      },
+                    ].map((inquiry) => (
+                      <button
+                        key={inquiry.id}
+                        onClick={() => navigate(`/chat/${inquiry.id}`)}
+                        className="w-full flex items-start gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors text-left"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                          style={{ backgroundImage: `url(${inquiry.avatar})` }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {inquiry.coupleName}
+                              </p>
+                              <p className="text-xs text-rose-600">{inquiry.service}</p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <p className="text-xs text-gray-500">{inquiry.time}</p>
+                              {inquiry.unread && (
+                                <div className="w-2 h-2 bg-rose-600 rounded-full" />
+                              )}
+                            </div>
+                          </div>
+                          <p className={`text-xs ${inquiry.unread ? 'text-gray-900 font-medium' : 'text-gray-600'} truncate`}>
+                            {inquiry.message}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Notifications Feed */}
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">

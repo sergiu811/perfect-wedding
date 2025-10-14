@@ -232,10 +232,13 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
                 rows={4}
               />
               <Button
-                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/contact-vendor/${sweet.id}?name=${encodeURIComponent(sweet.name)}&category=sweets`);
+                }}
                 className="w-full rounded-lg bg-rose-600 hover:bg-rose-700 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105"
               >
-                Submit Inquiry
+                Check Availability
               </Button>
             </form>
           </div>
