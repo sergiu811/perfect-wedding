@@ -16,6 +16,20 @@ export const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { navigate } = useRouter();
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Search submitted:", searchQuery);
+    if (searchQuery.trim()) {
+      // Navigate to vendors page with search query
+      const url = `/vendors?q=${encodeURIComponent(searchQuery.trim())}`;
+      console.log("Navigating to:", url);
+      navigate(url);
+    } else {
+      console.log("Navigating to: /vendors");
+      navigate("/vendors");
+    }
+  };
+
   const handleCategoryClick = (category: Category) => {
     console.log("Category clicked:", category.name);
 
@@ -49,13 +63,15 @@ export const HomePage = () => {
       <Hero />
 
       <div className="px-5 -mt-16 z-10 relative mb-8">
-        <SearchBar
-          value={searchQuery}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setSearchQuery(e.target.value)
-          }
-          placeholder="Find your perfect wedding venue, photographer, or DJ..."
-        />
+        <form onSubmit={handleSearchSubmit}>
+          <SearchBar
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchQuery(e.target.value)
+            }
+            placeholder="Find your perfect wedding venue, photographer, or DJ..."
+          />
+        </form>
       </div>
 
       <div className="px-5 mb-5">

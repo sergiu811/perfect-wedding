@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   MapPin,
@@ -20,6 +20,12 @@ import {
 import { useRouter } from "~/contexts/router-context";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { VENUES } from "~/constants/venues";
+import { PHOTOGRAPHERS } from "~/constants/photographers";
+import { MUSICIANS } from "~/constants/musicians";
+import { DECORATIONS } from "~/constants/decorations";
+import { SWEETS } from "~/constants/sweets";
+import { INVITATIONS } from "~/constants/invitations";
 
 const VENDOR_CATEGORIES = [
   {
@@ -98,11 +104,47 @@ const POPULAR_SEARCHES = [
 
 export const VendorsPage = () => {
   const { navigate } = useRouter();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<string[]>([]);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
+  // Get search query from URL parameter on mount
+  useEffect(() => {
+    console.log("VendorsPage mounted");
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get("q") || "";
+      console.log("Search query from URL:", query);
+      setSearchQuery(query);
+    }
+  }, []);
+
+  // Combine all vendors into one searchable list
+  const allVendors = [
+    ...VENUES.map(v => ({ ...v, category: 'venue', categoryName: 'Venues', route: `/venues/${v.id}` })),
+    ...PHOTOGRAPHERS.map(v => ({ ...v, category: 'photo-video', categoryName: 'Photo & Video', route: `/photo-video/${v.id}` })),
+    ...MUSICIANS.map(v => ({ ...v, category: 'music-dj', categoryName: 'Music & DJ', route: `/music-dj/${v.id}` })),
+    ...DECORATIONS.map(v => ({ ...v, category: 'decorations', categoryName: 'Decorations', route: `/decorations/${v.id}` })),
+    ...SWEETS.map(v => ({ ...v, category: 'sweets', categoryName: 'Sweets & Cakes', route: `/sweets/${v.id}` })),
+    ...INVITATIONS.map(v => ({ ...v, category: 'invitations', categoryName: 'Invitations', route: `/invitations/${v.id}` })),
+  ];
+
+  // Filter vendors by search query
+  const filteredVendors = searchQuery
+    ? allVendors.filter((vendor: any) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          vendor.name.toLowerCase().includes(query) ||
+          vendor.categoryName.toLowerCase().includes(query) ||
+          (vendor.location && vendor.location.toLowerCase().includes(query)) ||
+          (vendor.description && vendor.description.toLowerCase().includes(query)) ||
+          (vendor.shortDescription && vendor.shortDescription.toLowerCase().includes(query))
+        );
+      })
+    : [];
 
   const filteredCategories = VENDOR_CATEGORIES.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -118,9 +160,14 @@ export const VendorsPage = () => {
     <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
       <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Find Your Vendors</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          {searchQuery ? "Search Results" : "Find Your Vendors"}
+        </h1>
         <p className="text-white/90 text-sm">
-          Discover the perfect professionals for your big day
+          {searchQuery 
+            ? `Showing results for "${searchQuery}"`
+            : "Discover the perfect professionals for your big day"
+          }
         </p>
 
         {/* Search Bar */}
@@ -242,13 +289,88 @@ export const VendorsPage = () => {
           </div>
         )}
 
+        {/* Vendor Results */}
+        {searchQuery && filteredVendors.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Vendor Results ({filteredVendors.length})
+              </h3>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
+              >
+                <X className="w-4 h-4" />
+                Clear
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {filteredVendors.map((vendor: any) => (
+                <button
+                  key={`${vendor.category}-${vendor.id}`}
+                  onClick={() => navigate(vendor.route)}
+                  className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all text-left group"
+                >
+                  <div className="flex gap-4">
+                    <img
+                      src={vendor.image}
+                      alt={vendor.name}
+                      className="w-20 h-20 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-gray-900 truncate group-hover:text-rose-600 transition-colors">
+                            {vendor.name}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {vendor.categoryName}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors flex-shrink-0" />
+                      </div>
+                      {vendor.location && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
+                          <MapPin className="w-3 h-3" />
+                          {vendor.location}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                          <span className="text-sm font-semibold text-gray-900">
+                            {vendor.rating}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({vendor.reviewCount})
+                          </span>
+                        </div>
+                        {vendor.pricing && (
+                          <span className="text-xs text-gray-600">
+                            {typeof vendor.pricing === 'string' 
+                              ? vendor.pricing 
+                              : Array.isArray(vendor.pricing) && vendor.pricing[0]
+                              ? `From ${vendor.pricing[0].price}`
+                              : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Category Cards */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900">
-              {searchQuery ? "Search Results" : "Browse by Category"}
+              {searchQuery && filteredVendors.length === 0 ? "No Vendors Found - Browse Categories" : searchQuery ? "Categories" : "Browse by Category"}
             </h3>
-            {searchQuery && (
+            {searchQuery && filteredVendors.length === 0 && (
               <button
                 onClick={() => setSearchQuery("")}
                 className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"

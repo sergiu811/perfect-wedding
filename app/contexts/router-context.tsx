@@ -21,12 +21,12 @@ export const Router = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Set initial path from browser location on mount
     if (typeof window !== "undefined") {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(window.location.pathname + window.location.search);
     }
 
     const handlePopState = () => {
       if (typeof window !== "undefined") {
-        setCurrentPath(window.location.pathname);
+        setCurrentPath(window.location.pathname + window.location.search);
       }
     };
 
@@ -62,15 +62,18 @@ export const Route = ({
 }) => {
   const { currentPath } = useRouter();
 
+  // Strip query string from current path for matching
+  const currentPathWithoutQuery = currentPath.split("?")[0];
+
   // Check for exact match first
-  if (currentPath === path) {
+  if (currentPathWithoutQuery === path) {
     return element || null;
   }
 
   // Check for dynamic route match (e.g., /venues/:id)
   if (path.includes(":")) {
     const pathParts = path.split("/");
-    const currentParts = currentPath.split("/");
+    const currentParts = currentPathWithoutQuery.split("/");
 
     if (pathParts.length !== currentParts.length) {
       return null;
