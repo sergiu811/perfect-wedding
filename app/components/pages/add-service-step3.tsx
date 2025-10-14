@@ -1,15 +1,25 @@
 import React, { useState } from "react";
-import { ArrowLeft, Upload, X, Calendar } from "lucide-react";
+import { ArrowLeft, Upload, X, Calendar, Plus, Trash2, Package } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
 import { useServiceForm } from "~/contexts/service-context";
+
+interface ServicePackage {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+}
 
 export const AddServiceStep3 = () => {
   const { navigate } = useRouter();
   const { updateFormData, formData } = useServiceForm();
   const [selectedDays, setSelectedDays] = useState<string[]>(
     formData.availableDays || []
+  );
+  const [packages, setPackages] = useState<ServicePackage[]>(
+    formData.packages || []
   );
 
   const handleContinue = () => {
@@ -22,6 +32,7 @@ export const AddServiceStep3 = () => {
       serviceRegion: formDataObj.get("serviceRegion") as string,
       videoLink: formDataObj.get("videoLink") as string,
       availableDays: selectedDays,
+      packages: packages,
     });
 
     navigate("/add-service/step-4");
@@ -33,6 +44,28 @@ export const AddServiceStep3 = () => {
     } else {
       setSelectedDays([...selectedDays, day]);
     }
+  };
+
+  const addPackage = () => {
+    const newPackage: ServicePackage = {
+      id: Date.now().toString(),
+      name: "",
+      price: "",
+      description: "",
+    };
+    setPackages([...packages, newPackage]);
+  };
+
+  const removePackage = (id: string) => {
+    setPackages(packages.filter((pkg) => pkg.id !== id));
+  };
+
+  const updatePackage = (id: string, field: keyof ServicePackage, value: string) => {
+    setPackages(
+      packages.map((pkg) =>
+        pkg.id === id ? { ...pkg, [field]: value } : pkg
+      )
+    );
   };
 
   const weekDays = [
@@ -141,6 +174,119 @@ export const AddServiceStep3 = () => {
                 <p className="text-xs text-gray-500">MP4, MOV up to 100MB</p>
               </label>
             </div>
+          </div>
+
+          {/* Service Packages */}
+          <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-rose-600" />
+                <label className="text-base font-bold text-gray-900">
+                  Service Packages (Optional)
+                </label>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Offer different packages at various price points to give couples more options
+            </p>
+
+            {packages.length === 0 ? (
+              <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 mb-4">
+                  No packages added yet
+                </p>
+                <Button
+                  type="button"
+                  onClick={addPackage}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg h-10 px-6"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Package
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {packages.map((pkg, index) => (
+                  <div
+                    key={pkg.id}
+                    className="border-2 border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-rose-600">
+                        Package {index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removePackage(pkg.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                        Package Name *
+                      </label>
+                      <Input
+                        value={pkg.name}
+                        onChange={(e) =>
+                          updatePackage(pkg.id, "name", e.target.value)
+                        }
+                        placeholder="e.g., Basic Package, Premium Package"
+                        className="w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                        Price *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          $
+                        </span>
+                        <Input
+                          value={pkg.price}
+                          onChange={(e) =>
+                            updatePackage(pkg.id, "price", e.target.value)
+                          }
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="w-full bg-white border border-gray-200 rounded-lg h-11 pl-7 pr-3 focus:ring-2 focus:ring-rose-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                        Description *
+                      </label>
+                      <textarea
+                        value={pkg.description}
+                        onChange={(e) =>
+                          updatePackage(pkg.id, "description", e.target.value)
+                        }
+                        placeholder="Describe what's included in this package..."
+                        className="w-full bg-white border border-gray-200 rounded-lg min-h-[80px] p-3 focus:ring-2 focus:ring-rose-600 focus:border-transparent text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  onClick={addPackage}
+                  variant="outline"
+                  className="w-full border-2 border-rose-600 text-rose-600 hover:bg-rose-50 font-semibold rounded-lg h-11"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Another Package
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Availability Calendar */}
