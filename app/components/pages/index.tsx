@@ -17,6 +17,8 @@ export { JoinVendorStep2 } from "./join-vendor-step2";
 export { JoinVendorStep3 } from "./join-vendor-step3";
 export { JoinVendorSuccess } from "./join-vendor-success";
 export { VendorDashboard } from "./vendor-dashboard";
+export { VendorEditProfile } from "./vendor-edit-profile";
+export { VendorPublicProfile } from "./vendor-public-profile";
 export { AddServiceStep1 } from "./add-service-step1";
 export { AddServiceStep2 } from "./add-service-step2";
 export { AddServiceStep3 } from "./add-service-step3";

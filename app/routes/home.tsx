@@ -25,6 +25,8 @@ import {
   JoinVendorStep3,
   JoinVendorSuccess,
   VendorDashboard,
+  VendorEditProfile,
+  VendorPublicProfile,
   AddServiceStep1,
   AddServiceStep2,
   AddServiceStep3,
@@ -110,6 +112,14 @@ export default function App() {
                   <Route
                     path="/vendor-dashboard"
                     element={<VendorDashboard />}
+                  />
+                  <Route
+                    path="/vendor-dashboard/edit-profile"
+                    element={<VendorEditProfile />}
+                  />
+                  <Route
+                    path="/vendor-dashboard/public-profile"
+                    element={<VendorPublicProfile />}
                   />
                   <Route
                     path="/add-service/step-1"
