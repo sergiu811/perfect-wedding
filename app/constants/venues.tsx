@@ -11,6 +11,30 @@ export const VENUES = [
     description:
       "The Grand Ballroom offers a breathtaking setting for your special day. With manicured gardens, a stunning ballroom, and exceptional service, we ensure a memorable wedding experience.",
     pricing: "Packages starting from 120 EUR per person",
+    venueType: "Ballroom",
+    locationType: "Both",
+    cateringInHouse: true,
+    cateringExternal: false,
+    parking: true,
+    accommodation: true,
+    menuPrice: 120,
+    packages: [
+      {
+        name: "Classic Package",
+        price: "8,500",
+        description: "Perfect for intimate weddings\n\n• Venue rental for 6 hours\n• Tables and chairs for up to 100 guests\n• Basic lighting and sound system\n• Dedicated event coordinator\n• Complimentary parking"
+      },
+      {
+        name: "Premium Package",
+        price: "15,000",
+        description: "Our most popular choice\n\n• Venue rental for 8 hours\n• Tables, chairs, and linens for up to 150 guests\n• Premium lighting and sound system\n• Full bar service\n• Dedicated event coordinator\n• Complimentary parking and valet service\n• Bridal suite access"
+      },
+      {
+        name: "Luxury Package",
+        price: "25,000",
+        description: "The ultimate wedding experience\n\n• Venue rental for 10 hours\n• Tables, chairs, and premium linens for up to 200 guests\n• Professional lighting and sound system\n• Full bar and champagne service\n• Dedicated event team\n• Complimentary parking and valet service\n• Bridal and groom suites\n• Red carpet entrance\n• Personalized menu planning"
+      }
+    ],
     rating: 4.8,
     reviewCount: 125,
     gallery: [

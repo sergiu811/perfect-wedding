@@ -339,10 +339,10 @@ export const AddServiceStep3 = () => {
             </p>
           </div>
 
-          {/* Service Region */}
+          {/* Service Region - Only show for non-venue categories */}
           <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
             <label className="text-base font-bold text-gray-900">
-              Service Region / Travel Area *
+              Service Region *
             </label>
             <Input
               name="serviceRegion"
@@ -354,47 +354,6 @@ export const AddServiceStep3 = () => {
             <p className="text-xs text-gray-500">
               Where do you provide your service?
             </p>
-          </div>
-
-          {/* Travel Options */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Travel Options
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="localOnly"
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Local area only</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="regionalTravel"
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Regional travel available</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="nationalTravel"
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>National travel available</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="internationalTravel"
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>International travel available</span>
-              </label>
-            </div>
           </div>
 
           {/* Seasonal Availability */}

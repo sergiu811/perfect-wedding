@@ -33,3 +33,4 @@ export { PlanningStep4 } from "./planning-step4";
 export { PlanningSuccess } from "./planning-success";
 export { GuestListPage } from "./guest-list-page";
 export { SeatingPlannerPage } from "./seating-planner-page";
+export { BudgetDetailsPage } from "./budget-details-page";

@@ -41,6 +41,7 @@ import {
   PlanningSuccess,
   GuestListPage,
   SeatingPlannerPage,
+  BudgetDetailsPage,
 } from "~/components/pages";
 
 export default function App() {
@@ -152,6 +153,10 @@ export default function App() {
                   <Route
                     path="/seating-planner"
                     element={<SeatingPlannerPage />}
+                  />
+                  <Route
+                    path="/budget-details"
+                    element={<BudgetDetailsPage />}
                   />
                 </main>
                 <Navigation />

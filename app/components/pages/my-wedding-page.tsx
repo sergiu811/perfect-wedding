@@ -22,6 +22,9 @@ import {
   Flower2,
   Cake,
   Mail,
+  Palette,
+  Star,
+  Target,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "~/contexts/router-context";
@@ -34,6 +37,7 @@ export const MyWeddingPage = () => {
 
   // Calculate days until wedding
   const getDaysUntilWedding = () => {
+    formData.weddingDate = "2026-09-06";
     if (!formData.weddingDate) return null;
     const wedding = new Date(formData.weddingDate);
     const today = new Date();
@@ -158,11 +162,10 @@ export const MyWeddingPage = () => {
             <h1 className="text-2xl font-bold mb-1">
               Welcome back, {formData.partner1Name || "Sarah"} 💍
             </h1>
-            {daysLeft !== null && (
-              <p className="text-white/90 text-sm">
-                {daysLeft} days left until your big day!
-              </p>
-            )}
+            <p className="text-white/90 text-sm">
+              {formData.weddingType && `${formData.weddingType.charAt(0).toUpperCase() + formData.weddingType.slice(1)} Wedding • `}
+              {daysLeft !== null ? `${daysLeft} days left until your big day!` : 'Set your wedding date to see countdown'}
+            </p>
           </div>
           <button
             onClick={() => navigate("/planning/step-1")}
@@ -278,7 +281,39 @@ export const MyWeddingPage = () => {
                   </p>
                 </div>
               </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 uppercase font-medium">
+                  Type
+                </p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formData.weddingType ? formData.weddingType.charAt(0).toUpperCase() + formData.weddingType.slice(1) : "—"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 uppercase font-medium">
+                  Formality
+                </p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formData.formalityLevel ? formData.formalityLevel.charAt(0).toUpperCase() + formData.formalityLevel.slice(1) : "—"}
+                </p>
+              </div>
             </div>
+            
+            {/* Theme & Colors */}
+            {(formData.themes && formData.themes.length > 0) && (
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                  Theme
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.themes.map((theme: string) => (
+                    <span key={theme} className="px-3 py-1 bg-rose-50 text-rose-700 text-xs font-medium rounded-full">
+                      {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
               <Button
                 onClick={() => navigate("/planning/step-1")}
@@ -292,6 +327,128 @@ export const MyWeddingPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Style & Preferences */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Palette className="w-5 h-5 text-purple-600" />
+                Style & Preferences
+              </h2>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                  Venue Preference
+                </p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formData.venuePreference ? formData.venuePreference.charAt(0).toUpperCase() + formData.venuePreference.slice(1) : 'Indoor'}
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                  Preferred Venue Types
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(formData.venueTypes && formData.venueTypes.length > 0 ? formData.venueTypes : ['Ballroom', 'Garden', 'Hotel']).map((type: string) => (
+                    <span key={type} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded">
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                  Music Styles
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(formData.musicStyles && formData.musicStyles.length > 0 ? formData.musicStyles : ['Pop', 'Jazz', 'Classical']).map((style: string) => (
+                    <span key={style} className="px-2 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        {/* Vendor Priorities */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Target className="w-5 h-5 text-green-600" />
+                Vendor Priorities
+              </h2>
+            </div>
+            <div className="p-4 space-y-3">
+              {(formData.vendorCategories || ['venue', 'photo-video', 'music-dj', 'decorations', 'sweets'])
+                .sort((a: string, b: string) => {
+                  const defaultPriorities: Record<string, number> = {
+                    'venue': 5,
+                    'photo-video': 4,
+                    'music-dj': 3,
+                    'decorations': 4,
+                    'sweets': 3
+                  };
+                  const priorityA = formData.vendorPriorities?.[a] || defaultPriorities[a] || 3;
+                  const priorityB = formData.vendorPriorities?.[b] || defaultPriorities[b] || 3;
+                  return priorityB - priorityA;
+                })
+                .map((category: string) => {
+                  const defaultPriorities: Record<string, number> = {
+                    'venue': 5,
+                    'photo-video': 4,
+                    'music-dj': 3,
+                    'decorations': 4,
+                    'sweets': 3
+                  };
+                  const priority = formData.vendorPriorities?.[category] || defaultPriorities[category] || 3;
+                  
+                  const getPriorityLabel = (p: number) => {
+                    if (p === 5) return { label: 'Critical', color: 'bg-red-100 text-red-700 border-red-200' };
+                    if (p === 4) return { label: 'High', color: 'bg-orange-100 text-orange-700 border-orange-200' };
+                    if (p === 3) return { label: 'Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+                    if (p === 2) return { label: 'Low', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+                    return { label: 'Optional', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+                  };
+                  
+                  const priorityInfo = getPriorityLabel(priority);
+                  
+                  return (
+                    <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <span className="text-sm font-medium text-gray-900">
+                        {category.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityInfo.color}`}>
+                        {priorityInfo.label}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+        {/* What We're Helping With */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-600" />
+                We're Helping You With
+              </h2>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                {(formData.helpTasks || ['Budget Management', 'Vendor Booking', 'Guest List Management', 'Timeline Creation']).map((task: string) => (
+                  <div key={task} className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span className="text-xs font-medium text-gray-900">{task}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
         {/* Planning Progress & Tasks */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
@@ -481,7 +638,10 @@ export const MyWeddingPage = () => {
                 <DollarSign className="w-5 h-5 text-emerald-600" />
                 Budget Tracker
               </h2>
-              <button className="text-sm font-medium text-emerald-600 hover:text-emerald-700">
+              <button 
+                onClick={() => navigate("/budget-details")}
+                className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+              >
                 Details
               </button>
             </div>

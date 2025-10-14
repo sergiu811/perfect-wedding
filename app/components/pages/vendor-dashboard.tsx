@@ -133,59 +133,82 @@ export const VendorDashboard = () => {
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col bg-pink-50">
-      {/* Header */}
-      <header className="flex items-center bg-pink-50 p-4 pb-2 justify-between sticky top-0 z-10">
-        <button onClick={() => navigate("/")} className="text-gray-900">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-lg font-bold text-gray-900 leading-tight flex-1 text-center pr-6">
-          Vendor Dashboard
-        </h1>
-      </header>
+      {/* Header & Summary Banner */}
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold mb-1">
+              Elegant Events Co. 💼
+            </h1>
+            <p className="text-white/90 text-sm">
+              Wedding Planner
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="bg-white/20 hover:bg-white/30 p-2 rounded-full backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        </div>
 
-      <main className="p-4 space-y-4 flex-1">
-          {/* Header Card */}
-          <div className="rounded-xl bg-white p-4 shadow-sm space-y-4">
-            <div className="flex items-stretch justify-between gap-4">
-              <div className="flex flex-col gap-1.5 flex-1">
-                <p className="text-rose-600 text-sm font-semibold uppercase tracking-wide">
-                  Wedding Planner
-                </p>
-                <p className="text-gray-900 text-xl font-bold leading-tight">
-                  Elegant Events Co.
-                </p>
-                <p className="text-gray-600 text-sm mt-1">
-                  Specializing in luxury weddings, Elegant Events Co. offers
-                  bespoke planning services.
-                </p>
+        {/* Stats Summary */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Eye className="w-4 h-4 text-white/80" />
+                <p className="text-white/90 text-xs">Views</p>
               </div>
-              <div
-                className="w-20 h-20 bg-center bg-no-repeat bg-cover rounded-lg flex-shrink-0"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-5167758481-83f29da8fd36?w=400&q=80")',
-                }}
-              />
+              <p className="text-2xl font-bold">{stats.profileViews}</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={() => navigate("/vendor-dashboard/public-profile")}
-                variant="outline"
-                className="flex items-center justify-center gap-2 border-2 border-rose-600 text-rose-600 hover:bg-rose-50 font-semibold rounded-lg h-11"
-              >
-                <Eye className="w-4 h-4" />
-                <span>View Profile</span>
-              </Button>
-              <Button
-                onClick={() => navigate("/vendor-dashboard/edit-profile")}
-                className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg h-11"
-              >
-                <Edit className="w-4 h-4" />
-                <span>Edit Profile</span>
-              </Button>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <MessageCircle className="w-4 h-4 text-white/80" />
+                <p className="text-white/90 text-xs">Inquiries</p>
+              </div>
+              <p className="text-2xl font-bold">{stats.inquiries}</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Heart className="w-4 h-4 text-white/80" />
+                <p className="text-white/90 text-xs">Saved</p>
+              </div>
+              <p className="text-2xl font-bold">{stats.savedByCouples}</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Star className="w-4 h-4 text-white/80" />
+                <p className="text-white/90 text-xs">Rating</p>
+              </div>
+              <p className="text-2xl font-bold">
+                {stats.rating}
+                <span className="text-sm font-normal text-white/80">/5</span>
+              </p>
             </div>
           </div>
+        </div>
 
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <Button
+            onClick={() => navigate("/vendor-dashboard/public-profile")}
+            className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border-2 border-white/30 font-semibold rounded-lg h-11"
+          >
+            <Eye className="w-4 h-4" />
+            <span>View Profile</span>
+          </Button>
+          <Button
+            onClick={() => navigate("/vendor-dashboard/edit-profile")}
+            className="flex items-center justify-center gap-2 bg-white hover:bg-white/90 text-rose-600 font-semibold rounded-lg h-11"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </Button>
+        </div>
+      </div>
+
+      <main className="p-4 space-y-4 flex-1">
           {/* Add Service Button */}
           <Button
             onClick={() => navigate("/add-service/step-1")}
@@ -223,60 +246,6 @@ export const VendorDashboard = () => {
           <div className="space-y-4">
             {activeTab === "dashboard" && (
               <div className="space-y-4 animate-in fade-in duration-300">
-                {/* Quick Stats Section */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Eye className="w-5 h-5 text-blue-600" />
-                      <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
-                        Profile Views
-                      </p>
-                    </div>
-                    <p className="text-3xl font-bold text-blue-900">
-                      {stats.profileViews}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageCircle className="w-5 h-5 text-purple-600" />
-                      <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide">
-                        Inquiries
-                      </p>
-                    </div>
-                    <p className="text-3xl font-bold text-purple-900">
-                      {stats.inquiries}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Heart className="w-5 h-5 text-pink-600" />
-                      <p className="text-xs font-semibold text-pink-900 uppercase tracking-wide">
-                        Saved
-                      </p>
-                    </div>
-                    <p className="text-3xl font-bold text-pink-900">
-                      {stats.savedByCouples}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-5 h-5 text-amber-600" />
-                      <p className="text-xs font-semibold text-amber-900 uppercase tracking-wide">
-                        Rating
-                      </p>
-                    </div>
-                    <p className="text-3xl font-bold text-amber-900">
-                      {stats.rating}
-                      <span className="text-base font-normal text-amber-700">
-                        /5
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
                 {/* Upcoming Bookings Section */}
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">

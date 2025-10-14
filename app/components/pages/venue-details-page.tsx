@@ -81,19 +81,117 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
 
         {/* Info Cards */}
         <div className="space-y-4">
+          {/* Venue Type */}
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900">Capacity</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Venue Type</h3>
+            <p className="text-gray-600">{venue.venueType || 'Ballroom'}</p>
+          </div>
+
+          {/* Capacity */}
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Capacity</h3>
             <p className="text-gray-600">{venue.capacity}</p>
           </div>
+
+          {/* Location Type */}
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900">Pricing</h3>
-            <p className="text-gray-600">{venue.pricing}</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Location Type</h3>
+            <p className="text-gray-600">{venue.locationType || 'Indoor'}</p>
           </div>
+
+          {/* Catering Options */}
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900">Available Dates</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Catering Options</h3>
+            <div className="space-y-2">
+              {venue.cateringInHouse && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
+                  <span className="text-gray-600">In-house catering</span>
+                </div>
+              )}
+              {venue.cateringExternal && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
+                  <span className="text-gray-600">External catering allowed</span>
+                </div>
+              )}
+              {!venue.cateringInHouse && !venue.cateringExternal && (
+                <p className="text-gray-600">No catering available</p>
+              )}
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Amenities</h3>
+            <div className="space-y-2">
+              {venue.parking && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Parking available</span>
+                </div>
+              )}
+              {venue.accommodation && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Accommodation available</span>
+                </div>
+              )}
+              {!venue.parking && !venue.accommodation && (
+                <p className="text-gray-600">No additional amenities</p>
+              )}
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Pricing</h3>
+            <p className="text-gray-600">{venue.pricing}</p>
+            {venue.menuPrice && (
+              <p className="text-sm text-gray-500 mt-1">
+                Menu: ${venue.menuPrice} per person
+              </p>
+            )}
+          </div>
+
+          {/* Available Dates */}
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Available Dates</h3>
             <p className="text-gray-600">Contact us for availability</p>
           </div>
         </div>
+
+        {/* Packages */}
+        {venue.packages && venue.packages.length > 0 && (
+          <div>
+            <h3 className="text-2xl font-bold mb-4">Packages</h3>
+            <div className="space-y-4">
+              {venue.packages.map((pkg: any, index: number) => (
+                <div
+                  key={index}
+                  className="bg-white p-5 rounded-xl border-2 border-gray-200 shadow-sm hover:border-rose-300 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="text-xl font-bold text-gray-900 mb-1">
+                        {pkg.name}
+                      </h4>
+                      <p className="text-2xl font-bold text-rose-600">
+                        ${pkg.price}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-rose-100 text-rose-700 text-xs font-semibold rounded-full">
+                      Package {index + 1}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {pkg.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Reviews */}
         <VenueReviews
