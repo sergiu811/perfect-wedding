@@ -21,7 +21,7 @@ export const SweetsPage = () => {
 
   return (
     <div className="flex-grow pb-6">
-      <Header title="Sweets" onBack={() => navigate("/")} />
+      <Header title="Sweets" onBack={() => navigate("/vendors")} />
 
       {/* Filters */}
       <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">

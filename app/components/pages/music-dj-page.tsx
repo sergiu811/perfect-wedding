@@ -21,7 +21,7 @@ export const MusicDJPage = () => {
 
   return (
     <div className="flex-grow pb-6">
-      <Header title="Music/DJ" onBack={() => navigate("/")} />
+      <Header title="Music/DJ" onBack={() => navigate("/vendors")} />
 
       {/* Filters */}
       <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">

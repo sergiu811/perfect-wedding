@@ -21,7 +21,7 @@ export const InvitationsPage = () => {
 
   return (
     <div className="flex-grow pb-6">
-      <Header title="Invitations" onBack={() => navigate("/")} />
+      <Header title="Invitations" onBack={() => navigate("/vendors")} />
 
       {/* Filters */}
       <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">

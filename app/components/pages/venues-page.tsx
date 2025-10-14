@@ -20,7 +20,7 @@ export const VenuesPage = () => {
 
   return (
     <div className="flex-grow pb-6">
-      <Header title="Venues" onBack={() => navigate("/")} />
+      <Header title="Venues" onBack={() => navigate("/vendors")} />
 
       {/* Filters */}
       <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">
