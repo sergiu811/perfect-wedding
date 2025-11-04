@@ -48,7 +48,8 @@ export const MusicianDetailsPage = ({
     <div className="relative flex min-h-screen w-full flex-col justify-between bg-pink-50">
       <div className="pb-24">
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center justify-between bg-pink-50/95 px-4 py-3 backdrop-blur-sm">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-pink-50/95 px-4 lg:px-8 py-3 backdrop-blur-sm border-b border-gray-200">
+        <div className="flex items-center justify-between max-w-7xl mx-auto w-full">
           <button
             onClick={() => navigate("/music-dj")}
             className="flex size-10 items-center justify-center rounded-full text-gray-900"
@@ -70,26 +71,27 @@ export const MusicianDetailsPage = ({
               />
             </button>
           </div>
+        </div>
         </header>
 
         <main>
           {/* Hero Image */}
           <div
-            className="h-64 w-full bg-cover bg-center"
+            className="h-64 lg:h-96 w-full bg-cover bg-center"
             style={{ backgroundImage: `url(${musician.image})` }}
           />
 
           {/* Description */}
-          <div className="px-4 py-6">
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="px-4 lg:px-8 py-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl lg:text-5xl font-bold text-gray-900">
               {musician.name}
             </h1>
-            <p className="mt-2 text-gray-600">{musician.description}</p>
+            <p className="mt-2 text-base lg:text-lg text-gray-600">{musician.description}</p>
           </div>
 
           {/* Musical Genres */}
-          <div className="px-4 pb-6">
-            <h3 className="text-xl font-bold text-gray-900">Musical Genres</h3>
+          <div className="px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900">Musical Genres</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {musician.genres.map((genre, index) => (
                 <span
@@ -103,7 +105,7 @@ export const MusicianDetailsPage = ({
           </div>
 
           {/* Service Packages */}
-          <div className="space-y-6 px-4 pb-6">
+          <div className="space-y-6 px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
             <h3 className="text-xl font-bold text-gray-900">
               Service Packages
             </h3>
@@ -133,7 +135,7 @@ export const MusicianDetailsPage = ({
           </div>
 
           {/* Availability */}
-          <div className="px-4 pb-6">
+          <div className="px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
             <h3 className="text-xl font-bold text-gray-900">Availability</h3>
             <div className="mt-4 rounded-lg bg-white p-4 shadow-sm">
               <p className="text-center text-gray-600">
@@ -143,7 +145,7 @@ export const MusicianDetailsPage = ({
           </div>
 
           {/* Client Reviews */}
-          <div className="px-4 pb-6">
+          <div className="px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
             <h3 className="text-xl font-bold text-gray-900">Client Reviews</h3>
             <div className="mt-4 flex items-start gap-6">
               <div className="flex flex-col items-center">
@@ -173,7 +175,7 @@ export const MusicianDetailsPage = ({
 
           {/* Individual Reviews */}
           {musician.reviews.length > 0 && (
-            <div className="space-y-6 px-4 pb-6">
+            <div className="space-y-6 px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
               {musician.reviews.map((review) => (
                 <div key={review.id} className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
@@ -196,7 +198,7 @@ export const MusicianDetailsPage = ({
           )}
 
           {/* Audio Samples */}
-          <div className="px-4 pb-6">
+          <div className="px-4 lg:px-8 pb-6 max-w-7xl mx-auto">
             <h3 className="text-xl font-bold text-gray-900">Audio Samples</h3>
             <div className="mt-4 space-y-2">
               {musician.audioSamples.map((sample) => (

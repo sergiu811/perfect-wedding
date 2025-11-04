@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { Sparkles, User, Heart, Calendar, Users, CheckCircle, Star, ArrowRight, Search } from "lucide-react";
+import {
+  Sparkles,
+  User,
+  Heart,
+  Calendar,
+  Users,
+  CheckCircle,
+  Star,
+  ArrowRight,
+  Search,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   SearchBar,
@@ -49,24 +59,25 @@ export const HomePage = () => {
     {
       icon: Calendar,
       title: "Smart Planning",
-      description: "AI-powered timeline and checklist tailored to your wedding date"
+      description:
+        "AI-powered timeline and checklist tailored to your wedding date",
     },
     {
       icon: Users,
       title: "Vendor Marketplace",
-      description: "Connect with verified vendors and compare quotes instantly"
+      description: "Connect with verified vendors and compare quotes instantly",
     },
     {
       icon: Heart,
       title: "Guest Management",
-      description: "Track RSVPs, dietary preferences, and seating arrangements"
-    }
+      description: "Track RSVPs, dietary preferences, and seating arrangements",
+    },
   ];
 
   const stats = [
     { number: "10,000+", label: "Happy Couples" },
     { number: "5,000+", label: "Verified Vendors" },
-    { number: "50,000+", label: "Successful Events" }
+    { number: "50,000+", label: "Successful Events" },
   ];
 
   return (
@@ -91,23 +102,26 @@ export const HomePage = () => {
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-pink-50" />
-        
+
         {/* Hero Content */}
         <div className="relative z-10 text-center px-5 lg:px-8 max-w-5xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full mb-6 shadow-lg">
             <Sparkles className="w-4 h-4 text-rose-600" />
-            <span className="text-sm font-semibold text-gray-900">Your Dream Wedding Starts Here</span>
+            <span className="text-sm font-semibold text-gray-900">
+              Your Dream Wedding Starts Here
+            </span>
           </div>
-          
+
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
             Plan Your Perfect
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">
               Wedding Day
             </span>
           </h1>
-          
+
           <p className="text-lg lg:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Connect with top vendors, manage your guest list, and create unforgettable memories—all in one place.
+            Connect with top vendors, manage your guest list, and create
+            unforgettable memories—all in one place.
           </p>
 
           {/* CTA Buttons */}
@@ -142,10 +156,6 @@ export const HomePage = () => {
             </form>
           </div>
         </div>
-
-        {/* Decorative Elements */}
-        <div className="absolute top-10 left-10 text-6xl opacity-20 animate-pulse">💐</div>
-        <div className="absolute bottom-20 right-10 text-6xl opacity-20 animate-pulse delay-1000">💍</div>
       </div>
 
       {/* Stats Section */}
@@ -174,7 +184,8 @@ export const HomePage = () => {
               Everything You Need in One Place
             </h2>
             <p className="text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto">
-              From planning to execution, we've got you covered every step of the way
+              From planning to execution, we've got you covered every step of
+              the way
             </p>
           </div>
 
@@ -232,7 +243,7 @@ export const HomePage = () => {
           <p className="text-lg lg:text-xl text-white/90 mb-8">
             Join thousands of couples who planned their dream wedding with us
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               onClick={() => navigate("/planning/step-1")}
@@ -257,15 +268,16 @@ export const HomePage = () => {
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+              <Star
+                key={i}
+                className="w-6 h-6 fill-yellow-400 text-yellow-400"
+              />
             ))}
           </div>
           <p className="text-xl lg:text-2xl text-gray-900 font-semibold mb-2">
             "The best wedding planning platform we've used!"
           </p>
-          <p className="text-gray-600">
-            Rated 4.9/5 by over 10,000 couples
-          </p>
+          <p className="text-gray-600">Rated 4.9/5 by over 10,000 couples</p>
         </div>
       </div>
     </PageContainer>

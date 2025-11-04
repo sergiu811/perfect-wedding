@@ -62,8 +62,8 @@ export const PhotographerDetailsPage = ({
   return (
     <div className="relative flex flex-col min-h-screen w-full bg-pink-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4">
+      <header className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 lg:px-8 max-w-7xl mx-auto w-full">
           <button
             onClick={() => navigate("/photo-video")}
             className="text-gray-900"
@@ -86,7 +86,7 @@ export const PhotographerDetailsPage = ({
 
       <main className="flex-grow">
         {/* Image Carousel */}
-        <div className="relative h-64">
+        <div className="relative h-64 lg:h-96">
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-300"
             style={{
@@ -122,33 +122,33 @@ export const PhotographerDetailsPage = ({
           </div>
         </div>
 
-        <div className="p-4 space-y-8">
+        <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-7xl mx-auto">
           {/* Title */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl lg:text-5xl font-bold text-gray-900">
               {photographer.businessName}
             </h1>
-            <p className="mt-2 text-gray-700">{photographer.description}</p>
+            <p className="mt-2 text-base lg:text-lg text-gray-700">{photographer.description}</p>
           </div>
 
           {/* About & Specialty */}
-          <div className="p-4 bg-white rounded-xl space-y-4 shadow-sm">
+          <div className="p-4 lg:p-6 bg-white rounded-xl space-y-4 shadow-sm">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">About</h3>
-              <p className="mt-2 text-gray-700">{photographer.about}</p>
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900">About</h3>
+              <p className="mt-2 text-base lg:text-lg text-gray-700">{photographer.about}</p>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Specialty</h3>
-              <p className="mt-2 text-gray-700">{photographer.specialty}</p>
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900">Specialty</h3>
+              <p className="mt-2 text-base lg:text-lg text-gray-700">{photographer.specialty}</p>
             </div>
           </div>
 
           {/* Packages & Pricing */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
               Packages & Pricing
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
               {photographer.packages.map((pkg) => (
                 <div
                   key={pkg.id}
@@ -168,7 +168,7 @@ export const PhotographerDetailsPage = ({
 
           {/* Availability Calendar Placeholder */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
               Availability
             </h3>
             <div className="p-4 bg-white rounded-xl shadow-sm">
@@ -180,7 +180,7 @@ export const PhotographerDetailsPage = ({
 
           {/* Testimonials */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
               Testimonials
             </h3>
             <div className="space-y-6">

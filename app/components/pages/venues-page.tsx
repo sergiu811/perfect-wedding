@@ -24,7 +24,7 @@ export const VenuesPage = () => {
 
       <div className="max-w-7xl mx-auto">
         {/* Filters */}
-        <div className="flex gap-3 overflow-x-auto px-4 lg:px-8 py-4 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto px-4 lg:px-8 py-4 lg:py-6 scrollbar-hide">
           {VENUE_FILTERS.map((filter) => (
             <FilterButton
               key={filter.id}
@@ -36,7 +36,7 @@ export const VenuesPage = () => {
         </div>
 
         {/* Venue List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 px-4 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 px-4 lg:px-8">
           {VENUES.map((venue) => (
             <VenueCard key={venue.id} venue={venue} onClick={handleVenueClick} />
           ))}

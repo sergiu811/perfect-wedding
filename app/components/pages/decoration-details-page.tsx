@@ -46,10 +46,10 @@ export const DecorationDetailsPage = ({
   ];
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
+    <div className="min-h-screen flex flex-col bg-pink-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4">
+      <header className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 lg:px-8 max-w-7xl mx-auto w-full">
           <button
             onClick={() => navigate("/decorations")}
             className="p-2 rounded-full hover:bg-rose-600/20"
@@ -76,7 +76,7 @@ export const DecorationDetailsPage = ({
 
       <main className="flex-grow pb-24">
         {/* Hero Image with Carousel */}
-        <div className="h-80 bg-cover bg-center relative">
+        <div className="h-64 lg:h-96 bg-cover bg-center relative">
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-300"
             style={{
@@ -97,13 +97,13 @@ export const DecorationDetailsPage = ({
           </div>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div className="p-6 lg:p-8 space-y-6 lg:space-y-8 max-w-7xl mx-auto">
           {/* Title & Description */}
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="text-center">
+            <h1 className="text-3xl lg:text-5xl font-bold text-gray-900">
               {decoration.name}
             </h1>
-            <p className="text-gray-600 mt-2">{decoration.description}</p>
+            <p className="mt-2 text-base lg:text-lg text-gray-700">{decoration.description}</p>
           </div>
 
           {/* Available Styles */}
@@ -124,28 +124,28 @@ export const DecorationDetailsPage = ({
           </div>
 
           {/* Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-200 pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 border-t border-gray-200 pt-6">
             <div>
-              <h2 className="text-xl font-bold mb-2 text-gray-900">Pricing</h2>
-              <p className="text-gray-600">{decoration.pricingDetails}</p>
+              <h2 className="text-xl lg:text-2xl font-bold mb-2 text-gray-900">Pricing</h2>
+              <p className="text-gray-600 lg:text-lg">{decoration.pricingDetails}</p>
             </div>
             <div>
               <h2 className="text-xl font-bold mb-2 text-gray-900">
                 Customization
               </h2>
-              <p className="text-gray-600">{decoration.customization}</p>
+              <p className="text-gray-600 lg:text-lg">{decoration.customization}</p>
             </div>
             <div className="md:col-span-2">
               <h2 className="text-xl font-bold mb-2 text-gray-900">
                 Rental & Purchase
               </h2>
-              <p className="text-gray-600">{decoration.rentalInfo}</p>
+              <p className="text-gray-600 lg:text-lg">{decoration.rentalInfo}</p>
             </div>
           </div>
 
           {/* Reviews */}
           <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Reviews</h2>
+            <h2 className="text-xl lg:text-2xl font-bold mb-4 text-gray-900">Reviews</h2>
             <div className="flex items-start gap-6">
               <div className="text-center">
                 <p className="text-5xl font-extrabold text-amber-500">

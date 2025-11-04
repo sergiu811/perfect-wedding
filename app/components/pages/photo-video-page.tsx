@@ -20,11 +20,12 @@ export const PhotoVideoPage = () => {
   };
 
   return (
-    <div className="flex-grow pb-6">
+    <div className="flex-grow pb-6 lg:pb-8">
       <Header title="Photo & Video" onBack={() => navigate("/vendors")} />
 
+      <div className="max-w-7xl mx-auto">
       {/* Filters */}
-      <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto px-4 lg:px-8 py-4 lg:py-6 scrollbar-hide">
         {PHOTOGRAPHER_FILTERS.map((filter) => (
           <FilterButton
             key={filter.id}
@@ -36,7 +37,7 @@ export const PhotoVideoPage = () => {
       </div>
 
       {/* Photographer List */}
-      <main className="space-y-4 px-4">
+      <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 px-4 lg:px-8">
         {PHOTOGRAPHERS.map((photographer) => (
           <PhotographerCard
             key={photographer.id}
@@ -45,6 +46,7 @@ export const PhotoVideoPage = () => {
           />
         ))}
       </main>
+      </div>
     </div>
   );
 };

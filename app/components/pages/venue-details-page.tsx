@@ -34,10 +34,10 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
   }
 
   return (
-    <div className="flex-grow pb-6">
+    <div className="flex-grow pb-6 lg:pb-8">
       {/* Header with Favorite Button */}
-      <div className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4 pb-2">
+      <div className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 lg:px-8 pb-2 max-w-7xl mx-auto">
           <Header
             title="Venue Details"
             onBack={() => navigate("/venues")}
@@ -58,50 +58,68 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
 
       {/* Hero Image */}
       <div
-        className="w-full h-80 bg-cover bg-center"
+        className="w-full h-64 lg:h-96 bg-cover bg-center"
         style={{ backgroundImage: `url(${venue.image})` }}
       />
 
       {/* Content */}
-      <div className="p-6 space-y-6">
+      <div className="p-6 lg:p-8 space-y-6 lg:space-y-8 max-w-7xl mx-auto">
         {/* Title & Location */}
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">{venue.name}</h2>
-          <p className="text-gray-600 text-lg">{venue.location}</p>
+          <h2 className="text-3xl lg:text-5xl font-bold text-gray-900">
+            {venue.name}
+          </h2>
+          <p className="text-gray-600 text-lg lg:text-xl">{venue.location}</p>
         </div>
 
         {/* Description */}
-        <p className="text-base text-gray-700">{venue.description}</p>
+        <p className="text-base lg:text-lg text-gray-700 leading-relaxed">
+          {venue.description}
+        </p>
 
         {/* Gallery */}
         <div>
-          <h3 className="text-2xl font-bold mb-3">Gallery</h3>
+          <h3 className="text-2xl lg:text-3xl font-bold mb-4 lg:mb-6">
+            Gallery
+          </h3>
           <VenueGallery gallery={venue.gallery} />
         </div>
 
         {/* Info Cards */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
           {/* Venue Type */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Venue Type</h3>
-            <p className="text-gray-600">{venue.venueType || 'Ballroom'}</p>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+              Venue Type
+            </h3>
+            <p className="text-gray-600 lg:text-lg">
+              {venue.venueType || "Ballroom"}
+            </p>
           </div>
 
           {/* Capacity */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Capacity</h3>
-            <p className="text-gray-600">{venue.capacity}</p>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+              Capacity
+            </h3>
+            <p className="text-gray-600 lg:text-lg">{venue.capacity}</p>
           </div>
 
           {/* Location Type */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Location Type</h3>
-            <p className="text-gray-600">{venue.locationType || 'Indoor'}</p>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+              Location Type
+            </h3>
+            <p className="text-gray-600 lg:text-lg">
+              {venue.locationType || "Indoor"}
+            </p>
           </div>
 
           {/* Catering Options */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Catering Options</h3>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">
+              Catering Options
+            </h3>
             <div className="space-y-2">
               {venue.cateringInHouse && (
                 <div className="flex items-center gap-2">
@@ -112,7 +130,9 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
               {venue.cateringExternal && (
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
-                  <span className="text-gray-600">External catering allowed</span>
+                  <span className="text-gray-600">
+                    External catering allowed
+                  </span>
                 </div>
               )}
               {!venue.cateringInHouse && !venue.cateringExternal && (
@@ -122,8 +142,10 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
           </div>
 
           {/* Amenities */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Amenities</h3>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">
+              Amenities
+            </h3>
             <div className="space-y-2">
               {venue.parking && (
                 <div className="flex items-center gap-2">
@@ -144,9 +166,11 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
           </div>
 
           {/* Pricing */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Pricing</h3>
-            <p className="text-gray-600">{venue.pricing}</p>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+              Pricing
+            </h3>
+            <p className="text-gray-600 lg:text-lg">{venue.pricing}</p>
             {venue.menuPrice && (
               <p className="text-sm text-gray-500 mt-1">
                 Menu: ${venue.menuPrice} per person
@@ -155,21 +179,27 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
           </div>
 
           {/* Available Dates */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Available Dates</h3>
-            <p className="text-gray-600">Contact us for availability</p>
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+              Available Dates
+            </h3>
+            <p className="text-gray-600 lg:text-lg">
+              Contact us for availability
+            </p>
           </div>
         </div>
 
         {/* Packages */}
         {venue.packages && venue.packages.length > 0 && (
           <div>
-            <h3 className="text-2xl font-bold mb-4">Packages</h3>
-            <div className="space-y-4">
+            <h3 className="text-2xl lg:text-3xl font-bold mb-4 lg:mb-6">
+              Packages
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {venue.packages.map((pkg: any, index: number) => (
                 <div
                   key={index}
-                  className="bg-white p-5 rounded-xl border-2 border-gray-200 shadow-sm hover:border-rose-300 transition-all"
+                  className="bg-white p-5 lg:p-6 rounded-xl border-2 border-gray-200 shadow-sm hover:border-rose-300 transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -202,13 +232,19 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
       </div>
 
       {/* Sticky Footer with CTA */}
-      <div className="sticky bottom-0 bg-pink-50 border-t border-gray-200 px-6 py-4">
-        <Button 
-          onClick={() => navigate(`/contact-vendor/${venue.id}?name=${encodeURIComponent(venue.name)}&category=venue`)}
-          className="w-full h-12 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-lg font-bold shadow-lg"
-        >
-          Check Availability
-        </Button>
+      <div className="sticky bottom-0 bg-pink-50 border-t border-gray-200 px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto">
+          <Button
+            onClick={() =>
+              navigate(
+                `/contact-vendor/${venue.id}?name=${encodeURIComponent(venue.name)}&category=venue`
+              )
+            }
+            className="w-full h-12 lg:h-14 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-lg lg:text-xl font-bold shadow-lg"
+          >
+            Check Availability
+          </Button>
+        </div>
       </div>
     </div>
   );
