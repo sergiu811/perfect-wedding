@@ -79,34 +79,34 @@ export const AddServiceStep3 = () => {
   ];
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
-      <header className="flex items-center p-4 bg-white border-b border-gray-200">
+      <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
         <button
           onClick={() => navigate("/add-service/step-2")}
           className="text-gray-900"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
+        <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Media & Availability
         </h1>
       </header>
 
       {/* Progress Indicator */}
-      <div className="px-4 py-4 bg-white border-b border-gray-100">
+      <div className="py-4 lg:py-5 bg-white border-b border-gray-100 -mx-4 lg:-mx-8 px-4 lg:px-8">
         <div className="flex items-center gap-2">
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
         </div>
-        <p className="text-sm text-gray-600 mt-2 text-center font-medium">
+        <p className="text-sm lg:text-base text-gray-600 mt-2 text-center font-medium">
           Step 3 of 4: Media & Availability
         </p>
       </div>
 
-      <main className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto">
         <form className="space-y-6">
           {/* Photo Gallery Upload */}
           <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -400,10 +400,10 @@ export const AddServiceStep3 = () => {
       </main>
 
       {/* Footer */}
-      <footer className="p-4 space-y-3 bg-white border-t border-gray-200">
+      <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 sticky bottom-0 -mx-4 lg:-mx-8">
         <Button
           onClick={handleContinue}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 text-base shadow-lg"
+          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"
         >
           Continue to Review & Publish
         </Button>

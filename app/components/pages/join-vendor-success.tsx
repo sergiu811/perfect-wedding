@@ -15,8 +15,9 @@ export const JoinVendorSuccess = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
-      <main className="flex-1 px-4 py-12 flex flex-col items-center justify-center space-y-8">
+    <div className="min-h-screen flex flex-col bg-pink-50">
+      <div className="max-w-2xl mx-auto w-full">
+      <main className="flex-1 px-4 lg:px-6 py-12 lg:py-16 flex flex-col items-center justify-center space-y-8">
         {/* Success Icon */}
         <div className="relative">
           <div className="w-24 h-24 bg-rose-600 rounded-full flex items-center justify-center shadow-lg">
@@ -102,6 +103,7 @@ export const JoinVendorSuccess = () => {
           Go to Dashboard
         </Button>
       </footer>
+      </div>
     </div>
   );
 };

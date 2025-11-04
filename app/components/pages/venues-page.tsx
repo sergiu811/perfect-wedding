@@ -19,26 +19,28 @@ export const VenuesPage = () => {
   };
 
   return (
-    <div className="flex-grow pb-6">
+    <div className="flex-grow pb-6 lg:pb-8">
       <Header title="Venues" onBack={() => navigate("/vendors")} />
 
-      {/* Filters */}
-      <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide">
-        {VENUE_FILTERS.map((filter) => (
-          <FilterButton
-            key={filter.id}
-            label={filter.label}
-            onClick={() => handleFilterClick(filter.id)}
-            active={activeFilter === filter.id}
-          />
-        ))}
-      </div>
+      <div className="max-w-7xl mx-auto">
+        {/* Filters */}
+        <div className="flex gap-3 overflow-x-auto px-4 lg:px-8 py-4 scrollbar-hide">
+          {VENUE_FILTERS.map((filter) => (
+            <FilterButton
+              key={filter.id}
+              label={filter.label}
+              onClick={() => handleFilterClick(filter.id)}
+              active={activeFilter === filter.id}
+            />
+          ))}
+        </div>
 
-      {/* Venue List */}
-      <div className="space-y-5 px-4">
-        {VENUES.map((venue) => (
-          <VenueCard key={venue.id} venue={venue} onClick={handleVenueClick} />
-        ))}
+        {/* Venue List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 px-4 lg:px-8">
+          {VENUES.map((venue) => (
+            <VenueCard key={venue.id} venue={venue} onClick={handleVenueClick} />
+          ))}
+        </div>
       </div>
     </div>
   );

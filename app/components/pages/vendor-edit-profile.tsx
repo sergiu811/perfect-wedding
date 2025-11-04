@@ -31,21 +31,21 @@ export const VendorEditProfile = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
-      <header className="flex items-center p-4 bg-white border-b border-gray-200">
+      <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
         <button
           onClick={() => navigate("/vendor-dashboard")}
           className="text-gray-900"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
+        <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Edit Profile
         </h1>
       </header>
 
-      <main className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto">
         <form onSubmit={handleSave} className="space-y-6">
           {/* Profile Photo */}
           <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -359,10 +359,10 @@ export const VendorEditProfile = () => {
       </main>
 
       {/* Footer */}
-      <footer className="p-4 space-y-3 bg-white border-t border-gray-200">
+      <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 sticky bottom-0 -mx-4 lg:-mx-8">
         <Button
           onClick={handleSave}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 text-base shadow-lg"
+          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"
         >
           Save Changes
         </Button>

@@ -154,15 +154,16 @@ export const MyWeddingPage = () => {
   const budgetPercent = Math.round((budgetAllocated / budgetTotal) * 100);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 lg:pb-8">
       {/* Header & Summary Banner */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
+        <div className="max-w-7xl mx-auto">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-1">
               Welcome back, {formData.partner1Name || "Sarah"} 💍
             </h1>
-            <p className="text-white/90 text-sm">
+            <p className="text-white/90 text-sm lg:text-base">
               {formData.weddingType && `${formData.weddingType.charAt(0).toUpperCase() + formData.weddingType.slice(1)} Wedding • `}
               {daysLeft !== null ? `${daysLeft} days left until your big day!` : 'Set your wedding date to see countdown'}
             </p>
@@ -176,11 +177,11 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Progress Ring */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mt-4">
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 mt-4 max-w-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/90 text-sm mb-1">Planning Progress</p>
-              <p className="text-2xl font-bold">{progressPercent}%</p>
+              <p className="text-white/90 text-sm lg:text-base mb-1">Planning Progress</p>
+              <p className="text-2xl lg:text-3xl font-bold">{progressPercent}%</p>
             </div>
             <div className="relative">
               <svg className="w-16 h-16 transform -rotate-90">
@@ -209,13 +210,17 @@ export const MyWeddingPage = () => {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
-      <main className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+      <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          {/* Desktop: 2-column layout, Mobile: 1-column */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Wedding Overview Card */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
               <Heart className="w-5 h-5 text-rose-600" />
               Wedding Overview
             </h2>
@@ -329,14 +334,14 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Style & Preferences */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Palette className="w-5 h-5 text-purple-600" />
                 Style & Preferences
               </h2>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 lg:p-5 space-y-4">
               <div>
                 <p className="text-xs text-gray-500 uppercase font-medium mb-2">
                   Venue Preference
@@ -375,14 +380,14 @@ export const MyWeddingPage = () => {
           </div>
 
         {/* Vendor Priorities */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Target className="w-5 h-5 text-green-600" />
                 Vendor Priorities
               </h2>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 lg:p-5 space-y-3">
               {(formData.vendorCategories || ['venue', 'photo-video', 'music-dj', 'decorations', 'sweets'])
                 .sort((a: string, b: string) => {
                   const defaultPriorities: Record<string, number> = {
@@ -431,14 +436,14 @@ export const MyWeddingPage = () => {
           </div>
 
         {/* What We're Helping With */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 lg:p-5 border-b border-gray-100">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-600" />
                 We're Helping You With
               </h2>
             </div>
-            <div className="p-4">
+            <div className="p-4 lg:p-5">
               <div className="grid grid-cols-2 gap-2">
                 {(formData.helpTasks || ['Budget Management', 'Vendor Booking', 'Guest List Management', 'Timeline Creation']).map((task: string) => (
                   <div key={task} className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
@@ -451,10 +456,10 @@ export const MyWeddingPage = () => {
           </div>
 
         {/* Planning Progress & Tasks */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-blue-600" />
                 Planning Tasks
               </h2>
@@ -463,7 +468,7 @@ export const MyWeddingPage = () => {
               </span>
             </div>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5 space-y-3">
             {/* AI Suggestion */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <div className="flex items-start gap-2">
@@ -520,14 +525,14 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Booked Vendors */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
               <Users className="w-5 h-5 text-green-600" />
               Booked Vendors
             </h2>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5 space-y-3">
             {bookedVendors.map((vendor) => (
               <div
                 key={vendor.id}
@@ -569,10 +574,10 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Suggested Vendors */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-600" />
                 Recommended For You
               </h2>
@@ -584,7 +589,7 @@ export const MyWeddingPage = () => {
               </button>
             </div>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5 space-y-3">
             {suggestedVendors.map((vendor) => (
               <div
                 key={vendor.id}
@@ -631,10 +636,10 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Messages & Inquiries */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1 xl:col-span-2">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-blue-600" />
                 Messages
               </h2>
@@ -646,7 +651,8 @@ export const MyWeddingPage = () => {
               </button>
             </div>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Recent Messages */}
             {[
               {
@@ -709,12 +715,13 @@ export const MyWeddingPage = () => {
             </button>
           </div>
         </div>
+        </div>
 
         {/* My Bookings */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-purple-600" />
                 My Bookings
               </h2>
@@ -726,7 +733,7 @@ export const MyWeddingPage = () => {
               </button>
             </div>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5 space-y-3">
             {/* Confirmed Bookings */}
             {[
               {
@@ -799,10 +806,10 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Budget Overview */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
                 Budget Tracker
               </h2>
@@ -814,7 +821,7 @@ export const MyWeddingPage = () => {
               </button>
             </div>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 lg:p-5 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">Allocated</span>
@@ -868,14 +875,14 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Timeline Milestones */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
               <Clock className="w-5 h-5 text-amber-600" />
               Timeline Milestones
             </h2>
           </div>
-          <div className="p-4">
+          <div className="p-4 lg:p-5">
             <div className="relative space-y-4">
               {[
                 { month: "Dec 2024", task: "Book Venue", done: true },
@@ -918,14 +925,14 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Guest QR & Gallery */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+          <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
               <Camera className="w-5 h-5 text-pink-600" />
               Guest Gallery
             </h2>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-5 space-y-3">
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
@@ -964,16 +971,16 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* AI Recommendations */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden border-2 border-rose-200">
-          <div className="bg-gradient-to-r from-rose-100 to-pink-100 p-4 border-b border-rose-200">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden border-2 border-rose-200 lg:col-span-2 xl:col-span-3">
+          <div className="bg-gradient-to-r from-rose-100 to-pink-100 p-4 lg:p-5 border-b border-rose-200">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-rose-600" />
               AI Wedding Assistant
             </h2>
           </div>
-          <div className="p-4 space-y-3">
-            <div className="space-y-3">
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3">
+          <div className="p-4 lg:p-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 lg:p-4">
                 <p className="text-sm text-rose-900 font-medium mb-2">
                   💡 Weekly Insight
                 </p>
@@ -983,7 +990,7 @@ export const MyWeddingPage = () => {
                 </p>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4">
                 <p className="text-sm text-blue-900 font-medium mb-2">
                   ⏰ Timeline Alert
                 </p>
@@ -993,7 +1000,7 @@ export const MyWeddingPage = () => {
                 </p>
               </div>
 
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 lg:p-4">
                 <p className="text-sm text-purple-900 font-medium mb-2">
                   ✨ Smart Recommendation
                 </p>
@@ -1004,7 +1011,7 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 lg:gap-3">
               <button
                 onClick={() => setShowAIChat(!showAIChat)}
                 className="bg-rose-600 hover:bg-rose-700 text-white rounded-full h-10 text-sm font-medium"
@@ -1019,7 +1026,7 @@ export const MyWeddingPage = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:col-span-2 xl:col-span-3">
           <button
             onClick={() => navigate("/vendors")}
             className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
@@ -1043,11 +1050,13 @@ export const MyWeddingPage = () => {
             <p className="text-sm font-semibold text-gray-900">Analytics</p>
           </button>
         </div>
+        </div>
+        </div>
       </main>
 
       {/* AI Chat Bubble (Floating) */}
       {showAIChat && (
-        <div className="fixed bottom-24 right-4 left-4 max-w-md mx-auto bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 z-40">
+        <div className="fixed bottom-24 lg:bottom-8 right-4 left-4 lg:left-auto lg:right-8 max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 lg:p-5 z-40">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-600 rounded-full flex items-center justify-center">

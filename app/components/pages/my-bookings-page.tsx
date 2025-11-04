@@ -102,11 +102,11 @@ export const MyBookingsPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">My Bookings</h1>
-        <p className="text-white/90 text-sm">
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
+        <h1 className="text-3xl lg:text-4xl font-bold mb-2">My Bookings</h1>
+        <p className="text-white/90 text-sm lg:text-base">
           Manage your confirmed vendors
         </p>
 
@@ -133,18 +133,26 @@ export const MyBookingsPage = () => {
         </div>
       </div>
 
-      <main className="flex-1 px-4 py-6 space-y-4">
+      <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Total Bookings</p>
-            <p className="text-2xl font-bold text-gray-900">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+            <p className="text-xs lg:text-sm text-gray-500 mb-1">Total Bookings</p>
+            <p className="text-2xl lg:text-3xl font-bold text-gray-900">
               {SAMPLE_BOOKINGS.length}
             </p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Total Spent</p>
-            <p className="text-2xl font-bold text-green-600">$18,500</p>
+          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+            <p className="text-xs lg:text-sm text-gray-500 mb-1">Total Spent</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-600">$18,500</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+            <p className="text-xs lg:text-sm text-gray-500 mb-1">Confirmed</p>
+            <p className="text-2xl lg:text-3xl font-bold text-blue-600">1</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+            <p className="text-xs lg:text-sm text-gray-500 mb-1">Pending</p>
+            <p className="text-2xl lg:text-3xl font-bold text-amber-600">1</p>
           </div>
         </div>
 
@@ -166,7 +174,7 @@ export const MyBookingsPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
             {filteredBookings.map((booking) => (
               <div
                 key={booking.id}

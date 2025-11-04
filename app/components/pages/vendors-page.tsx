@@ -157,56 +157,57 @@ export const VendorsPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 lg:pb-8">
       {/* Header */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">
-          {searchQuery ? "Search Results" : "Find Your Vendors"}
-        </h1>
-        <p className="text-white/90 text-sm">
-          {searchQuery 
-            ? `Showing results for "${searchQuery}"`
-            : "Discover the perfect professionals for your big day"
-          }
-        </p>
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl lg:text-4xl font-bold mb-2">
+            {searchQuery ? "Search Results" : "Find Your Vendors"}
+          </h1>
+          <p className="text-white/90 text-sm lg:text-base">
+            {searchQuery 
+              ? `Showing results for "${searchQuery}"`
+              : "Discover the perfect professionals for your big day"
+            }
+          </p>
 
-        {/* Search Bar */}
-        <div className="mt-6 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search vendors..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-500 border-0 shadow-md"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          {/* Search Bar */}
+          <div className="mt-6 space-y-3 max-w-4xl">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Location"
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full h-10 pl-10 pr-3 rounded-lg bg-white text-gray-900 text-sm placeholder:text-gray-500 border-0"
+                placeholder="Search vendors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-12 pl-12 pr-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-500 border-0 shadow-md"
               />
             </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 h-10 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
-                showFilters
-                  ? "bg-white text-rose-600"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              Filters
-            </button>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Location"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="w-full h-10 pl-10 pr-3 rounded-lg bg-white text-gray-900 text-sm placeholder:text-gray-500 border-0"
+                />
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 h-10 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+                  showFilters
+                    ? "bg-white text-rose-600"
+                    : "bg-white/20 text-white hover:bg-white/30"
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                Filters
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* Filters Panel */}
         {showFilters && (
@@ -265,9 +266,10 @@ export const VendorsPage = () => {
             </button>
           </div>
         )}
+        </div>
       </div>
 
-      <main className="flex-1 px-4 py-6 space-y-6">
+      <main className="flex-1 px-4 lg:px-8 py-6 space-y-6 max-w-7xl mx-auto w-full">
         {/* Popular Searches */}
         {!searchQuery && (
           <div>
@@ -381,7 +383,7 @@ export const VendorsPage = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
             {filteredCategories.map((category) => {
               const Icon = category.icon;
               return (

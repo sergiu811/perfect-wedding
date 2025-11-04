@@ -56,7 +56,7 @@ export default function App() {
           <SeatingProvider>
             <ServiceProvider>
               <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
-                <main className="flex-1">
+                <main className="flex-1 lg:ml-64 xl:ml-72">
                   <Route path="/" element={<HomePage />} />
                   <Route path="/vendors" element={<VendorsPage />} />
                   <Route path="/venues" element={<VenuesPage />} />

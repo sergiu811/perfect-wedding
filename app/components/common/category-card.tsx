@@ -14,14 +14,14 @@ interface CategoryCardProps {
 export const CategoryCard = ({ category, onClick }: CategoryCardProps) => (
   <button
     onClick={() => onClick?.(category)}
-    className="flex flex-col items-center gap-2 group"
+    className="flex flex-col items-center gap-2 lg:gap-3 group w-full"
     aria-label={`Browse ${category.name}`}
   >
     <div
-      className="w-24 sm:w-32 md:w-40 lg:w-64 xl:w-96 aspect-square bg-cover bg-center rounded-2xl shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-active:scale-95"
+      className="w-full aspect-square bg-cover bg-center rounded-2xl shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-active:scale-95"
       style={{ backgroundImage: `url(${category.image})` }}
     />
-    <p className="text-xs sm:text-sm font-semibold text-gray-800 text-center leading-tight">
+    <p className="text-xs sm:text-sm lg:text-base font-semibold text-gray-800 text-center leading-tight">
       {category.name}
     </p>
   </button>

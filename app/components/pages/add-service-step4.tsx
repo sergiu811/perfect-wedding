@@ -32,7 +32,8 @@ export const AddServiceStep4 = () => {
 
   if (isPublished) {
     return (
-      <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 justify-center items-center p-4">
+      <div className="min-h-screen flex flex-col bg-pink-50 justify-center items-center p-4">
+        <div className="max-w-2xl mx-auto w-full flex flex-col justify-center items-center">
         <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-12 h-12 text-green-600" />
@@ -59,39 +60,40 @@ export const AddServiceStep4 = () => {
             </Button>
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
-      <header className="flex items-center p-4 bg-white border-b border-gray-200">
+      <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
         <button
           onClick={() => navigate("/add-service/step-3")}
           className="text-gray-900"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
+        <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Review & Publish
         </h1>
       </header>
 
       {/* Progress Indicator */}
-      <div className="px-4 py-4 bg-white border-b border-gray-100">
+      <div className="py-4 lg:py-5 bg-white border-b border-gray-100 -mx-4 lg:-mx-8 px-4 lg:px-8">
         <div className="flex items-center gap-2">
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
         </div>
-        <p className="text-sm text-gray-600 mt-2 text-center font-medium">
+        <p className="text-sm lg:text-base text-gray-600 mt-2 text-center font-medium">
           Step 4 of 4: Review & Publish
         </p>
       </div>
 
-      <main className="flex-1 px-4 py-6 space-y-6 overflow-y-auto pb-24">
+      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto">
         {/* Preview Card */}
         <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
           <p className="text-sm font-medium mb-2 opacity-90">PREVIEW</p>

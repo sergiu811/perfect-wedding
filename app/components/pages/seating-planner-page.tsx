@@ -62,34 +62,34 @@ export const SeatingPlannerPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
-      <header className="flex items-center p-4 bg-white border-b border-gray-200">
+      <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200">
         <button
           onClick={() => navigate("/guest-list")}
           className="text-gray-900"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
+        <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Seating Planner
         </h1>
       </header>
 
       {/* Summary Stats */}
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 shadow-lg">
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <p className="text-white/80 text-xs mb-1">Total Guests</p>
-            <p className="text-2xl font-bold">{stats.confirmed}</p>
+      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 lg:p-8 shadow-lg">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4 mb-4">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4 text-center">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Total Guests</p>
+            <p className="text-2xl lg:text-3xl font-bold">{stats.confirmed}</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <p className="text-white/80 text-xs mb-1">Seated</p>
-            <p className="text-2xl font-bold">{totalSeated}</p>
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4 text-center">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Seated</p>
+            <p className="text-2xl lg:text-3xl font-bold">{totalSeated}</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <p className="text-white/80 text-xs mb-1">Tables</p>
-            <p className="text-2xl font-bold">{tables.length}</p>
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4 text-center">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Tables</p>
+            <p className="text-2xl lg:text-3xl font-bold">{tables.length}</p>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export const SeatingPlannerPage = () => {
       </div>
 
       {/* View Toggle & Actions */}
-      <div className="p-4 bg-white border-b border-gray-100">
+      <div className="p-4 lg:p-6 bg-white border-b border-gray-100">
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => setViewMode("visual")}
@@ -160,7 +160,10 @@ export const SeatingPlannerPage = () => {
         </div>
       </div>
 
-      <main className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
+      <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 overflow-y-auto">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-4 lg:space-y-0">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
         {/* AI Suggestion */}
         <div className="bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-purple-200 rounded-xl p-4">
           <div className="flex items-start gap-3">
@@ -207,8 +210,8 @@ export const SeatingPlannerPage = () => {
             </div>
 
             {/* Simplified Visual Canvas */}
-            <div className="p-4 bg-gray-50 min-h-[400px] relative">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 lg:p-6 bg-gray-50 min-h-[400px] lg:min-h-[600px] relative">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5">
                 {tables.map((table) => (
                   <button
                     key={table.id}
@@ -334,6 +337,10 @@ export const SeatingPlannerPage = () => {
           </div>
         )}
 
+        </div>
+        
+        {/* Right Column - Sidebar */}
+        <div className="lg:col-span-1 space-y-4 lg:space-y-6">
         {/* Unseated Guests */}
         {unseatedGuests.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-4">
@@ -590,7 +597,7 @@ export const SeatingPlannerPage = () => {
         )}
 
         {/* Export Options */}
-        <div className="bg-white rounded-xl shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-md p-4 lg:p-5">
           <h3 className="text-base font-bold text-gray-900 mb-3">
             Export & Share
           </h3>
@@ -620,6 +627,8 @@ export const SeatingPlannerPage = () => {
               {tables.reduce((sum, t) => sum + t.seats, 0) - totalSeated}
             </p>
           </div>
+        </div>
+        </div>
         </div>
       </main>
 

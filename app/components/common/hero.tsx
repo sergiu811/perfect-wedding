@@ -1,7 +1,7 @@
 import React from "react";
 
 export const Hero = () => (
-  <div className="relative h-[40vh] w-full overflow-hidden">
+  <div className="relative h-[40vh] lg:h-[50vh] w-full overflow-hidden">
     <div
       className="absolute inset-0 bg-center bg-cover"
       style={{

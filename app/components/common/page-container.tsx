@@ -7,5 +7,5 @@ interface PageContainerProps {
 }
 
 export const PageContainer = ({ children, className }: PageContainerProps) => (
-  <div className={cn("flex-grow pb-6", className)}>{children}</div>
+  <div className={cn("flex-grow pb-6 lg:pb-8", className)}>{children}</div>
 );

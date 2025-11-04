@@ -60,50 +60,41 @@ export const GuestListPage = () => {
   const confirmedPercentage = Math.round((stats.confirmed / stats.total) * 100);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
-      <header className="flex items-center p-4 bg-white border-b border-gray-200">
+      <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200">
         <button
           onClick={() => navigate("/my-wedding")}
           className="text-gray-900"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
+        <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Guest List
         </h1>
       </header>
 
       {/* Summary Stats Header */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 shadow-lg">
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-            <p className="text-white/80 text-xs mb-1">Total Guests</p>
-            <p className="text-3xl font-bold">{stats.total}</p>
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 shadow-lg">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Total Guests</p>
+            <p className="text-3xl lg:text-4xl font-bold">{stats.total}</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-            <p className="text-white/80 text-xs mb-1">Confirmed</p>
-            <p className="text-3xl font-bold">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Confirmed</p>
+            <p className="text-3xl lg:text-4xl font-bold">
               {stats.confirmed}
               <span className="text-lg ml-1">({confirmedPercentage}%)</span>
             </p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-white/80" />
-            <div>
-              <p className="text-xs text-white/80">Pending</p>
-              <p className="text-lg font-semibold">{stats.pending}</p>
-            </div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Pending</p>
+            <p className="text-3xl lg:text-4xl font-bold">{stats.pending}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-white/80" />
-            <div>
-              <p className="text-xs text-white/80">Declined</p>
-              <p className="text-lg font-semibold">{stats.declined}</p>
-            </div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
+            <p className="text-white/80 text-xs lg:text-sm mb-1">Declined</p>
+            <p className="text-3xl lg:text-4xl font-bold">{stats.declined}</p>
           </div>
         </div>
 
@@ -125,8 +116,8 @@ export const GuestListPage = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="p-4 bg-white border-b border-gray-100">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="p-4 lg:p-6 bg-white border-b border-gray-100">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
           <button
             onClick={() => setShowAddModal(true)}
             className="flex flex-col items-center gap-1 p-3 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
@@ -150,7 +141,7 @@ export const GuestListPage = () => {
         </div>
       </div>
 
-      <main className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
+      <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6 overflow-y-auto">
         {/* Search & Filter */}
         <div className="space-y-3">
           <div className="relative">
@@ -329,13 +320,13 @@ export const GuestListPage = () => {
         </div>
 
         {/* Guest Cards */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900">
-              Guests ({filteredGuests.length})
-            </h3>
-          </div>
-
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base lg:text-lg font-bold text-gray-900">
+            Guests ({filteredGuests.length})
+          </h3>
+        </div>
+        
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4">
           {filteredGuests.map((guest) => (
             <div
               key={guest.id}
@@ -507,7 +498,7 @@ export const GuestListPage = () => {
         </div>
 
         {/* Quick Stats Cards */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <div className="bg-white rounded-xl shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">Plus-Ones</p>
             <p className="text-2xl font-bold text-gray-900">
