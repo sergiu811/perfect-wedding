@@ -46,6 +46,8 @@ import {
   MessagesPage,
   ChatWrapper,
   MyBookingsPage,
+  LoginPage,
+  SignupPage,
 } from "~/components/pages";
 
 export default function App() {
@@ -58,6 +60,8 @@ export default function App() {
               <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
                 <main className="flex-1 lg:ml-64 xl:ml-72">
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
                   <Route path="/vendors" element={<VendorsPage />} />
                   <Route path="/venues" element={<VenuesPage />} />
                   <Route

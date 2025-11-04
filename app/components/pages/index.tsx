@@ -40,3 +40,5 @@ export { MessagesPage } from "./messages-page";
 export { ChatPage } from "./chat-page";
 export { ChatWrapper } from "./chat-wrapper";
 export { MyBookingsPage } from "./my-bookings-page";
+export { LoginPage } from "./login-page";
+export { SignupPage } from "./signup-page";
