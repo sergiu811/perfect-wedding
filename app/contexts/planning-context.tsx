@@ -40,6 +40,7 @@ interface PlanningContextType {
   formData: PlanningFormData;
   updateFormData: (newData: Partial<PlanningFormData>) => void;
   resetFormData: () => void;
+  loadFormData: (data: PlanningFormData) => void;
 }
 
 const PlanningContext = createContext<PlanningContextType | null>(null);
@@ -59,9 +60,13 @@ export const PlanningProvider = ({
     setFormData({});
   };
 
+  const loadFormData = (data: PlanningFormData) => {
+    setFormData(data);
+  };
+
   return (
     <PlanningContext.Provider
-      value={{ formData, updateFormData, resetFormData }}
+      value={{ formData, updateFormData, resetFormData, loadFormData }}
     >
       {children}
     </PlanningContext.Provider>

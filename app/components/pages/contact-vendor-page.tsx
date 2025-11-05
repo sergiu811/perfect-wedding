@@ -1,22 +1,17 @@
-import React, { useState } from "react";
 import {
   ArrowLeft,
   Calendar,
-  Users,
+  CheckCircle,
   DollarSign,
   MapPin,
-  Clock,
-  Music,
-  Utensils,
-  Cake,
-  Camera,
   Send,
-  CheckCircle,
+  Users,
 } from "lucide-react";
+import React, { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { useRouter } from "~/contexts/router-context";
 import { usePlanning } from "~/contexts/planning-context";
+import { useRouter } from "~/contexts/router-context";
 
 interface ContactVendorPageProps {
   vendorId: string;
@@ -63,7 +58,9 @@ export const ContactVendorPage = ({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     setFormValues({
       ...formValues,
@@ -236,7 +233,10 @@ export const ContactVendorPage = ({
     return (
       <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
         <header className="flex items-center p-4 bg-white border-b border-gray-200">
-          <button onClick={() => navigate("/vendors")} className="text-gray-900">
+          <button
+            onClick={() => navigate("/vendors")}
+            className="text-gray-900"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-lg font-bold text-center flex-1 text-gray-900 pr-6">
@@ -308,7 +308,10 @@ export const ContactVendorPage = ({
         </h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-4 py-6 space-y-4 pb-24">
+      <form
+        onSubmit={handleSubmit}
+        className="flex-1 px-4 py-6 space-y-4 pb-24"
+      >
         {/* Vendor Info */}
         <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg">
           <p className="text-sm opacity-90 mb-1">Sending inquiry to</p>

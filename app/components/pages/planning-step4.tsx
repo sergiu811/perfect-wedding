@@ -1,8 +1,11 @@
-import React, { useState } from "react";
-import { ArrowLeft, Calendar, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 import { usePlanning } from "~/contexts/planning-context";
+import { useRouter } from "~/contexts/router-context";
+import { useSupabase } from "~/lib/supabase.client";
+import { createWedding, getWeddingByUserId, updateWedding } from "~/lib/wedding";
 
 const HELP_TASKS = [
   "Budget Management",
@@ -18,6 +21,8 @@ const HELP_TASKS = [
 export const PlanningStep4 = () => {
   const { navigate } = useRouter();
   const { formData, updateFormData } = usePlanning();
+  const { user } = useAuth();
+  const supabase = useSupabase();
   const [selectedTasks, setSelectedTasks] = useState<string[]>(
     formData.helpTasks || []
   );
@@ -27,21 +32,103 @@ export const PlanningStep4 = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(
     formData.acceptedTerms || false
   );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const form = document.querySelector("form");
-    if (!form || !acceptedTerms) return;
+    
+    // Validation checks with specific error messages
+    if (!acceptedTerms) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+    
+    if (!user) {
+      setError("You must be logged in to save your wedding plan. Please log in and try again.");
+      return;
+    }
+    
+    if (!form) {
+      setError("Form not found. Please refresh the page and try again.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
 
     const formDataObj = new FormData(form);
+    const currentStage = formDataObj.get("currentStage") as string;
 
+    // Update context
     updateFormData({
-      currentStage: formDataObj.get("currentStage") as string,
+      currentStage,
       helpTasks: selectedTasks,
       notifications: selectedNotifications,
       acceptedTerms,
     });
 
-    navigate("/planning/success");
+    // Save to Supabase
+    try {
+      // Check if wedding already exists
+      const { data: existingWedding } = await getWeddingByUserId(supabase, user.id);
+
+      const weddingData = {
+        partner1_name: formData.partner1Name || "",
+        partner2_name: formData.partner2Name || "",
+        wedding_date: formData.weddingDate || "",
+        guest_count: parseInt(formData.guestCount || "0"),
+        budget_min: formData.budgetMin
+          ? parseFloat(formData.budgetMin)
+          : null,
+        budget_max: formData.budgetMax
+          ? parseFloat(formData.budgetMax)
+          : null,
+        location: formData.location || "",
+        wedding_type: formData.weddingType || null,
+        venue_types: formData.venueTypes || [],
+        themes: formData.themes || [],
+        color_palette: formData.colorPalette || [],
+        music_styles: formData.musicStyles || [],
+        venue_preference: formData.venuePreference || null,
+        formality_level: formData.formalityLevel || null,
+        vendor_categories: formData.vendorCategories || [],
+        preferred_contact_method: formData.preferredContactMethod || null,
+        current_stage: currentStage,
+        help_tasks: selectedTasks,
+        notifications: selectedNotifications,
+        language: formData.language || "en",
+        referral_source: formData.referralSource || null,
+      };
+
+      let data, saveError;
+
+      if (existingWedding) {
+        // Update existing wedding
+        const result = await updateWedding(supabase, existingWedding.id, weddingData);
+        data = result.data;
+        saveError = result.error;
+      } else {
+        // Create new wedding
+        const result = await createWedding(supabase, user.id, weddingData);
+        data = result.data;
+        saveError = result.error;
+      }
+
+      if (saveError) {
+        console.error("Error saving wedding:", saveError);
+        setError("Failed to save wedding plan. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Wedding saved successfully:", data);
+      navigate("/planning/success");
+    } catch (err) {
+      console.error("Error:", err);
+      setError("An unexpected error occurred.");
+      setLoading(false);
+    }
   };
 
   const toggleTask = (task: string) => {
@@ -96,6 +183,22 @@ export const PlanningStep4 = () => {
             Let's set up your personalized planning experience
           </p>
         </div>
+
+        {/* Auth Warning */}
+        {!user && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <p className="text-sm text-yellow-900 font-medium">
+              ⚠️ You're not logged in. Please{" "}
+              <button
+                onClick={() => navigate("/auth")}
+                className="underline font-bold hover:text-yellow-700"
+              >
+                log in
+              </button>{" "}
+              to save your wedding plan.
+            </p>
+          </div>
+        )}
 
         <form className="space-y-6">
           {/* Current Stage */}
@@ -272,16 +375,22 @@ export const PlanningStep4 = () => {
 
       {/* Footer */}
       <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 -mx-4 lg:-mx-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
         <Button
           onClick={handleGenerate}
-          disabled={!acceptedTerms}
+          disabled={loading}
           className="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          ✨ Generate My Plan
+          {loading ? "Saving..." : "✨ Generate My Plan"}
         </Button>
         <button
           onClick={() => navigate("/planning/step-3")}
           className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          disabled={loading}
         >
           Back
         </button>

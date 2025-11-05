@@ -5,6 +5,8 @@ import { PlanningProvider } from "~/contexts/planning-context";
 import { GuestListProvider } from "~/contexts/guest-list-context";
 import { SeatingProvider } from "~/contexts/seating-context";
 import { Navigation } from "~/components/layout";
+import { ProtectedRoute } from "~/components/common/protected-route";
+import { AuthPage } from "~/components/pages/auth-page";
 import {
   HomePage,
   VendorsPage,
@@ -46,8 +48,6 @@ import {
   MessagesPage,
   ChatWrapper,
   MyBookingsPage,
-  LoginPage,
-  SignupPage,
 } from "~/components/pages";
 
 export default function App() {
@@ -59,125 +59,127 @@ export default function App() {
             <ServiceProvider>
               <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
                 <main className="flex-1 lg:ml-64 xl:ml-72">
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/vendors" element={<VendorsPage />} />
-                  <Route path="/venues" element={<VenuesPage />} />
+                  {/* Public Routes */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/vendors" element={<ProtectedRoute><VendorsPage /></ProtectedRoute>} />
+                  <Route path="/venues" element={<ProtectedRoute><VenuesPage /></ProtectedRoute>} />
                   <Route
                     path="/venues/:id"
                     render={(params) => (
-                      <VenueDetailsPage venueId={params.id} />
+                      <ProtectedRoute><VenueDetailsPage venueId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/photo-video" element={<PhotoVideoPage />} />
+                  <Route path="/photo-video" element={<ProtectedRoute><PhotoVideoPage /></ProtectedRoute>} />
                   <Route
                     path="/photo-video/:id"
                     render={(params) => (
-                      <PhotographerDetailsPage photographerId={params.id} />
+                      <ProtectedRoute><PhotographerDetailsPage photographerId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/music-dj" element={<MusicDJPage />} />
+                  <Route path="/music-dj" element={<ProtectedRoute><MusicDJPage /></ProtectedRoute>} />
                   <Route
                     path="/music-dj/:id"
                     render={(params) => (
-                      <MusicianDetailsPage musicianId={params.id} />
+                      <ProtectedRoute><MusicianDetailsPage musicianId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/decorations" element={<DecorationsPage />} />
+                  <Route path="/decorations" element={<ProtectedRoute><DecorationsPage /></ProtectedRoute>} />
                   <Route
                     path="/decorations/:id"
                     render={(params) => (
-                      <DecorationDetailsPage decorationId={params.id} />
+                      <ProtectedRoute><DecorationDetailsPage decorationId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/invitations" element={<InvitationsPage />} />
+                  <Route path="/invitations" element={<ProtectedRoute><InvitationsPage /></ProtectedRoute>} />
                   <Route
                     path="/invitations/:id"
                     render={(params) => (
-                      <InvitationDetailsPage invitationId={params.id} />
+                      <ProtectedRoute><InvitationDetailsPage invitationId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/sweets" element={<SweetsPage />} />
+                  <Route path="/sweets" element={<ProtectedRoute><SweetsPage /></ProtectedRoute>} />
                   <Route
                     path="/sweets/:id"
                     render={(params) => (
-                      <SweetDetailsPage sweetId={params.id} />
+                      <ProtectedRoute><SweetDetailsPage sweetId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/join-vendor" element={<JoinVendorStep1 />} />
+                  <Route path="/join-vendor" element={<ProtectedRoute><JoinVendorStep1 /></ProtectedRoute>} />
                   <Route
                     path="/join-vendor/step-2"
-                    element={<JoinVendorStep2 />}
+                    element={<ProtectedRoute><JoinVendorStep2 /></ProtectedRoute>}
                   />
                   <Route
                     path="/join-vendor/step-3"
-                    element={<JoinVendorStep3 />}
+                    element={<ProtectedRoute><JoinVendorStep3 /></ProtectedRoute>}
                   />
                   <Route
                     path="/join-vendor/success"
-                    element={<JoinVendorSuccess />}
+                    element={<ProtectedRoute><JoinVendorSuccess /></ProtectedRoute>}
                   />
                   <Route
                     path="/vendor-dashboard"
-                    element={<VendorDashboard />}
+                    element={<ProtectedRoute requireRole="vendor"><VendorDashboard /></ProtectedRoute>}
                   />
                   <Route
                     path="/vendor-dashboard/edit-profile"
-                    element={<VendorEditProfile />}
+                    element={<ProtectedRoute requireRole="vendor"><VendorEditProfile /></ProtectedRoute>}
                   />
                   <Route
                     path="/vendor-dashboard/public-profile"
-                    element={<VendorPublicProfile />}
+                    element={<ProtectedRoute requireRole="vendor"><VendorPublicProfile /></ProtectedRoute>}
                   />
                   <Route
                     path="/add-service/step-1"
-                    element={<AddServiceStep1 />}
+                    element={<ProtectedRoute requireRole="vendor"><AddServiceStep1 /></ProtectedRoute>}
                   />
                   <Route
                     path="/add-service/step-2"
-                    element={<AddServiceStep2 />}
+                    element={<ProtectedRoute requireRole="vendor"><AddServiceStep2 /></ProtectedRoute>}
                   />
                   <Route
                     path="/add-service/step-3"
-                    element={<AddServiceStep3 />}
+                    element={<ProtectedRoute requireRole="vendor"><AddServiceStep3 /></ProtectedRoute>}
                   />
                   <Route
                     path="/add-service/step-4"
-                    element={<AddServiceStep4 />}
+                    element={<ProtectedRoute requireRole="vendor"><AddServiceStep4 /></ProtectedRoute>}
                   />
-                  <Route path="/ai-planner" element={<AIPlanner />} />
-                  <Route path="/my-wedding" element={<MyWeddingPage />} />
-                  <Route path="/more" element={<MorePage />} />
-                  <Route path="/planning/step-1" element={<PlanningStep1 />} />
-                  <Route path="/planning/step-2" element={<PlanningStep2 />} />
-                  <Route path="/planning/step-3" element={<PlanningStep3 />} />
-                  <Route path="/planning/step-4" element={<PlanningStep4 />} />
+                  <Route path="/ai-planner" element={<ProtectedRoute><AIPlanner /></ProtectedRoute>} />
+                  <Route path="/my-wedding" element={<ProtectedRoute><MyWeddingPage /></ProtectedRoute>} />
+                  <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
+                  <Route path="/planning/step-1" element={<ProtectedRoute><PlanningStep1 /></ProtectedRoute>} />
+                  <Route path="/planning/step-2" element={<ProtectedRoute><PlanningStep2 /></ProtectedRoute>} />
+                  <Route path="/planning/step-3" element={<ProtectedRoute><PlanningStep3 /></ProtectedRoute>} />
+                  <Route path="/planning/step-4" element={<ProtectedRoute><PlanningStep4 /></ProtectedRoute>} />
                   <Route
                     path="/planning/success"
-                    element={<PlanningSuccess />}
+                    element={<ProtectedRoute><PlanningSuccess /></ProtectedRoute>}
                   />
-                  <Route path="/guest-list" element={<GuestListPage />} />
+                  <Route path="/guest-list" element={<ProtectedRoute><GuestListPage /></ProtectedRoute>} />
                   <Route
                     path="/seating-planner"
-                    element={<SeatingPlannerPage />}
+                    element={<ProtectedRoute><SeatingPlannerPage /></ProtectedRoute>}
                   />
                   <Route
                     path="/budget-details"
-                    element={<BudgetDetailsPage />}
+                    element={<ProtectedRoute><BudgetDetailsPage /></ProtectedRoute>}
                   />
                   <Route
                     path="/contact-vendor/:id"
                     render={(params) => (
-                      <ContactVendorWrapper vendorId={params.id} />
+                      <ProtectedRoute><ContactVendorWrapper vendorId={params.id} /></ProtectedRoute>
                     )}
                   />
-                  <Route path="/messages" element={<MessagesPage />} />
+                  <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
                   <Route
                     path="/chat/:id"
-                    render={(params) => <ChatWrapper vendorId={params.id} />}
+                    render={(params) => <ProtectedRoute><ChatWrapper vendorId={params.id} /></ProtectedRoute>}
                   />
-                  <Route path="/my-bookings" element={<MyBookingsPage />} />
+                  <Route path="/my-bookings" element={<ProtectedRoute><MyBookingsPage /></ProtectedRoute>} />
                 </main>
                 <Navigation />
               </div>

@@ -1,53 +1,178 @@
-import React, { useState } from "react";
 import {
   Calendar,
-  MapPin,
-  Users,
-  DollarSign,
-  Heart,
-  CheckCircle,
-  Circle,
-  Edit2,
-  Plus,
-  MessageCircle,
-  FileText,
-  TrendingUp,
-  Clock,
   Camera,
-  QrCode,
-  Download,
-  Sparkles,
+  CheckCircle,
   ChevronRight,
-  Music,
-  Flower2,
-  Cake,
-  Mail,
+  Circle,
+  Clock,
+  DollarSign,
+  Download,
+  Edit2,
+  FileText,
+  Heart,
+  MapPin,
+  MessageCircle,
   Palette,
-  Star,
+  Plus,
+  QrCode,
+  Sparkles,
   Target,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 import { usePlanning } from "~/contexts/planning-context";
+import { useRouter } from "~/contexts/router-context";
+import { useSupabase } from "~/lib/supabase.client";
+import { getWeddingByUserId } from "~/lib/wedding";
+import type { Database } from "~/types/database.types";
+
+type Wedding = Database["public"]["Tables"]["weddings"]["Row"];
 
 export const MyWeddingPage = () => {
   const { navigate } = useRouter();
-  const { formData } = usePlanning();
+  const { formData, loadFormData } = usePlanning();
+  const { user } = useAuth();
+  const supabase = useSupabase();
   const [showAIChat, setShowAIChat] = useState(false);
+  const [wedding, setWedding] = useState<Wedding | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch wedding data from Supabase
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchWedding = async () => {
+      const { data, error } = await getWeddingByUserId(supabase, user.id);
+      if (data) {
+        setWedding(data);
+      } else if (error) {
+        console.error("Error fetching wedding:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchWedding();
+  }, [user, supabase]);
+
+  // Use wedding data from database if available, otherwise fall back to context
+  const displayData = wedding
+    ? {
+        partner1Name: wedding.partner1_name,
+        partner2Name: wedding.partner2_name,
+        weddingDate: wedding.wedding_date,
+        location: wedding.location,
+        guestCount: wedding.guest_count.toString(),
+        budgetMin: wedding.budget_min?.toString(),
+        budgetMax: wedding.budget_max?.toString(),
+        themes: wedding.themes || [],
+        colorPalette: wedding.color_palette || [],
+      }
+    : formData;
 
   // Calculate days until wedding
   const getDaysUntilWedding = () => {
-    formData.weddingDate = "2026-09-06";
-    if (!formData.weddingDate) return null;
-    const wedding = new Date(formData.weddingDate);
+    const weddingDate = wedding?.wedding_date || displayData.weddingDate;
+    if (!weddingDate) return null;
+    const weddingDay = new Date(weddingDate);
     const today = new Date();
     const diff = Math.ceil(
-      (wedding.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (weddingDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
     );
     return diff > 0 ? diff : 0;
   };
 
   const daysLeft = getDaysUntilWedding();
+
+  // Function to load wedding data into planning form and navigate to edit
+  const handleEditWedding = () => {
+    if (wedding) {
+      loadFormData({
+        partner1Name: wedding.partner1_name,
+        partner2Name: wedding.partner2_name,
+        weddingDate: wedding.wedding_date,
+        guestCount: wedding.guest_count.toString(),
+        budgetMin: wedding.budget_min?.toString() || "",
+        budgetMax: wedding.budget_max?.toString() || "",
+        location: wedding.location,
+        weddingType: wedding.wedding_type || "",
+        language: wedding.language || "",
+        referralSource: wedding.referral_source || "",
+        themes: wedding.themes || [],
+        colorPalette: wedding.color_palette || [],
+        venuePreference: wedding.venue_preference || "",
+        formalityLevel: wedding.formality_level || "",
+        venueTypes: wedding.venue_types || [],
+        musicStyles: wedding.music_styles || [],
+        vendorCategories: wedding.vendor_categories || [],
+        preferredContactMethod: wedding.preferred_contact_method || "",
+        currentStage: wedding.current_stage || "",
+        helpTasks: wedding.help_tasks || [],
+        notifications: wedding.notifications || [],
+      });
+    }
+    navigate("/planning/step-1");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your wedding...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+        <div className="text-center">
+          <Heart className="w-16 h-16 text-rose-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Please Log In
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Sign in to view your wedding details
+          </p>
+          <Button
+            onClick={() => navigate("/auth")}
+            className="bg-rose-600 hover:bg-rose-700"
+          >
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!wedding && !displayData.weddingDate) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Heart className="w-16 h-16 text-rose-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Start Planning Your Wedding
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You haven't created a wedding plan yet. Let's get started!
+          </p>
+          <Button
+            onClick={() => navigate("/planning/step-1")}
+            className="bg-rose-600 hover:bg-rose-700"
+          >
+            Start Planning
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Sample tasks data
   const tasks = [
@@ -150,7 +275,7 @@ export const MyWeddingPage = () => {
 
   // Budget breakdown
   const budgetAllocated = 28500;
-  const budgetTotal = formData.budgetMax ? parseInt(formData.budgetMax) : 35000;
+  const budgetTotal = displayData.budgetMax ? parseInt(displayData.budgetMax) : 35000;
   const budgetPercent = Math.round((budgetAllocated / budgetTotal) * 100);
 
   return (
@@ -158,58 +283,65 @@ export const MyWeddingPage = () => {
       {/* Header & Summary Banner */}
       <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
         <div className="max-w-7xl mx-auto">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold mb-1">
-              Welcome back, {formData.partner1Name || "Sarah"} 💍
-            </h1>
-            <p className="text-white/90 text-sm lg:text-base">
-              {formData.weddingType && `${formData.weddingType.charAt(0).toUpperCase() + formData.weddingType.slice(1)} Wedding • `}
-              {daysLeft !== null ? `${daysLeft} days left until your big day!` : 'Set your wedding date to see countdown'}
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/planning/step-1")}
-            className="bg-white/20 hover:bg-white/30 p-2 rounded-full backdrop-blur-sm"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Progress Ring */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 mt-4 max-w-2xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-white/90 text-sm lg:text-base mb-1">Planning Progress</p>
-              <p className="text-2xl lg:text-3xl font-bold">{progressPercent}%</p>
+              <h1 className="text-2xl lg:text-3xl font-bold mb-1">
+                Welcome back, {displayData.partner1Name || "Sarah"} 💍
+              </h1>
+              <p className="text-white/90 text-sm lg:text-base">
+                {wedding?.wedding_type &&
+                  `${wedding.wedding_type.charAt(0).toUpperCase() + wedding.wedding_type.slice(1)} Wedding • `}
+                {daysLeft !== null
+                  ? `${daysLeft} days left until your big day!`
+                  : "Set your wedding date to see countdown"}
+              </p>
             </div>
-            <div className="relative">
-              <svg className="w-16 h-16 transform -rotate-90">
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="6"
-                  fill="none"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="white"
-                  strokeWidth="6"
-                  fill="none"
-                  strokeDasharray={`${progressPercent * 1.76} 176`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6" />
+            <button
+              onClick={handleEditWedding}
+              className="bg-white/20 hover:bg-white/30 p-2 rounded-full backdrop-blur-sm"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Progress Ring */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 mt-4 max-w-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/90 text-sm lg:text-base mb-1">
+                  Planning Progress
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold">
+                  {progressPercent}%
+                </p>
+              </div>
+              <div className="relative">
+                <svg className="w-16 h-16 transform -rotate-90">
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="6"
+                    fill="none"
+                  />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke="white"
+                    strokeWidth="6"
+                    fill="none"
+                    strokeDasharray={`${progressPercent * 1.76} 176`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -217,840 +349,962 @@ export const MyWeddingPage = () => {
         <div className="max-w-7xl mx-auto">
           {/* Desktop: 2-column layout, Mobile: 1-column */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Wedding Overview Card */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-rose-600" />
-              Wedding Overview
-            </h2>
-          </div>
-          <div className="p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Date
-                </p>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-gray-900">
-                    {formData.weddingDate
-                      ? new Date(formData.weddingDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          }
-                        )
-                      : "Not set"}
-                  </p>
+            {/* Wedding Overview Card */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-rose-600" />
+                  Wedding Overview
+                </h2>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Date
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-rose-600" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        {displayData.weddingDate
+                          ? new Date(displayData.weddingDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )
+                          : "Not set"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Location
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-rose-600" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        {displayData.location || "TBD"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Guests
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-rose-600" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        {displayData.guestCount || "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Budget
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-rose-600" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        {displayData.budgetMin && displayData.budgetMax
+                          ? `$${parseInt(
+                              displayData.budgetMin
+                            ).toLocaleString()}-${parseInt(
+                              displayData.budgetMax
+                            ).toLocaleString()}`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Type
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {wedding?.wedding_type
+                        ? wedding.wedding_type.charAt(0).toUpperCase() +
+                          wedding.wedding_type.slice(1)
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 uppercase font-medium">
+                      Formality
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {wedding?.formality_level
+                        ? wedding.formality_level.charAt(0).toUpperCase() +
+                          wedding.formality_level.slice(1)
+                        : "—"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Location
-                </p>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-gray-900">
-                    {formData.location || "TBD"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Guests
-                </p>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-gray-900">
-                    {formData.guestCount || "—"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Budget
-                </p>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-gray-900">
-                    {formData.budgetMin && formData.budgetMax
-                      ? `$${parseInt(
-                          formData.budgetMin
-                        ).toLocaleString()}-${parseInt(
-                          formData.budgetMax
-                        ).toLocaleString()}`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Type
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {formData.weddingType ? formData.weddingType.charAt(0).toUpperCase() + formData.weddingType.slice(1) : "—"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500 uppercase font-medium">
-                  Formality
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {formData.formalityLevel ? formData.formalityLevel.charAt(0).toUpperCase() + formData.formalityLevel.slice(1) : "—"}
-                </p>
-              </div>
-            </div>
-            
-            {/* Theme & Colors */}
-            {(formData.themes && formData.themes.length > 0) && (
-              <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
-                  Theme
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {formData.themes.map((theme: string) => (
-                    <span key={theme} className="px-3 py-1 bg-rose-50 text-rose-700 text-xs font-medium rounded-full">
-                      {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="flex gap-2 pt-2">
-              <Button
-                onClick={() => navigate("/planning/step-1")}
-                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full h-10 text-sm"
-              >
-                Edit Details
-              </Button>
-              <Button className="flex-1 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-10 text-sm">
-                View Moodboard
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {/* Style & Preferences */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Palette className="w-5 h-5 text-purple-600" />
-                Style & Preferences
-              </h2>
-            </div>
-            <div className="p-4 lg:p-5 space-y-4">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
-                  Venue Preference
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {formData.venuePreference ? formData.venuePreference.charAt(0).toUpperCase() + formData.venuePreference.slice(1) : 'Indoor'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
-                  Preferred Venue Types
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.venueTypes && formData.venueTypes.length > 0 ? formData.venueTypes : ['Ballroom', 'Garden', 'Hotel']).map((type: string) => (
-                    <span key={type} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-medium mb-2">
-                  Music Styles
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.musicStyles && formData.musicStyles.length > 0 ? formData.musicStyles : ['Pop', 'Jazz', 'Classical']).map((style: string) => (
-                    <span key={style} className="px-2 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded">
-                      {style}
-                    </span>
-                  ))}
+                {/* Theme & Colors */}
+                {displayData.themes && displayData.themes.length > 0 && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                      Theme
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {displayData.themes.map((theme: string) => (
+                        <span
+                          key={theme}
+                          className="px-3 py-1 bg-rose-50 text-rose-700 text-xs font-medium rounded-full"
+                        >
+                          {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={handleEditWedding}
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full h-10 text-sm"
+                  >
+                    Edit Details
+                  </Button>
+                  <Button className="flex-1 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-10 text-sm">
+                    View Moodboard
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
 
-        {/* Vendor Priorities */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Target className="w-5 h-5 text-green-600" />
-                Vendor Priorities
-              </h2>
-            </div>
-            <div className="p-4 lg:p-5 space-y-3">
-              {(formData.vendorCategories || ['venue', 'photo-video', 'music-dj', 'decorations', 'sweets'])
-                .sort((a: string, b: string) => {
-                  const defaultPriorities: Record<string, number> = {
-                    'venue': 5,
-                    'photo-video': 4,
-                    'music-dj': 3,
-                    'decorations': 4,
-                    'sweets': 3
-                  };
-                  const priorityA = formData.vendorPriorities?.[a] || defaultPriorities[a] || 3;
-                  const priorityB = formData.vendorPriorities?.[b] || defaultPriorities[b] || 3;
-                  return priorityB - priorityA;
-                })
-                .map((category: string) => {
-                  const defaultPriorities: Record<string, number> = {
-                    'venue': 5,
-                    'photo-video': 4,
-                    'music-dj': 3,
-                    'decorations': 4,
-                    'sweets': 3
-                  };
-                  const priority = formData.vendorPriorities?.[category] || defaultPriorities[category] || 3;
-                  
-                  const getPriorityLabel = (p: number) => {
-                    if (p === 5) return { label: 'Critical', color: 'bg-red-100 text-red-700 border-red-200' };
-                    if (p === 4) return { label: 'High', color: 'bg-orange-100 text-orange-700 border-orange-200' };
-                    if (p === 3) return { label: 'Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-                    if (p === 2) return { label: 'Low', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-                    return { label: 'Optional', color: 'bg-gray-100 text-gray-700 border-gray-200' };
-                  };
-                  
-                  const priorityInfo = getPriorityLabel(priority);
-                  
-                  return (
-                    <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <span className="text-sm font-medium text-gray-900">
-                        {category.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+            {/* Style & Preferences */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-purple-600" />
+                  Style & Preferences
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                    Venue Preference
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {wedding?.venue_preference
+                      ? wedding.venue_preference.charAt(0).toUpperCase() +
+                        wedding.venue_preference.slice(1)
+                      : "Indoor"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                    Preferred Venue Types
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(wedding?.venue_types && wedding.venue_types.length > 0
+                      ? wedding.venue_types
+                      : ["Ballroom", "Garden", "Hotel"]
+                    ).map((type: string) => (
+                      <span
+                        key={type}
+                        className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded"
+                      >
+                        {type}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityInfo.color}`}>
-                        {priorityInfo.label}
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-medium mb-2">
+                    Music Styles
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(wedding?.music_styles && wedding.music_styles.length > 0
+                      ? wedding.music_styles
+                      : ["Pop", "Jazz", "Classical"]
+                    ).map((style: string) => (
+                      <span
+                        key={style}
+                        className="px-2 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded"
+                      >
+                        {style}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendor Priorities */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-green-600" />
+                  Vendor Priorities
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {(
+                  wedding?.vendor_categories || [
+                    "venue",
+                    "photo-video",
+                    "music-dj",
+                    "decorations",
+                    "sweets",
+                  ]
+                )
+                  .sort((a: string, b: string) => {
+                    const defaultPriorities: Record<string, number> = {
+                      venue: 5,
+                      "photo-video": 4,
+                      "music-dj": 3,
+                      decorations: 4,
+                      sweets: 3,
+                    };
+                    const priorityA =
+                      defaultPriorities[a] ||
+                      3;
+                    const priorityB =
+                      defaultPriorities[b] ||
+                      3;
+                    return priorityB - priorityA;
+                  })
+                  .map((category: string) => {
+                    const defaultPriorities: Record<string, number> = {
+                      venue: 5,
+                      "photo-video": 4,
+                      "music-dj": 3,
+                      decorations: 4,
+                      sweets: 3,
+                    };
+                    const priority =
+                      defaultPriorities[category] ||
+                      3;
+
+                    const getPriorityLabel = (p: number) => {
+                      if (p === 5)
+                        return {
+                          label: "Critical",
+                          color: "bg-red-100 text-red-700 border-red-200",
+                        };
+                      if (p === 4)
+                        return {
+                          label: "High",
+                          color:
+                            "bg-orange-100 text-orange-700 border-orange-200",
+                        };
+                      if (p === 3)
+                        return {
+                          label: "Medium",
+                          color:
+                            "bg-yellow-100 text-yellow-700 border-yellow-200",
+                        };
+                      if (p === 2)
+                        return {
+                          label: "Low",
+                          color: "bg-blue-100 text-blue-700 border-blue-200",
+                        };
+                      return {
+                        label: "Optional",
+                        color: "bg-gray-100 text-gray-700 border-gray-200",
+                      };
+                    };
+
+                    const priorityInfo = getPriorityLabel(priority);
+
+                    return (
+                      <div
+                        key={category}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-gray-900">
+                          {category
+                            .split("-")
+                            .map(
+                              (word: string) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ")}
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityInfo.color}`}
+                        >
+                          {priorityInfo.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* What We're Helping With */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                  We're Helping You With
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5">
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    wedding?.help_tasks || [
+                      "Budget Management",
+                      "Vendor Booking",
+                      "Guest List Management",
+                      "Timeline Creation",
+                    ]
+                  ).map((task: string) => (
+                    <div
+                      key={task}
+                      className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"
+                    >
+                      <CheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <span className="text-xs font-medium text-gray-900">
+                        {task}
                       </span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
 
-        {/* What We're Helping With */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 lg:p-5 border-b border-gray-100">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-600" />
-                We're Helping You With
-              </h2>
+            {/* Planning Progress & Tasks */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
+                    Planning Tasks
+                  </h2>
+                  <span className="text-sm font-medium text-blue-600">
+                    {completedTasks}/{tasks.length}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {/* AI Suggestion */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-900 font-medium">
+                        AI Suggestion
+                      </p>
+                      <p className="text-sm text-blue-800 mt-1">
+                        Book your DJ/Band this month to secure your date!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Task List */}
+                <div className="space-y-2">
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        className="w-5 h-5 rounded text-rose-600"
+                        readOnly
+                      />
+                      <div className="flex-1">
+                        <p
+                          className={`text-sm font-medium ${
+                            task.completed
+                              ? "line-through text-gray-400"
+                              : "text-gray-900"
+                          }`}
+                        >
+                          {task.title}
+                        </p>
+                        <p className="text-xs text-gray-500">{task.category}</p>
+                      </div>
+                      <Clock className="w-4 h-4 text-gray-400" />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {}}
+                  className="flex items-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 mt-3"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Custom Task
+                </button>
+              </div>
             </div>
-            <div className="p-4 lg:p-5">
-              <div className="grid grid-cols-2 gap-2">
-                {(formData.helpTasks || ['Budget Management', 'Vendor Booking', 'Guest List Management', 'Timeline Creation']).map((task: string) => (
-                  <div key={task} className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
-                    <CheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <span className="text-xs font-medium text-gray-900">{task}</span>
+
+            {/* Booked Vendors */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-green-600" />
+                  Booked Vendors
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {bookedVendors.map((vendor) => (
+                  <div
+                    key={vendor.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div
+                      className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
+                      style={{ backgroundImage: `url(${vendor.image})` }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {vendor.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{vendor.category}</p>
+                      <span
+                        className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          vendor.status === "Confirmed"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {vendor.status}
+                      </span>
+                    </div>
+                    <button className="p-2 hover:bg-gray-200 rounded-full">
+                      <MessageCircle className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => navigate("/vendors")}
+                  className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-600 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Add Vendor</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Suggested Vendors */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    Recommended For You
+                  </h2>
+                  <button
+                    onClick={() => navigate("/vendors")}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {suggestedVendors.map((vendor) => (
+                  <div
+                    key={vendor.id}
+                    className="p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-rose-300 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {vendor.name}
+                          </p>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                            {vendor.match}% match
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {vendor.category}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-500">★</span>
+                            <span className="font-medium">{vendor.rating}</span>
+                          </div>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-600">{vendor.price}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (vendor.category === "Music & DJ")
+                          navigate("/music-dj");
+                        else if (vendor.category === "Sweets")
+                          navigate("/sweets");
+                        else if (vendor.category === "Decorations")
+                          navigate("/decorations");
+                      }}
+                      className="flex items-center justify-center gap-1 w-full bg-rose-600 hover:bg-rose-700 text-white rounded-full h-9 text-sm font-medium mt-2"
+                    >
+                      View Profile
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
 
-        {/* Planning Progress & Tasks */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-blue-600" />
-                Planning Tasks
-              </h2>
-              <span className="text-sm font-medium text-blue-600">
-                {completedTasks}/{tasks.length}
-              </span>
-            </div>
-          </div>
-          <div className="p-4 lg:p-5 space-y-3">
-            {/* AI Suggestion */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-blue-900 font-medium">
-                    AI Suggestion
-                  </p>
-                  <p className="text-sm text-blue-800 mt-1">
-                    Book your DJ/Band this month to secure your date!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Task List */}
-            <div className="space-y-2">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    className="w-5 h-5 rounded text-rose-600"
-                    readOnly
-                  />
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm font-medium ${
-                        task.completed
-                          ? "line-through text-gray-400"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-gray-500">{task.category}</p>
-                  </div>
-                  <Clock className="w-4 h-4 text-gray-400" />
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {}}
-              className="flex items-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 mt-3"
-            >
-              <Plus className="w-4 h-4" />
-              Add Custom Task
-            </button>
-          </div>
-        </div>
-
-        {/* Booked Vendors */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-green-600" />
-              Booked Vendors
-            </h2>
-          </div>
-          <div className="p-4 lg:p-5 space-y-3">
-            {bookedVendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-              >
-                <div
-                  className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
-                  style={{ backgroundImage: `url(${vendor.image})` }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {vendor.name}
-                  </p>
-                  <p className="text-xs text-gray-500">{vendor.category}</p>
-                  <span
-                    className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                      vendor.status === "Confirmed"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
+            {/* Messages & Inquiries */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1 xl:col-span-2">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-blue-600" />
+                    Messages
+                  </h2>
+                  <button
+                    onClick={() => navigate("/messages")}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
                   >
-                    {vendor.status}
-                  </span>
+                    View All
+                  </button>
                 </div>
-                <button className="p-2 hover:bg-gray-200 rounded-full">
-                  <MessageCircle className="w-5 h-5 text-gray-600" />
-                </button>
               </div>
-            ))}
-
-            <button
-              onClick={() => navigate("/vendors")}
-              className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-600 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">Add Vendor</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Suggested Vendors */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600" />
-                Recommended For You
-              </h2>
-              <button
-                onClick={() => navigate("/vendors")}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700"
-              >
-                View All
-              </button>
-            </div>
-          </div>
-          <div className="p-4 lg:p-5 space-y-3">
-            {suggestedVendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-rose-300 transition-all"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {vendor.name}
-                      </p>
-                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                        {vendor.match}% match
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mb-1">
-                      {vendor.category}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500">★</span>
-                        <span className="font-medium">{vendor.rating}</span>
+              <div className="p-4 lg:p-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Recent Messages */}
+                  {[
+                    {
+                      id: 1,
+                      vendor: "The Grand Ballroom",
+                      category: "Venue",
+                      message: "We have availability for your date!",
+                      time: "2h ago",
+                      unread: true,
+                      avatar:
+                        "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80",
+                    },
+                    {
+                      id: 2,
+                      vendor: "Elegant Moments Photography",
+                      category: "Photo & Video",
+                      message: "Thank you for your inquiry!",
+                      time: "1d ago",
+                      unread: false,
+                      avatar:
+                        "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80",
+                    },
+                  ].map((msg) => (
+                    <button
+                      key={msg.id}
+                      onClick={() => navigate(`/chat/${msg.id}`)}
+                      className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <div
+                        className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                        style={{ backgroundImage: `url(${msg.avatar})` }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {msg.vendor}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {msg.category}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <p className="text-xs text-gray-500">{msg.time}</p>
+                            {msg.unread && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                            )}
+                          </div>
+                        </div>
+                        <p
+                          className={`text-xs ${msg.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
+                        >
+                          {msg.message}
+                        </p>
                       </div>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-600">{vendor.price}</span>
-                    </div>
-                  </div>
+                    </button>
+                  ))}
+
+                  {/* View All Button */}
+                  <button
+                    onClick={() => navigate("/messages")}
+                    className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-2 py-2"
+                  >
+                    View All Messages
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
+              </div>
+            </div>
+
+            {/* My Bookings */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                    My Bookings
+                  </h2>
+                  <button
+                    onClick={() => navigate("/my-bookings")}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {/* Confirmed Bookings */}
+                {[
+                  {
+                    id: 1,
+                    vendor: "The Grand Ballroom",
+                    category: "Venue",
+                    status: "Confirmed",
+                    date: "July 12, 2026",
+                    price: "$15,000",
+                    image:
+                      "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80",
+                  },
+                  {
+                    id: 2,
+                    vendor: "Elegant Moments Photography",
+                    category: "Photo & Video",
+                    status: "Pending",
+                    date: "July 12, 2026",
+                    price: "$3,500",
+                    image:
+                      "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80",
+                  },
+                ].map((booking) => (
+                  <button
+                    key={booking.id}
+                    onClick={() => navigate("/my-bookings")}
+                    className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
+                  >
+                    <div
+                      className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
+                      style={{ backgroundImage: `url(${booking.image})` }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 truncate">
+                            {booking.vendor}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {booking.category}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
+                            booking.status === "Confirmed"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {booking.date}
+                        </span>
+                        <span className="flex items-center gap-1 font-semibold text-purple-600">
+                          <DollarSign className="w-3 h-3" />
+                          {booking.price}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+
+                {/* View All Button */}
                 <button
-                  onClick={() => {
-                    if (vendor.category === "Music & DJ") navigate("/music-dj");
-                    else if (vendor.category === "Sweets") navigate("/sweets");
-                    else if (vendor.category === "Decorations")
-                      navigate("/decorations");
-                  }}
-                  className="flex items-center justify-center gap-1 w-full bg-rose-600 hover:bg-rose-700 text-white rounded-full h-9 text-sm font-medium mt-2"
+                  onClick={() => navigate("/my-bookings")}
+                  className="w-full flex items-center justify-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 mt-2 py-2"
                 >
-                  View Profile
+                  View All Bookings
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Messages & Inquiries */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1 xl:col-span-2">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-blue-600" />
-                Messages
-              </h2>
-              <button 
-                onClick={() => navigate("/messages")}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                View All
-              </button>
             </div>
-          </div>
-          <div className="p-4 lg:p-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Recent Messages */}
-            {[
-              {
-                id: 1,
-                vendor: "The Grand Ballroom",
-                category: "Venue",
-                message: "We have availability for your date!",
-                time: "2h ago",
-                unread: true,
-                avatar: "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80"
-              },
-              {
-                id: 2,
-                vendor: "Elegant Moments Photography",
-                category: "Photo & Video",
-                message: "Thank you for your inquiry!",
-                time: "1d ago",
-                unread: false,
-                avatar: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80"
-              },
-            ].map((msg) => (
-              <button
-                key={msg.id}
-                onClick={() => navigate(`/chat/${msg.id}`)}
-                className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-              >
-                <div
-                  className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
-                  style={{ backgroundImage: `url(${msg.avatar})` }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {msg.vendor}
-                      </p>
-                      <p className="text-xs text-gray-500">{msg.category}</p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      <p className="text-xs text-gray-500">{msg.time}</p>
-                      {msg.unread && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                      )}
-                    </div>
-                  </div>
-                  <p className={`text-xs ${msg.unread ? 'text-gray-900 font-medium' : 'text-gray-600'} truncate`}>
-                    {msg.message}
-                  </p>
+
+            {/* Budget Overview */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    Budget Tracker
+                  </h2>
+                  <button
+                    onClick={() => navigate("/budget-details")}
+                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                  >
+                    Details
+                  </button>
                 </div>
-              </button>
-            ))}
-            
-            {/* View All Button */}
-            <button
-              onClick={() => navigate("/messages")}
-              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-2 py-2"
-            >
-              View All Messages
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-        </div>
-
-        {/* My Bookings */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-purple-600" />
-                My Bookings
-              </h2>
-              <button 
-                onClick={() => navigate("/my-bookings")}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700"
-              >
-                View All
-              </button>
-            </div>
-          </div>
-          <div className="p-4 lg:p-5 space-y-3">
-            {/* Confirmed Bookings */}
-            {[
-              {
-                id: 1,
-                vendor: "The Grand Ballroom",
-                category: "Venue",
-                status: "Confirmed",
-                date: "July 12, 2026",
-                price: "$15,000",
-                image: "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80"
-              },
-              {
-                id: 2,
-                vendor: "Elegant Moments Photography",
-                category: "Photo & Video",
-                status: "Pending",
-                date: "July 12, 2026",
-                price: "$3,500",
-                image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80"
-              },
-            ].map((booking) => (
-              <button
-                key={booking.id}
-                onClick={() => navigate("/my-bookings")}
-                className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
-              >
-                <div
-                  className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
-                  style={{ backgroundImage: `url(${booking.image})` }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">
-                        {booking.vendor}
-                      </p>
-                      <p className="text-xs text-gray-500">{booking.category}</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
-                      booking.status === 'Confirmed' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {booking.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {booking.date}
-                    </span>
-                    <span className="flex items-center gap-1 font-semibold text-purple-600">
-                      <DollarSign className="w-3 h-3" />
-                      {booking.price}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
-            
-            {/* View All Button */}
-            <button
-              onClick={() => navigate("/my-bookings")}
-              className="w-full flex items-center justify-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 mt-2 py-2"
-            >
-              View All Bookings
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Budget Overview */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
-                Budget Tracker
-              </h2>
-              <button 
-                onClick={() => navigate("/budget-details")}
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-              >
-                Details
-              </button>
-            </div>
-          </div>
-          <div className="p-4 lg:p-5 space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">Allocated</span>
-                <span className="text-sm font-semibold text-gray-900">
-                  ${budgetAllocated.toLocaleString()} of $
-                  {budgetTotal.toLocaleString()}
-                </span>
               </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all"
-                  style={{ width: `${budgetPercent}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Expense Breakdown */}
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-gray-900">Breakdown</p>
-              {[
-                { category: "Venue", amount: 12000, color: "bg-rose-500" },
-                {
-                  category: "Photo & Video",
-                  amount: 5000,
-                  color: "bg-blue-500",
-                },
-                { category: "Catering", amount: 8000, color: "bg-green-500" },
-                { category: "Music/DJ", amount: 2000, color: "bg-purple-500" },
-                { category: "Other", amount: 1500, color: "bg-yellow-500" },
-              ].map((item) => (
-                <div
-                  key={item.category}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                    <span className="text-gray-600">{item.category}</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    ${item.amount.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <button className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3">
-              <FileText className="w-4 h-4" />
-              Export Budget Report
-            </button>
-          </div>
-        </div>
-
-        {/* Timeline Milestones */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
-              Timeline Milestones
-            </h2>
-          </div>
-          <div className="p-4 lg:p-5">
-            <div className="relative space-y-4">
-              {[
-                { month: "Dec 2024", task: "Book Venue", done: true },
-                { month: "Jan 2025", task: "Book Photographer", done: true },
-                { month: "Feb 2025", task: "Book DJ/Band", done: false },
-                { month: "Mar 2025", task: "Send Invitations", done: false },
-                {
-                  month: "May 2025",
-                  task: "Final Vendor Meetings",
-                  done: false,
-                },
-              ].map((milestone, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        milestone.done
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-200 text-gray-400"
-                      }`}
-                    >
-                      {milestone.done ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Circle className="w-5 h-5" />
-                      )}
-                    </div>
-                    {idx < 4 && <div className="w-0.5 h-8 bg-gray-200 my-1" />}
-                  </div>
-                  <div className="flex-1 pb-2">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {milestone.task}
-                    </p>
-                    <p className="text-xs text-gray-500">{milestone.month}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Guest QR & Gallery */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-          <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Camera className="w-5 h-5 text-pink-600" />
-              Guest Gallery
-            </h2>
-          </div>
-          <div className="p-4 lg:p-5 space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <QrCode className="w-7 h-7 text-purple-600" />
-                </div>
+              <div className="p-4 lg:p-5 space-y-4">
                 <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Allocated</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      ${budgetAllocated.toLocaleString()} of $
+                      {budgetTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all"
+                      style={{ width: `${budgetPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Expense Breakdown */}
+                <div className="space-y-2">
                   <p className="text-sm font-semibold text-gray-900">
-                    Guest Upload QR
+                    Breakdown
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Let guests share photos
-                  </p>
+                  {[
+                    { category: "Venue", amount: 12000, color: "bg-rose-500" },
+                    {
+                      category: "Photo & Video",
+                      amount: 5000,
+                      color: "bg-blue-500",
+                    },
+                    {
+                      category: "Catering",
+                      amount: 8000,
+                      color: "bg-green-500",
+                    },
+                    {
+                      category: "Music/DJ",
+                      amount: 2000,
+                      color: "bg-purple-500",
+                    },
+                    { category: "Other", amount: 1500, color: "bg-yellow-500" },
+                  ].map((item) => (
+                    <div
+                      key={item.category}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                        <span className="text-gray-600">{item.category}</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">
+                        ${item.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <button className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3">
+                  <FileText className="w-4 h-4" />
+                  Export Budget Report
+                </button>
+              </div>
+            </div>
+
+            {/* Timeline Milestones */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                  Timeline Milestones
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5">
+                <div className="relative space-y-4">
+                  {[
+                    { month: "Dec 2024", task: "Book Venue", done: true },
+                    {
+                      month: "Jan 2025",
+                      task: "Book Photographer",
+                      done: true,
+                    },
+                    { month: "Feb 2025", task: "Book DJ/Band", done: false },
+                    {
+                      month: "Mar 2025",
+                      task: "Send Invitations",
+                      done: false,
+                    },
+                    {
+                      month: "May 2025",
+                      task: "Final Vendor Meetings",
+                      done: false,
+                    },
+                  ].map((milestone, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            milestone.done
+                              ? "bg-green-500 text-white"
+                              : "bg-gray-200 text-gray-400"
+                          }`}
+                        >
+                          {milestone.done ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : (
+                            <Circle className="w-5 h-5" />
+                          )}
+                        </div>
+                        {idx < 4 && (
+                          <div className="w-0.5 h-8 bg-gray-200 my-1" />
+                        )}
+                      </div>
+                      <div className="flex-1 pb-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {milestone.task}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {milestone.month}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 py-2 text-sm font-medium">
-                Generate
-              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center"
-                >
-                  <Camera className="w-6 h-6 text-gray-400" />
+            {/* Guest QR & Gallery */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-pink-600" />
+                  Guest Gallery
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                      <QrCode className="w-7 h-7 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        Guest Upload QR
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Let guests share photos
+                      </p>
+                    </div>
+                  </div>
+                  <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 py-2 text-sm font-medium">
+                    Generate
+                  </button>
                 </div>
-              ))}
-            </div>
 
-            <button className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg h-10 text-sm font-medium">
-              <Download className="w-4 h-4" />
-              Download All Photos
-            </button>
-          </div>
-        </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center"
+                    >
+                      <Camera className="w-6 h-6 text-gray-400" />
+                    </div>
+                  ))}
+                </div>
 
-        {/* AI Recommendations */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden border-2 border-rose-200 lg:col-span-2 xl:col-span-3">
-          <div className="bg-gradient-to-r from-rose-100 to-pink-100 p-4 lg:p-5 border-b border-rose-200">
-            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-rose-600" />
-              AI Wedding Assistant
-            </h2>
-          </div>
-          <div className="p-4 lg:p-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 lg:p-4">
-                <p className="text-sm text-rose-900 font-medium mb-2">
-                  💡 Weekly Insight
-                </p>
-                <p className="text-sm text-rose-800">
-                  3 new vendors matching your style added near Los Angeles this
-                  week!
-                </p>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4">
-                <p className="text-sm text-blue-900 font-medium mb-2">
-                  ⏰ Timeline Alert
-                </p>
-                <p className="text-sm text-blue-800">
-                  It's time to finalize your guest list and start sending
-                  Save-the-Dates.
-                </p>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 lg:p-4">
-                <p className="text-sm text-purple-900 font-medium mb-2">
-                  ✨ Smart Recommendation
-                </p>
-                <p className="text-sm text-purple-800">
-                  Based on your romantic theme, we found 5 florists specializing
-                  in rose arrangements.
-                </p>
+                <button className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg h-10 text-sm font-medium">
+                  <Download className="w-4 h-4" />
+                  Download All Photos
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 lg:gap-3">
+            {/* AI Recommendations */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden border-2 border-rose-200 lg:col-span-2 xl:col-span-3">
+              <div className="bg-gradient-to-r from-rose-100 to-pink-100 p-4 lg:p-5 border-b border-rose-200">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-rose-600" />
+                  AI Wedding Assistant
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 lg:p-4">
+                    <p className="text-sm text-rose-900 font-medium mb-2">
+                      💡 Weekly Insight
+                    </p>
+                    <p className="text-sm text-rose-800">
+                      3 new vendors matching your style added near Los Angeles
+                      this week!
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4">
+                    <p className="text-sm text-blue-900 font-medium mb-2">
+                      ⏰ Timeline Alert
+                    </p>
+                    <p className="text-sm text-blue-800">
+                      It's time to finalize your guest list and start sending
+                      Save-the-Dates.
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 lg:p-4">
+                    <p className="text-sm text-purple-900 font-medium mb-2">
+                      ✨ Smart Recommendation
+                    </p>
+                    <p className="text-sm text-purple-800">
+                      Based on your romantic theme, we found 5 florists
+                      specializing in rose arrangements.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 lg:gap-3">
+                  <button
+                    onClick={() => setShowAIChat(!showAIChat)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white rounded-full h-10 text-sm font-medium"
+                  >
+                    Ask AI
+                  </button>
+                  <button className="bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-10 text-sm font-medium">
+                    Optimize Plan
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:col-span-2 xl:col-span-3">
               <button
-                onClick={() => setShowAIChat(!showAIChat)}
-                className="bg-rose-600 hover:bg-rose-700 text-white rounded-full h-10 text-sm font-medium"
+                onClick={() => navigate("/vendors")}
+                className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
               >
-                Ask AI
+                <Users className="w-8 h-8 text-rose-600 mb-2" />
+                <p className="text-sm font-semibold text-gray-900">
+                  Find Vendors
+                </p>
               </button>
-              <button className="bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-10 text-sm font-medium">
-                Optimize Plan
+              <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
+                <Calendar className="w-8 h-8 text-blue-600 mb-2" />
+                <p className="text-sm font-semibold text-gray-900">Timeline</p>
+              </button>
+              <button
+                onClick={() => navigate("/guest-list")}
+                className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
+              >
+                <Users className="w-8 h-8 text-green-600 mb-2" />
+                <p className="text-sm font-semibold text-gray-900">
+                  Guest List
+                </p>
+              </button>
+              <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
+                <TrendingUp className="w-8 h-8 text-purple-600 mb-2" />
+                <p className="text-sm font-semibold text-gray-900">Analytics</p>
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:col-span-2 xl:col-span-3">
-          <button
-            onClick={() => navigate("/vendors")}
-            className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
-          >
-            <Users className="w-8 h-8 text-rose-600 mb-2" />
-            <p className="text-sm font-semibold text-gray-900">Find Vendors</p>
-          </button>
-          <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
-            <Calendar className="w-8 h-8 text-blue-600 mb-2" />
-            <p className="text-sm font-semibold text-gray-900">Timeline</p>
-          </button>
-          <button
-            onClick={() => navigate("/guest-list")}
-            className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
-          >
-            <Users className="w-8 h-8 text-green-600 mb-2" />
-            <p className="text-sm font-semibold text-gray-900">Guest List</p>
-          </button>
-          <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
-            <TrendingUp className="w-8 h-8 text-purple-600 mb-2" />
-            <p className="text-sm font-semibold text-gray-900">Analytics</p>
-          </button>
-        </div>
-        </div>
         </div>
       </main>
 
