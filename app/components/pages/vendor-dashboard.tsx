@@ -13,15 +13,38 @@ import {
   Search,
   ChevronDown,
   Trash2,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 
 export const VendorDashboard = () => {
   const { navigate } = useRouter();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to sign out");
+      }
+
+      setShowUserMenu(false);
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      alert("Failed to sign out. Please try again.");
+    }
+  };
 
   // Sample data
   const stats = {
@@ -144,12 +167,50 @@ export const VendorDashboard = () => {
               Wedding Planner
             </p>
           </div>
-          <button
-            onClick={() => navigate("/")}
-            className="bg-white/20 hover:bg-white/30 p-2 rounded-full backdrop-blur-sm"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          
+          {/* User Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-2 rounded-full backdrop-blur-sm transition-all"
+            >
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <UserIcon className="w-4 h-4 text-rose-600" />
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  showUserMenu ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowUserMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-20">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      Signed in as
+                    </p>
+                    <p className="text-sm text-gray-600 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors text-red-600"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">Sign Out</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Stats Summary */}

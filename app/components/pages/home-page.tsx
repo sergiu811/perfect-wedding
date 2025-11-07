@@ -9,6 +9,8 @@ import {
   Star,
   ArrowRight,
   Search,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -19,10 +21,32 @@ import {
 } from "~/components/common";
 import { CATEGORIES } from "~/constants";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 
 export const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { navigate } = useRouter();
+  const { user } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to sign out");
+      }
+
+      setShowUserMenu(false);
+      // Force a full page reload to clear auth state and navigate to login
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      alert("Failed to sign out. Please try again.");
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,14 +106,54 @@ export const HomePage = () => {
 
   return (
     <PageContainer className="bg-gradient-to-b from-pink-50 via-white to-pink-50/30">
-      {/* Vendor Dashboard Access Button */}
-      <button
-        onClick={() => navigate("/vendor-dashboard")}
-        className="fixed top-4 right-4 lg:top-8 lg:right-8 z-20 w-12 h-12 lg:w-14 lg:h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-rose-600 hover:bg-rose-50 transition-all duration-200 hover:scale-110"
-        aria-label="Vendor Dashboard"
-      >
-        <User className="w-6 h-6 lg:w-7 lg:h-7" />
-      </button>
+      {/* Top Right Buttons */}
+      <div className="fixed top-4 right-4 lg:top-8 lg:right-8 z-20 flex items-center gap-3">
+        {/* User Menu - Only show if logged in */}
+        {user && (
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+            >
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 text-gray-600 transition-transform hidden lg:block ${
+                  showUserMenu ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowUserMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-20">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      Signed in as
+                    </p>
+                    <p className="text-sm text-gray-600 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors text-red-600"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">Sign Out</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Hero Section */}
       <div className="relative min-h-[70vh] lg:min-h-[80vh] flex items-center justify-center overflow-hidden">

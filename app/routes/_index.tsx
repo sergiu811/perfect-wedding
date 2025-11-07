@@ -59,7 +59,7 @@ export default function App() {
                   <Route path="/auth" element={<AuthPage />} />
                   
                   {/* Protected Routes */}
-                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/" element={<ProtectedRoute requireRole="couple"><HomePage /></ProtectedRoute>} />
                   <Route path="/vendors" element={<ProtectedRoute><VendorsPage /></ProtectedRoute>} />
                   <Route path="/venues" element={<ProtectedRoute><VenuesPage /></ProtectedRoute>} />
                   <Route
@@ -145,24 +145,24 @@ export default function App() {
                     element={<ProtectedRoute requireRole="vendor"><AddServiceStep4 /></ProtectedRoute>}
                   />
                   <Route path="/ai-planner" element={<ProtectedRoute><AIPlanner /></ProtectedRoute>} />
-                  <Route path="/my-wedding" element={<ProtectedRoute><MyWeddingPage /></ProtectedRoute>} />
+                  <Route path="/my-wedding" element={<ProtectedRoute requireRole="couple"><MyWeddingPage /></ProtectedRoute>} />
                   <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
-                  <Route path="/planning/step-1" element={<ProtectedRoute><PlanningStep1 /></ProtectedRoute>} />
-                  <Route path="/planning/step-2" element={<ProtectedRoute><PlanningStep2 /></ProtectedRoute>} />
-                  <Route path="/planning/step-3" element={<ProtectedRoute><PlanningStep3 /></ProtectedRoute>} />
-                  <Route path="/planning/step-4" element={<ProtectedRoute><PlanningStep4 /></ProtectedRoute>} />
+                  <Route path="/planning/step-1" element={<ProtectedRoute requireRole="couple"><PlanningStep1 /></ProtectedRoute>} />
+                  <Route path="/planning/step-2" element={<ProtectedRoute requireRole="couple"><PlanningStep2 /></ProtectedRoute>} />
+                  <Route path="/planning/step-3" element={<ProtectedRoute requireRole="couple"><PlanningStep3 /></ProtectedRoute>} />
+                  <Route path="/planning/step-4" element={<ProtectedRoute requireRole="couple"><PlanningStep4 /></ProtectedRoute>} />
                   <Route
                     path="/planning/success"
-                    element={<ProtectedRoute><PlanningSuccess /></ProtectedRoute>}
+                    element={<ProtectedRoute requireRole="couple"><PlanningSuccess /></ProtectedRoute>}
                   />
-                  <Route path="/guest-list" element={<ProtectedRoute><GuestListPage /></ProtectedRoute>} />
+                  <Route path="/guest-list" element={<ProtectedRoute requireRole="couple"><GuestListPage /></ProtectedRoute>} />
                   <Route
                     path="/seating-planner"
-                    element={<ProtectedRoute><SeatingPlannerPage /></ProtectedRoute>}
+                    element={<ProtectedRoute requireRole="couple"><SeatingPlannerPage /></ProtectedRoute>}
                   />
                   <Route
                     path="/budget-details"
-                    element={<ProtectedRoute><BudgetDetailsPage /></ProtectedRoute>}
+                    element={<ProtectedRoute requireRole="couple"><BudgetDetailsPage /></ProtectedRoute>}
                   />
                   <Route
                     path="/contact-vendor/:id"

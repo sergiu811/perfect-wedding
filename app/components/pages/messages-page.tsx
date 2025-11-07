@@ -104,53 +104,53 @@ export const MessagesPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Messages</h1>
-        <p className="text-white/90 text-sm">
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
+        <h1 className="text-3xl lg:text-4xl font-bold mb-2">Messages</h1>
+        <p className="text-white/90 text-sm lg:text-base">
           Chat with your vendors
         </p>
 
         {/* Search Bar */}
         <div className="mt-6">
-          <div className="relative">
+          <div className="relative max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-500 border-0 shadow-md"
+              className="w-full h-12 lg:h-14 pl-12 pr-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-500 border-0 shadow-md"
             />
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-hide">
-          {[
-            { label: "All", value: "all" },
-            { label: "Pending", value: "pending" },
-            { label: "Responded", value: "responded" },
-            { label: "Offers", value: "offer-sent" },
-            { label: "Booked", value: "booked" },
-          ].map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setFilterStatus(filter.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterStatus === filter.value
-                  ? "bg-white text-rose-600"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
+          {/* Filter Tabs */}
+          <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-hide">
+            {[
+              { label: "All", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "Responded", value: "responded" },
+              { label: "Offers", value: "offer-sent" },
+              { label: "Booked", value: "booked" },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFilterStatus(filter.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  filterStatus === filter.value
+                    ? "bg-white text-rose-600"
+                    : "bg-white/20 text-white hover:bg-white/30"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <main className="flex-1 px-4 py-6">
+        <main className="flex-1 px-4 lg:px-6 py-6">
         {filteredMessages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -162,17 +162,17 @@ export const MessagesPage = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4">
             {filteredMessages.map((message) => (
               <button
                 key={message.id}
                 onClick={() => navigate(`/chat/${message.vendorId}`)}
-                className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all text-left"
+                className="w-full bg-white rounded-2xl p-4 lg:p-5 shadow-sm hover:shadow-lg transition-all text-left border-2 border-transparent hover:border-rose-200"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 lg:gap-4">
                   {/* Avatar */}
                   <div
-                    className="w-14 h-14 rounded-full bg-cover bg-center flex-shrink-0"
+                    className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-cover bg-center flex-shrink-0 ring-2 ring-gray-100"
                     style={{ backgroundImage: `url(${message.vendorAvatar})` }}
                   />
 
@@ -180,10 +180,10 @@ export const MessagesPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 truncate">
+                        <h3 className="font-bold text-gray-900 truncate text-base lg:text-lg">
                           {message.vendorName}
                         </h3>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs lg:text-sm text-gray-500">
                           {message.vendorCategory}
                         </p>
                       </div>
@@ -199,11 +199,11 @@ export const MessagesPage = () => {
                     </div>
 
                     <p
-                      className={`text-sm ${
+                      className={`text-sm lg:text-base ${
                         message.unread
                           ? "text-gray-900 font-medium"
                           : "text-gray-600"
-                      } truncate mb-2`}
+                      } line-clamp-2 mb-3`}
                     >
                       {message.lastMessage}
                     </p>

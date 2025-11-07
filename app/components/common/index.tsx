@@ -4,3 +4,4 @@ export { CategoryCard, type Category } from "./category-card";
 export { SectionTitle } from "./section-title";
 export { PageContainer } from "./page-container";
 export { Link } from "./link";
+export { CoupleOnlyRoute } from "./couple-only-route";

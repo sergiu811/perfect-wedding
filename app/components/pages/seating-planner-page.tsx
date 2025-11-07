@@ -28,11 +28,11 @@ import type { Guest } from "~/contexts/guest-list-context";
 // Helper component to highlight search matches
 const HighlightText = ({ text, query }: { text: string; query: string }) => {
   if (!query.trim()) return <>{text}</>;
-  
-  const parts = text.split(new RegExp(`(${query})`, 'gi'));
+
+  const parts = text.split(new RegExp(`(${query})`, "gi"));
   return (
     <>
-      {parts.map((part, i) => 
+      {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
           <mark key={i} className="bg-yellow-200 text-gray-900 font-semibold">
             {part}
@@ -89,13 +89,13 @@ export const SeatingPlannerPage = () => {
   // Filter guests based on search query
   const filterGuests = (guestList: Guest[]) => {
     if (!guestSearchQuery.trim()) return guestList;
-    
+
     const query = guestSearchQuery.toLowerCase();
     return guestList.filter((guest) => {
       const name = guest.name.toLowerCase();
       const relationship = guest.relationship.toLowerCase();
       const mealPreference = guest.mealPreference?.toLowerCase() || "";
-      
+
       return (
         name.includes(query) ||
         relationship.includes(query) ||
@@ -215,10 +215,10 @@ export const SeatingPlannerPage = () => {
           <button
             onClick={() => {
               const nextTableNumber = tables.length + 1;
-              setNewTableForm({ 
-                name: `Table ${nextTableNumber}`, 
-                seats: 8, 
-                shape: "round" 
+              setNewTableForm({
+                name: `Table ${nextTableNumber}`,
+                seats: 8,
+                shape: "round",
               });
               setShowAddTable(true);
             }}
@@ -253,9 +253,18 @@ export const SeatingPlannerPage = () => {
                       How to Assign Guests
                     </p>
                     <ul className="text-xs text-blue-800 space-y-1">
-                      <li>• <strong>Drag & Drop:</strong> Drag guests from the sidebar to tables</li>
-                      <li>• <strong>Click Seat:</strong> Click "+ Add" on any empty seat to pick a guest</li>
-                      <li>• <strong>Quick Assign:</strong> Select a table, then click on a guest</li>
+                      <li>
+                        • <strong>Drag & Drop:</strong> Drag guests from the
+                        sidebar to tables
+                      </li>
+                      <li>
+                        • <strong>Click Seat:</strong> Click "+ Add" on any
+                        empty seat to pick a guest
+                      </li>
+                      <li>
+                        • <strong>Quick Assign:</strong> Select a table, then
+                        click on a guest
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -322,18 +331,31 @@ export const SeatingPlannerPage = () => {
                           onDragOver={(e) => {
                             if (draggedGuest && !isFull) {
                               e.preventDefault();
-                              e.currentTarget.classList.add("ring-4", "ring-indigo-400");
+                              e.currentTarget.classList.add(
+                                "ring-4",
+                                "ring-indigo-400"
+                              );
                             }
                           }}
                           onDragLeave={(e) => {
-                            e.currentTarget.classList.remove("ring-4", "ring-indigo-400");
+                            e.currentTarget.classList.remove(
+                              "ring-4",
+                              "ring-indigo-400"
+                            );
                           }}
                           onDrop={async (e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove("ring-4", "ring-indigo-400");
+                            e.currentTarget.classList.remove(
+                              "ring-4",
+                              "ring-indigo-400"
+                            );
                             if (draggedGuest && !isFull) {
                               const nextSeat = table.assignedSeats.length + 1;
-                              await handleAssignGuest(table.id, nextSeat, draggedGuest.id);
+                              await handleAssignGuest(
+                                table.id,
+                                nextSeat,
+                                draggedGuest.id
+                              );
                               setDraggedGuest(null);
                             }
                           }}
@@ -478,7 +500,7 @@ export const SeatingPlannerPage = () => {
                     Unseated Guests ({unseatedGuests.length})
                   </h3>
                 </div>
-                
+
                 {/* Search Input */}
                 <div className="mb-3 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -518,48 +540,63 @@ export const SeatingPlannerPage = () => {
                     </div>
                   ) : (
                     filteredUnseatedGuests.map((guest) => (
-                    <div
-                      key={guest.id}
-                      draggable
-                      onDragStart={(e) => {
-                        setDraggedGuest(guest);
-                        e.currentTarget.classList.add("opacity-50");
-                      }}
-                      onDragEnd={(e) => {
-                        setDraggedGuest(null);
-                        e.currentTarget.classList.remove("opacity-50");
-                      }}
-                      onClick={async () => {
-                        if (selectedTable) {
-                          const nextSeat = selectedTable.assignedSeats.length + 1;
-                          if (nextSeat <= selectedTable.seats) {
-                            await handleAssignGuest(
-                              selectedTable.id,
-                              nextSeat,
-                              guest.id
-                            );
-                          } else {
-                            alert("This table is full! Select another table or drag the guest.");
+                      <div
+                        key={guest.id}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedGuest(guest);
+                          e.currentTarget.classList.add("opacity-50");
+                        }}
+                        onDragEnd={(e) => {
+                          setDraggedGuest(null);
+                          e.currentTarget.classList.remove("opacity-50");
+                        }}
+                        onClick={async () => {
+                          if (selectedTable) {
+                            const nextSeat =
+                              selectedTable.assignedSeats.length + 1;
+                            if (nextSeat <= selectedTable.seats) {
+                              await handleAssignGuest(
+                                selectedTable.id,
+                                nextSeat,
+                                guest.id
+                              );
+                            } else {
+                              alert(
+                                "This table is full! Select another table or drag the guest."
+                              );
+                            }
                           }
-                        }
-                      }}
-                      className={`flex items-center justify-between p-3 bg-amber-50 border-2 rounded-lg cursor-move hover:shadow-md transition-all ${
-                        selectedTable
-                          ? "border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50"
-                          : "border-amber-200 hover:border-amber-400"
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          <HighlightText text={guest.name} query={guestSearchQuery} />
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          <HighlightText text={guest.relationship} query={guestSearchQuery} /> • <HighlightText text={guest.mealPreference} query={guestSearchQuery} />
-                        </p>
+                        }}
+                        className={`flex items-center justify-between p-3 bg-amber-50 border-2 rounded-lg cursor-move hover:shadow-md transition-all ${
+                          selectedTable
+                            ? "border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50"
+                            : "border-amber-200 hover:border-amber-400"
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            <HighlightText
+                              text={guest.name}
+                              query={guestSearchQuery}
+                            />
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            <HighlightText
+                              text={guest.relationship}
+                              query={guestSearchQuery}
+                            />{" "}
+                            •{" "}
+                            <HighlightText
+                              text={guest.mealPreference}
+                              query={guestSearchQuery}
+                            />
+                          </p>
+                        </div>
+                        <div className="text-gray-400 text-xs">⋮⋮</div>
                       </div>
-                      <div className="text-gray-400 text-xs">⋮⋮</div>
-                    </div>
-                  )))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -618,17 +655,30 @@ export const SeatingPlannerPage = () => {
                           onDragOver={(e) => {
                             if (draggedGuest && !seat) {
                               e.preventDefault();
-                              e.currentTarget.classList.add("ring-2", "ring-indigo-400");
+                              e.currentTarget.classList.add(
+                                "ring-2",
+                                "ring-indigo-400"
+                              );
                             }
                           }}
                           onDragLeave={(e) => {
-                            e.currentTarget.classList.remove("ring-2", "ring-indigo-400");
+                            e.currentTarget.classList.remove(
+                              "ring-2",
+                              "ring-indigo-400"
+                            );
                           }}
                           onDrop={async (e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove("ring-2", "ring-indigo-400");
+                            e.currentTarget.classList.remove(
+                              "ring-2",
+                              "ring-indigo-400"
+                            );
                             if (draggedGuest && !seat) {
-                              await handleAssignGuest(selectedTable.id, seatNum, draggedGuest.id);
+                              await handleAssignGuest(
+                                selectedTable.id,
+                                seatNum,
+                                draggedGuest.id
+                              );
                               setDraggedGuest(null);
                             }
                           }}
@@ -646,7 +696,9 @@ export const SeatingPlannerPage = () => {
                               {seat.guestName}
                             </span>
                           ) : (
-                            <span className="text-indigo-400 font-medium">+ Add</span>
+                            <span className="text-indigo-400 font-medium">
+                              + Add
+                            </span>
                           )}
                         </button>
                       );
@@ -862,7 +914,7 @@ export const SeatingPlannerPage = () => {
                 ✕
               </button>
             </div>
-            
+
             {/* Search Input in Modal */}
             <div className="p-4 pb-2 border-b border-gray-100">
               <div className="relative">
@@ -886,7 +938,8 @@ export const SeatingPlannerPage = () => {
               </div>
               {filteredUnseatedGuests.length > 0 && (
                 <p className="text-xs text-gray-500 mt-2">
-                  Showing {filteredUnseatedGuests.length} of {unseatedGuests.length} guests
+                  Showing {filteredUnseatedGuests.length} of{" "}
+                  {unseatedGuests.length} guests
                 </p>
               )}
             </div>
@@ -925,10 +978,21 @@ export const SeatingPlannerPage = () => {
                       className="w-full text-left p-3 bg-gray-50 hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-400 rounded-lg transition-all"
                     >
                       <p className="text-sm font-medium text-gray-900">
-                        <HighlightText text={guest.name} query={guestSearchQuery} />
+                        <HighlightText
+                          text={guest.name}
+                          query={guestSearchQuery}
+                        />
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        <HighlightText text={guest.relationship} query={guestSearchQuery} /> • <HighlightText text={guest.mealPreference} query={guestSearchQuery} />
+                        <HighlightText
+                          text={guest.relationship}
+                          query={guestSearchQuery}
+                        />{" "}
+                        •{" "}
+                        <HighlightText
+                          text={guest.mealPreference}
+                          query={guestSearchQuery}
+                        />
                         {guest.plusOnes > 0 && ` • +${guest.plusOnes}`}
                       </p>
                     </button>
@@ -953,7 +1017,7 @@ export const SeatingPlannerPage = () => {
 
       {/* Add Table Modal */}
       {showAddTable && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -993,9 +1057,10 @@ export const SeatingPlannerPage = () => {
               className="p-4 space-y-4"
             >
               <p className="text-sm text-gray-600">
-                Create a new table for your seating arrangement. You can assign guests after creating the table.
+                Create a new table for your seating arrangement. You can assign
+                guests after creating the table.
               </p>
-              
+
               <div>
                 <label className="text-sm font-semibold text-gray-900 mb-2 block">
                   Table Name *

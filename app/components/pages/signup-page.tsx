@@ -8,7 +8,7 @@ export const SignupPage = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
 
-  const [role, setRole] = useState<'couple' | 'vendor'>('couple');
+  const [role, setRole] = useState<"couple" | "vendor">("couple");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,12 +41,8 @@ export const SignupPage = () => {
       setError(error.message || "Failed to create account");
       setLoading(false);
     } else {
-      // Redirect to onboarding or home
-      if (role === 'couple') {
-        navigate("/planning/step-1");
-      } else {
-        navigate("/add-service/step-1");
-      }
+      // Redirect to login page after successful signup
+      navigate("/login?signup=success");
     }
   };
 
@@ -56,7 +52,7 @@ export const SignupPage = () => {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-rose-600 rounded-full mb-4">
-            {role === 'couple' ? (
+            {role === "couple" ? (
               <Heart className="w-8 h-8 text-white fill-white" />
             ) : (
               <Building2 className="w-8 h-8 text-white" />
@@ -66,7 +62,7 @@ export const SignupPage = () => {
             Create Your Account
           </h1>
           <p className="text-gray-600">
-            {role === 'couple'
+            {role === "couple"
               ? "Start planning your dream wedding today"
               : "Showcase your services to couples"}
           </p>
@@ -77,22 +73,22 @@ export const SignupPage = () => {
           <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
             <button
               type="button"
-              onClick={() => setRole('couple')}
+              onClick={() => setRole("couple")}
               className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                role === 'couple'
-                  ? 'bg-white text-rose-600 shadow'
-                  : 'text-gray-600'
+                role === "couple"
+                  ? "bg-white text-rose-600 shadow"
+                  : "text-gray-600"
               }`}
             >
               Couple
             </button>
             <button
               type="button"
-              onClick={() => setRole('vendor')}
+              onClick={() => setRole("vendor")}
               className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                role === 'vendor'
-                  ? 'bg-white text-purple-600 shadow'
-                  : 'text-gray-600'
+                role === "vendor"
+                  ? "bg-white text-purple-600 shadow"
+                  : "text-gray-600"
               }`}
             >
               Vendor
@@ -140,7 +136,7 @@ export const SignupPage = () => {
             </div>
 
             {/* Business Name (Vendor Only) */}
-            {role === 'vendor' && (
+            {role === "vendor" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Business Name
@@ -217,9 +213,9 @@ export const SignupPage = () => {
               type="submit"
               disabled={loading}
               className={`w-full h-12 text-white font-semibold rounded-lg shadow-lg ${
-                role === 'couple'
-                  ? 'bg-rose-600 hover:bg-rose-700'
-                  : 'bg-purple-600 hover:bg-purple-700'
+                role === "couple"
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-purple-600 hover:bg-purple-700"
               }`}
             >
               {loading ? "Creating Account..." : "Create Account"}

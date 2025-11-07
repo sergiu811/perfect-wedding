@@ -93,12 +93,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) return { error };
 
-      // Update profile with role
+      // Upsert profile with role (handles both insert and update)
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ role })
-          .eq('id', data.user.id);
+          .upsert({ 
+            id: data.user.id,
+            role: role 
+          }, {
+            onConflict: 'id'
+          });
 
         if (profileError) return { error: profileError };
       }

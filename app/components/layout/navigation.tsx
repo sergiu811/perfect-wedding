@@ -1,18 +1,35 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { cn } from "~/lib/utils";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 import { Link } from "~/components/common";
 import { NAV_ITEMS } from "~/constants";
+import { Briefcase, LayoutDashboard, MessageSquare } from "lucide-react";
 
 export const Navigation = () => {
   const { currentPath } = useRouter();
+  const { profile } = useAuth();
+  
+  // Customize navigation items based on user role
+  const navItems = useMemo(() => {
+    if (profile?.role === 'vendor') {
+      return [
+        { path: "/vendor-dashboard", icon: Briefcase, label: "My Business" },
+        { path: "/vendors", icon: NAV_ITEMS[1].icon, label: "Vendors" },
+        { path: "/messages", icon: MessageSquare, label: "Messages" },
+        { path: "/more", icon: NAV_ITEMS[3].icon, label: "More" },
+      ];
+    }
+    // Default for couples
+    return NAV_ITEMS;
+  }, [profile?.role]);
 
   return (
     <>
       {/* Mobile Navigation - Bottom Bar */}
       <nav className="lg:hidden sticky bottom-0 border-t border-rose-600/20 bg-pink-50/95 backdrop-blur-md pt-2 pb-4 shadow-lg z-50">
         <div className="flex justify-around px-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.path;
 
@@ -50,7 +67,7 @@ export const Navigation = () => {
         </div>
         
         <div className="flex-1 space-y-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.path;
 

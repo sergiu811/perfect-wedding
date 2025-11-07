@@ -16,9 +16,9 @@ export const ProtectedRoute = ({
 
   useEffect(() => {
     if (!loading) {
-      // Not authenticated - redirect to auth page
+      // Not authenticated - redirect to login page
       if (!user) {
-        navigate("/auth");
+        navigate("/login");
         return;
       }
 
