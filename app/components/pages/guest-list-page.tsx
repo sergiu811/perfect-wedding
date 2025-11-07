@@ -1,32 +1,38 @@
-import React, { useState } from "react";
 import {
   ArrowLeft,
-  Plus,
-  Search,
-  Filter,
+  Clock,
   Download,
-  Upload,
+  Edit2,
   Mail,
   MessageCircle,
-  Edit2,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Users,
   PieChart,
-  Sparkles,
+  Plus,
   QrCode,
+  Search,
+  Sparkles,
+  Trash2,
+  Upload,
+  Users,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { useRouter } from "~/contexts/router-context";
-import { useGuestList } from "~/contexts/guest-list-context";
 import type { Guest } from "~/contexts/guest-list-context";
+import { useGuestList } from "~/hooks/use-guest-list";
+import { useRouter } from "~/contexts/router-context";
 
 export const GuestListPage = () => {
   const { navigate } = useRouter();
-  const { guests, getStats, updateGuest, deleteGuest } = useGuestList();
+  const {
+    guests,
+    loading,
+    getStats,
+    addGuest,
+    updateGuest,
+    deleteGuest,
+    importGuests,
+    exportGuests,
+  } = useGuestList();
   const stats = getStats();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,6 +40,9 @@ export const GuestListPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [formData, setFormData] = useState<Partial<Guest>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   // Filter guests
   const filteredGuests = guests.filter((guest) => {
@@ -59,6 +68,121 @@ export const GuestListPage = () => {
 
   const confirmedPercentage = Math.round((stats.confirmed / stats.total) * 100);
 
+  // Handle add/edit guest
+  const handleOpenAddModal = () => {
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      relationship: "Friend",
+      rsvpStatus: "pending",
+      mealPreference: "Standard",
+      plusOnes: 0,
+      tableNumber: "",
+      notes: "",
+    });
+    setEditingGuest(null);
+    setShowAddModal(true);
+    setError("");
+  };
+
+  const handleOpenEditModal = (guest: Guest) => {
+    setFormData(guest);
+    setEditingGuest(guest);
+    setShowAddModal(true);
+    setError("");
+  };
+
+  const handleSaveGuest = async () => {
+    if (!formData.name || !formData.relationship) {
+      setError("Name and relationship are required");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      if (editingGuest) {
+        await updateGuest(editingGuest.id, formData);
+      } else {
+        await addGuest(formData as Omit<Guest, "id">);
+      }
+      setShowAddModal(false);
+      setFormData({});
+    } catch (err) {
+      setError("Failed to save guest. Please try again.");
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteGuest = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this guest?")) return;
+
+    try {
+      await deleteGuest(id);
+    } catch (err) {
+      alert("Failed to delete guest");
+      console.error(err);
+    }
+  };
+
+  // Handle CSV import
+  const handleImportCSV = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const text = await file.text();
+      const lines = text.split("\n");
+
+      const guestsToImport: Omit<Guest, "id">[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+
+        const values = lines[i].split(",");
+        guestsToImport.push({
+          name: values[0] || "",
+          email: values[1] || undefined,
+          phone: values[2] || undefined,
+          relationship: values[3] || "Friend",
+          rsvpStatus: (values[4] as "yes" | "no" | "pending") || "pending",
+          mealPreference: values[5] || "standard",
+          plusOnes: parseInt(values[6]) || 0,
+          tableNumber: values[7] || undefined,
+          giftStatus: (values[8] as "pending" | "received" | "na") || undefined,
+          notes: values[9]?.replace(/\r/g, "") || undefined, // ✅ removes \r
+        });
+      }
+
+      try {
+        await importGuests(guestsToImport);
+        alert(`Successfully imported ${guestsToImport.length} guests`);
+      } catch (err) {
+        alert("Failed to import guests");
+        console.error(err);
+      }
+    };
+    input.click();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading guests...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20">
       {/* Header */}
@@ -78,7 +202,9 @@ export const GuestListPage = () => {
       <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 shadow-lg">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
-            <p className="text-white/80 text-xs lg:text-sm mb-1">Total Guests</p>
+            <p className="text-white/80 text-xs lg:text-sm mb-1">
+              Total Guests
+            </p>
             <p className="text-3xl lg:text-4xl font-bold">{stats.total}</p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 lg:p-4">
@@ -119,15 +245,25 @@ export const GuestListPage = () => {
       <div className="p-4 lg:p-6 bg-white border-b border-gray-100">
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
             className="flex flex-col items-center gap-1 p-3 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5 text-rose-600" />
             <span className="text-xs font-medium text-rose-700">Add Guest</span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+          <button
+            onClick={handleImportCSV}
+            className="flex flex-col items-center gap-1 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+          >
             <Upload className="w-5 h-5 text-blue-600" />
             <span className="text-xs font-medium text-blue-700">Import</span>
+          </button>
+          <button
+            onClick={exportGuests}
+            className="flex flex-col items-center gap-1 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+          >
+            <Download className="w-5 h-5 text-green-600" />
+            <span className="text-xs font-medium text-green-700">Export</span>
           </button>
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
@@ -325,7 +461,7 @@ export const GuestListPage = () => {
             Guests ({filteredGuests.length})
           </h3>
         </div>
-        
+
         <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4">
           {filteredGuests.map((guest) => (
             <div
@@ -344,15 +480,15 @@ export const GuestListPage = () => {
                           guest.rsvpStatus === "yes"
                             ? "bg-green-100 text-green-700"
                             : guest.rsvpStatus === "no"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-700"
                         }`}
                       >
                         {guest.rsvpStatus === "yes"
                           ? "✓ Confirmed"
                           : guest.rsvpStatus === "no"
-                          ? "✗ Declined"
-                          : "⏳ Pending"}
+                            ? "✗ Declined"
+                            : "⏳ Pending"}
                       </span>
                     </div>
                     <div className="space-y-1">
@@ -384,17 +520,13 @@ export const GuestListPage = () => {
                   </div>
                   <div className="flex gap-1">
                     <button
-                      onClick={() => setEditingGuest(guest)}
+                      onClick={() => handleOpenEditModal(guest)}
                       className="p-2 hover:bg-gray-100 rounded-lg"
                     >
                       <Edit2 className="w-4 h-4 text-gray-600" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete ${guest.name}?`)) {
-                          deleteGuest(guest.id);
-                        }
-                      }}
+                      onClick={() => handleDeleteGuest(guest.id)}
                       className="p-2 hover:bg-red-50 rounded-lg"
                     >
                       <Trash2 className="w-4 h-4 text-red-600" />
@@ -514,12 +646,14 @@ export const GuestListPage = () => {
         </div>
       </main>
 
-      {/* Add Guest Modal */}
+      {/* Add/Edit Guest Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Add New Guest</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingGuest ? "Edit Guest" : "Add New Guest"}
+              </h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -528,11 +662,20 @@ export const GuestListPage = () => {
               </button>
             </div>
             <div className="p-4 space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="text-sm font-semibold text-gray-900 mb-2 block">
                   Full Name *
                 </label>
                 <Input
+                  value={formData.name || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="John Doe"
                   className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
                 />
@@ -544,6 +687,10 @@ export const GuestListPage = () => {
                   </label>
                   <Input
                     type="email"
+                    value={formData.email || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="email@example.com"
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
                   />
@@ -553,6 +700,10 @@ export const GuestListPage = () => {
                     Phone
                   </label>
                   <Input
+                    value={formData.phone || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     placeholder="555-0100"
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
                   />
@@ -562,8 +713,13 @@ export const GuestListPage = () => {
                 <label className="text-sm font-semibold text-gray-900 mb-2 block">
                   Relationship *
                 </label>
-                <select className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4">
-                  <option value="">Select relationship</option>
+                <select
+                  value={formData.relationship || "Friend"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, relationship: e.target.value })
+                  }
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
+                >
                   <option value="Family">Family</option>
                   <option value="Friend">Friend</option>
                   <option value="Colleague">Colleague</option>
@@ -572,9 +728,34 @@ export const GuestListPage = () => {
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Meal Preference *
+                  RSVP Status
                 </label>
-                <select className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4">
+                <select
+                  value={formData.rsvpStatus || "pending"}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      rsvpStatus: e.target.value as "yes" | "no" | "pending",
+                    })
+                  }
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="yes">Confirmed</option>
+                  <option value="no">Declined</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-2 block">
+                  Meal Preference
+                </label>
+                <select
+                  value={formData.mealPreference || "Standard"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mealPreference: e.target.value })
+                  }
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
+                >
                   <option value="Standard">Standard</option>
                   <option value="Vegetarian">Vegetarian</option>
                   <option value="Vegan">Vegan</option>
@@ -589,7 +770,13 @@ export const GuestListPage = () => {
                 <Input
                   type="number"
                   min="0"
-                  defaultValue="0"
+                  value={formData.plusOnes || 0}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      plusOnes: parseInt(e.target.value) || 0,
+                    })
+                  }
                   className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
                 />
               </div>
@@ -598,6 +785,10 @@ export const GuestListPage = () => {
                   Table Number (Optional)
                 </label>
                 <Input
+                  value={formData.tableNumber || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tableNumber: e.target.value })
+                  }
                   placeholder="e.g., 5"
                   className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
                 />
@@ -607,19 +798,29 @@ export const GuestListPage = () => {
                   Notes
                 </label>
                 <textarea
+                  value={formData.notes || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   placeholder="Special dietary needs, accessibility requirements..."
                   className="w-full bg-gray-50 border border-gray-200 rounded-lg p-4 min-h-[80px]"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <Button
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full h-12"
+                  onClick={handleSaveGuest}
+                  disabled={saving}
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full h-12 disabled:opacity-50"
                 >
-                  Add Guest
+                  {saving
+                    ? "Saving..."
+                    : editingGuest
+                      ? "Update Guest"
+                      : "Add Guest"}
                 </Button>
                 <Button
                   onClick={() => setShowAddModal(false)}
+                  disabled={saving}
                   className="flex-1 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-12"
                 >
                   Cancel

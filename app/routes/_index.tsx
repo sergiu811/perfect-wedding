@@ -2,8 +2,6 @@ import React from "react";
 import { Router, Route } from "~/contexts/router-context";
 import { ServiceProvider } from "~/contexts/service-context";
 import { PlanningProvider } from "~/contexts/planning-context";
-import { GuestListProvider } from "~/contexts/guest-list-context";
-import { SeatingProvider } from "~/contexts/seating-context";
 import { Navigation } from "~/components/layout";
 import { ProtectedRoute } from "~/components/common/protected-route";
 import { AuthPage } from "~/components/pages/auth-page";
@@ -54,11 +52,9 @@ export default function App() {
   return (
     <Router>
       <PlanningProvider>
-        <GuestListProvider>
-          <SeatingProvider>
-            <ServiceProvider>
-              <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
-                <main className="flex-1 lg:ml-64 xl:ml-72">
+        <ServiceProvider>
+          <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
+            <main className="flex-1 lg:ml-64 xl:ml-72">
                   {/* Public Routes */}
                   <Route path="/auth" element={<AuthPage />} />
                   
@@ -184,8 +180,6 @@ export default function App() {
                 <Navigation />
               </div>
             </ServiceProvider>
-          </SeatingProvider>
-        </GuestListProvider>
       </PlanningProvider>
     </Router>
   );

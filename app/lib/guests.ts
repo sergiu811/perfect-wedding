@@ -11,7 +11,6 @@ export async function createGuest(
 ) {
   const { data, error } = await supabase
     .from('guests')
-    // @ts-ignore - Supabase type inference issue, works correctly at runtime
     .insert(guestData)
     .select()
     .single();
@@ -39,7 +38,6 @@ export async function updateGuest(
 ) {
   const { data, error } = await supabase
     .from('guests')
-    // @ts-ignore - Supabase type inference issue, works correctly at runtime
     .update(updates)
     .eq('id', guestId)
     .select()
@@ -74,7 +72,6 @@ export async function bulkCreateGuests(
 ) {
   const { data, error } = await supabase
     .from('guests')
-    // @ts-ignore - Supabase type inference issue, works correctly at runtime
     .insert(guests)
     .select();
 

@@ -37,7 +37,7 @@ export async function loader() {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const data = useLoaderData<typeof loader>() as any;
-  
+
   return (
     <html lang="en">
       <head>

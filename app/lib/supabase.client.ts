@@ -8,9 +8,13 @@ export function getSupabaseBrowserClient() {
     return supabaseClient
   }
 
+const SUPABASE_URL="https://wwlilqpyvbknxlnlijrh.supabase.co"
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bGlscXB5dmJrbnhsbmxpanJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTAzOTMsImV4cCI6MjA3NzgyNjM5M30.8yXyhlQX0mZ0PkFmqEWdr5Pc-GJJZJ9fWgQHzvFc6W0"
+
+
   supabaseClient = createBrowserClient<Database>(
-    window.ENV.SUPABASE_URL,
-    window.ENV.SUPABASE_ANON_KEY
+    SUPABASE_URL!,
+    SUPABASE_ANON_KEY!
   )
 
   return supabaseClient

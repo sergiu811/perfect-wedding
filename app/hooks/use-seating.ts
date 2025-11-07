@@ -1,113 +1,60 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "~/contexts/auth-context";
-import { getSupabaseBrowserClient } from "~/lib/supabase.client";
-import {
-  getSeatingChartByWeddingId,
-  upsertSeatingChart,
-  type Table,
-  type TableSeat,
-} from "~/lib/seating";
-import { getWeddingByUserId } from "~/lib/wedding";
+import { useState, useEffect, useCallback } from "react";
 
-export type { Table, TableSeat };
+export type TableSeat = {
+  seatNumber: number;
+  guestId?: string;
+  guestName?: string;
+};
 
-interface SeatingContextType {
-  tables: Table[];
-  loading: boolean;
-  addTable: (table: Omit<Table, "id" | "assignedSeats">) => Promise<void>;
-  updateTable: (id: string, updates: Partial<Table>) => Promise<void>;
-  deleteTable: (id: string) => Promise<void>;
-  assignGuestToSeat: (
-    tableId: string,
-    seatNumber: number,
-    guestId: string,
-    guestName: string
-  ) => Promise<void>;
-  unassignSeat: (tableId: string, seatNumber: number) => Promise<void>;
-  getTotalSeatedGuests: () => number;
-  autoAssignGuests: (guests: any[]) => Promise<void>;
-  refreshSeatingChart: () => Promise<void>;
-}
+export type Table = {
+  id: string;
+  name: string;
+  shape: "round" | "rectangle";
+  seats: number;
+  assignedSeats: TableSeat[];
+  position?: { x: number; y: number };
+  color?: string;
+  notes?: string;
+};
 
-const SeatingContext = createContext<SeatingContextType | null>(null);
-
-export const SeatingProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export function useSeating() {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
-  const [weddingId, setWeddingId] = useState<string | null>(null);
-  const { user } = useAuth();
-  const supabase = getSupabaseBrowserClient();
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch wedding and seating chart on mount
+  const fetchSeatingChart = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/seating");
+      if (!response.ok) throw new Error("Failed to fetch seating chart");
+      
+      const data = await response.json();
+      setTables(data.tables || []);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch seating chart");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    fetchSeatingChart();
+  }, [fetchSeatingChart]);
 
-      try {
-        // Get wedding ID
-        const { data: wedding } = await getWeddingByUserId(supabase, user.id);
-        if (wedding) {
-          setWeddingId(wedding.id);
-
-          // Get seating chart for this wedding
-          const { data: seatingChart } = await getSeatingChartByWeddingId(
-            supabase,
-            wedding.id
-          );
-          if (seatingChart && seatingChart.tables) {
-            // Parse tables from JSONB
-            const parsedTables = Array.isArray(seatingChart.tables)
-              ? (seatingChart.tables as unknown as Table[])
-              : [];
-            setTables(parsedTables);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching seating chart:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user, supabase]);
-
-  // Helper function to save tables to database
   const saveTables = async (updatedTables: Table[]) => {
-    if (!weddingId) return;
+    const formData = new FormData();
+    formData.append("tables", JSON.stringify(updatedTables));
 
-    try {
-      await upsertSeatingChart(supabase, weddingId, updatedTables);
-    } catch (error) {
-      console.error("Error saving seating chart:", error);
-      throw error;
-    }
-  };
+    const response = await fetch("/api/seating", {
+      method: "POST",
+      body: formData,
+    });
 
-  const refreshSeatingChart = async () => {
-    if (!weddingId) return;
-
-    try {
-      const { data: seatingChart } = await getSeatingChartByWeddingId(
-        supabase,
-        weddingId
-      );
-      if (seatingChart && seatingChart.tables) {
-        const parsedTables = Array.isArray(seatingChart.tables)
-          ? (seatingChart.tables as unknown as Table[])
-          : [];
-        setTables(parsedTables);
-      }
-    } catch (error) {
-      console.error("Error refreshing seating chart:", error);
-    }
+    if (!response.ok) throw new Error("Failed to save seating chart");
+    
+    const data = await response.json();
+    setTables(data.tables);
   };
 
   const addTable = async (table: Omit<Table, "id" | "assignedSeats">) => {
@@ -253,30 +200,19 @@ export const SeatingProvider = ({
     await saveTables(updatedTables);
   };
 
-  return (
-    <SeatingContext.Provider
-      value={{
-        tables,
-        loading,
-        addTable,
-        updateTable,
-        deleteTable,
-        assignGuestToSeat,
-        unassignSeat,
-        getTotalSeatedGuests,
-        autoAssignGuests,
-        refreshSeatingChart,
-      }}
-    >
-      {children}
-    </SeatingContext.Provider>
-  );
-};
+  const refreshSeatingChart = fetchSeatingChart;
 
-export const useSeating = () => {
-  const context = useContext(SeatingContext);
-  if (!context) {
-    throw new Error("useSeating must be used within a SeatingProvider");
-  }
-  return context;
-};
+  return {
+    tables,
+    loading,
+    error,
+    addTable,
+    updateTable,
+    deleteTable,
+    assignGuestToSeat,
+    unassignSeat,
+    getTotalSeatedGuests,
+    autoAssignGuests,
+    refreshSeatingChart,
+  };
+}
