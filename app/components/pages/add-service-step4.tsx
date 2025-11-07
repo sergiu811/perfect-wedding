@@ -19,10 +19,42 @@ export const AddServiceStep4 = () => {
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsPublishing(false);
-    setIsPublished(true);
+    
+    try {
+      const response = await fetch("/api/services", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+          priceMin: formData.priceMin,
+          priceMax: formData.priceMax,
+          location: formData.location,
+          contactMethod: formData.contactMethod,
+          tags: formData.tags,
+          serviceRegion: formData.serviceRegion,
+          videoLink: formData.videoLink,
+          availableDays: formData.availableDays,
+          leadTime: formData.leadTime,
+          specificFields: formData.specificFields || {},
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create service");
+      }
+
+      setIsPublished(true);
+    } catch (error) {
+      console.error("Error publishing service:", error);
+      alert(error instanceof Error ? error.message : "Failed to publish service. Please try again.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleAddAnother = () => {
@@ -34,7 +66,7 @@ export const AddServiceStep4 = () => {
     return (
       <div className="min-h-screen flex flex-col bg-pink-50 justify-center items-center p-4">
         <div className="max-w-2xl mx-auto w-full flex flex-col justify-center items-center">
-        <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm">
+        <div className="bg-white rounded-2xl p-8 shadow-xl text-center w-full max-w-md">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-12 h-12 text-green-600" />
           </div>
@@ -93,7 +125,7 @@ export const AddServiceStep4 = () => {
         </p>
       </div>
 
-      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto">
+      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto pb-32 lg:pb-40">
         {/* Preview Card */}
         <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
           <p className="text-sm font-medium mb-2 opacity-90">PREVIEW</p>
@@ -300,7 +332,7 @@ export const AddServiceStep4 = () => {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 space-y-3 bg-white border-t border-gray-200 max-w-md mx-auto">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
         <Button
           onClick={handlePublish}
           disabled={isPublishing}

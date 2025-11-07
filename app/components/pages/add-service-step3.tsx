@@ -106,7 +106,7 @@ export const AddServiceStep3 = () => {
         </p>
       </div>
 
-      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto">
+      <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto pb-32 lg:pb-40">
         <form className="space-y-6">
           {/* Photo Gallery Upload */}
           <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -400,7 +400,7 @@ export const AddServiceStep3 = () => {
       </main>
 
       {/* Footer */}
-      <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 sticky bottom-0 -mx-4 lg:-mx-8">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
         <Button
           onClick={handleContinue}
           className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"
