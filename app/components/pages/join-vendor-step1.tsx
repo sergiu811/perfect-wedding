@@ -1,19 +1,43 @@
-import React from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Camera } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
+import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
 
 export const JoinVendorStep1 = () => {
   const { navigate } = useRouter();
+  const { data, updateStep1 } = useVendorOnboarding();
+  
+  const [vendorName, setVendorName] = useState(data.vendorName);
+  const [contactPerson, setContactPerson] = useState(data.contactPerson);
+  const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber);
+  const [businessDescription, setBusinessDescription] = useState(data.businessDescription);
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/join-vendor/step-2");
+    
+    console.log("Step 1 - Submitting data:", {
+      vendorName,
+      contactPerson,
+      phoneNumber,
+      businessDescription,
+    });
+    
+    updateStep1({
+      vendorName,
+      contactPerson,
+      phoneNumber,
+      businessDescription,
+    });
+    
+    setTimeout(() => {
+      navigate("/join-vendor/step-2");
+    }, 100);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8 lg:-ml-64 xl:-ml-72">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
         <button onClick={() => navigate("/")} className="text-gray-900">
@@ -30,9 +54,10 @@ export const JoinVendorStep1 = () => {
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
           <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
+          <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
         </div>
         <p className="text-sm lg:text-base text-gray-600 mt-2 text-center">
-          Step 1 of 3: Vendor Identity
+          Step 1 of 4: Vendor Identity
         </p>
       </div>
 
@@ -52,24 +77,32 @@ export const JoinVendorStep1 = () => {
             className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
             placeholder="Vendor Name"
             type="text"
+            value={vendorName}
+            onChange={(e) => setVendorName(e.target.value)}
             required
           />
           <Input
             className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
             placeholder="Contact Person"
             type="text"
+            value={contactPerson}
+            onChange={(e) => setContactPerson(e.target.value)}
             required
           />
           <Input
             className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
             placeholder="Phone Number"
             type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
             required
           />
 
           <textarea
             className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg min-h-[120px] p-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
             placeholder="Brief Business Description"
+            value={businessDescription}
+            onChange={(e) => setBusinessDescription(e.target.value)}
             required
           />
         </form>
@@ -83,14 +116,6 @@ export const JoinVendorStep1 = () => {
         >
           Continue
         </Button>
-        <p className="text-center">
-          <a
-            className="text-sm font-medium text-gray-600 hover:text-rose-600 cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            Already a Vendor? Log In
-          </a>
-        </p>
       </footer>
     </div>
   );

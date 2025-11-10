@@ -15,6 +15,7 @@ export { SweetDetailsPage } from "./sweet-details-page";
 export { JoinVendorStep1 } from "./join-vendor-step1";
 export { JoinVendorStep2 } from "./join-vendor-step2";
 export { JoinVendorStep3 } from "./join-vendor-step3";
+export { JoinVendorStep4 } from "./join-vendor-step4";
 export { JoinVendorSuccess } from "./join-vendor-success";
 export { VendorDashboard } from "./vendor-dashboard";
 export { VendorEditProfile } from "./vendor-edit-profile";

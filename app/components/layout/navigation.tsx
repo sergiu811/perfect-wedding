@@ -10,6 +10,11 @@ export const Navigation = () => {
   const { currentPath } = useRouter();
   const { profile } = useAuth();
   
+  // Hide navigation if vendor hasn't completed profile
+  if (profile?.role === 'vendor' && !profile?.profile_completed) {
+    return null;
+  }
+  
   // Customize navigation items based on user role
   const navItems = useMemo(() => {
     if (profile?.role === 'vendor') {

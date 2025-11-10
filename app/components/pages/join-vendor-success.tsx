@@ -1,14 +1,90 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { CheckCircle, Sparkles, Calendar, Settings } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
+import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
 
 export const JoinVendorSuccess = () => {
   const { navigate } = useRouter();
+  const { updateProfile } = useAuth();
+  const { data, resetData } = useVendorOnboarding();
+  const [saving, setSaving] = useState(true);
+  const [hasSaved, setHasSaved] = useState(false);
 
   useEffect(() => {
-    // Confetti or celebration animation could go here
-  }, []);
+    // Only run once when component mounts
+    if (hasSaved) return;
+
+    // Save all vendor data to profile and mark as completed
+    const completeProfile = async () => {
+      try {
+        console.log("=== VENDOR ONBOARDING DATA ===");
+        console.log("Full context data:", data);
+        console.log("Vendor Name:", data.vendorName);
+        console.log("Contact Person:", data.contactPerson);
+        console.log("Phone:", data.phoneNumber);
+        console.log("Description:", data.businessDescription);
+        console.log("Location:", data.serviceLocation);
+        console.log("Business Types:", data.businessTypes);
+        console.log("Membership:", data.membershipLevel);
+        console.log("Price Range:", data.priceMin, "-", data.priceMax);
+        console.log("Available Days:", data.availableDays);
+        console.log("Lead Time:", data.leadTime);
+        
+        // Check if we have any data to save
+        if (!data.vendorName && !data.contactPerson) {
+          console.warn("No vendor data to save - context might be empty");
+          setSaving(false);
+          return;
+        }
+        
+        console.log("\n=== SAVING TO DATABASE ===");
+        const payload = {
+          business_name: data.vendorName,
+          first_name: data.contactPerson,
+          phone: data.phoneNumber,
+          bio: data.businessDescription,
+          location: data.serviceLocation,
+          website: data.website,
+          years_experience: data.yearsExperience ? parseInt(data.yearsExperience) : null,
+          service_areas: data.serviceAreas,
+          starting_price: data.priceMin ? parseFloat(data.priceMin) : null,
+          instagram: data.instagram,
+          facebook: data.facebook,
+          pinterest: data.pinterest,
+          business_hours: data.businessHours,
+          specialties: data.specialties,
+          profile_completed: true,
+        };
+        console.log("Profile update payload:", payload);
+
+        const result = await updateProfile(payload);
+        
+        if (result.error) {
+          console.error("Error from updateProfile:", result.error);
+          alert("Failed to save profile. Please try again.");
+          setSaving(false);
+          return;
+        }
+        
+        console.log("Profile saved successfully!");
+        setHasSaved(true);
+        
+        // Reset the onboarding data after a short delay
+        setTimeout(() => {
+          resetData();
+          setSaving(false);
+        }, 500);
+      } catch (error) {
+        console.error("Error saving profile:", error);
+        alert("Failed to save profile. Please try again.");
+        setSaving(false);
+      }
+    };
+    
+    completeProfile();
+  }, [hasSaved]); // Only depend on hasSaved to prevent infinite loops
 
   const handleContinue = () => {
     navigate("/vendor-dashboard");
@@ -98,9 +174,10 @@ export const JoinVendorSuccess = () => {
       <footer className="p-4 bg-pink-50 sticky bottom-0 border-t border-gray-200">
         <Button
           onClick={handleContinue}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 text-base tracking-wide shadow-lg"
+          disabled={saving}
+          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 text-base tracking-wide shadow-lg disabled:opacity-50"
         >
-          Go to Dashboard
+          {saving ? "Saving your profile..." : "Go to Dashboard"}
         </Button>
       </footer>
       </div>

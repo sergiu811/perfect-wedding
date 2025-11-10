@@ -99,7 +99,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .from('profiles')
           .upsert({ 
             id: data.user.id,
-            role: role 
+            role: role,
+            profile_completed: role === 'couple' ? true : false // Vendors need to complete profile setup
           }, {
             onConflict: 'id'
           });

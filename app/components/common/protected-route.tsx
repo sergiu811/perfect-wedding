@@ -22,6 +22,16 @@ export const ProtectedRoute = ({
         return;
       }
 
+      // Check if vendor needs to complete profile setup
+      if (profile?.role === "vendor" && !profile?.profile_completed) {
+        // Don't redirect if already on join-vendor pages
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith("/join-vendor")) {
+          navigate("/join-vendor");
+          return;
+        }
+      }
+
       // Check role requirement
       if (requireRole && profile?.role !== requireRole) {
         // Redirect based on actual role

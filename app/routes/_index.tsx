@@ -2,6 +2,7 @@ import React from "react";
 import { Router, Route } from "~/contexts/router-context";
 import { ServiceProvider } from "~/contexts/service-context";
 import { PlanningProvider } from "~/contexts/planning-context";
+import { VendorOnboardingProvider } from "~/contexts/vendor-onboarding-context";
 import { Navigation } from "~/components/layout";
 import { ProtectedRoute } from "~/components/common/protected-route";
 import { AuthPage } from "~/components/pages/auth-page";
@@ -23,6 +24,7 @@ import {
   JoinVendorStep1,
   JoinVendorStep2,
   JoinVendorStep3,
+  JoinVendorStep4,
   JoinVendorSuccess,
   VendorDashboard,
   VendorEditProfile,
@@ -51,10 +53,11 @@ import {
 export default function App() {
   return (
     <Router>
-      <PlanningProvider>
-        <ServiceProvider>
-          <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
-            <main className="flex-1 lg:ml-64 xl:ml-72">
+      <VendorOnboardingProvider>
+        <PlanningProvider>
+          <ServiceProvider>
+            <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
+              <main className="flex-1 lg:ml-64 xl:ml-72">
                   {/* Public Routes */}
                   <Route path="/auth" element={<AuthPage />} />
                   
@@ -111,6 +114,10 @@ export default function App() {
                   <Route
                     path="/join-vendor/step-3"
                     element={<ProtectedRoute><JoinVendorStep3 /></ProtectedRoute>}
+                  />
+                  <Route
+                    path="/join-vendor/step-4"
+                    element={<ProtectedRoute><JoinVendorStep4 /></ProtectedRoute>}
                   />
                   <Route
                     path="/join-vendor/success"
@@ -180,7 +187,8 @@ export default function App() {
                 <Navigation />
               </div>
             </ServiceProvider>
-      </PlanningProvider>
+          </PlanningProvider>
+        </VendorOnboardingProvider>
     </Router>
   );
 }

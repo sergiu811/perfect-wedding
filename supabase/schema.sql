@@ -24,6 +24,7 @@ CREATE TABLE profiles (
   bio TEXT,
   location TEXT,
   business_name TEXT, -- For vendors
+  profile_completed BOOLEAN DEFAULT true, -- Tracks if vendor has completed onboarding
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -3,20 +3,50 @@ import { ArrowLeft, ChevronDown, Upload, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 
 export const VendorEditProfile = () => {
   const { navigate } = useRouter();
-  const [tags, setTags] = useState<string[]>([
-    "Luxury Weddings",
-    "Destination Weddings",
-  ]);
+  const { profile, user, updateProfile } = useAuth();
+  
+  const [businessName, setBusinessName] = useState(profile?.business_name || "");
+  const [contactPerson, setContactPerson] = useState(profile?.first_name || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
+  const [bio, setBio] = useState(profile?.bio || "");
+  const [location, setLocation] = useState(profile?.location || "");
+  
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("wedding_planner");
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Save logic would go here
-    navigate("/vendor-dashboard");
+    setSaving(true);
+    
+    try {
+      const result = await updateProfile({
+        business_name: businessName,
+        first_name: contactPerson,
+        phone: phone,
+        bio: bio,
+        location: location,
+      });
+      
+      if (result.error) {
+        console.error("Error updating profile:", result.error);
+        alert("Failed to update profile. Please try again.");
+        setSaving(false);
+        return;
+      }
+      
+      console.log("Profile updated successfully!");
+      navigate("/vendor-dashboard");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Failed to update profile. Please try again.");
+      setSaving(false);
+    }
   };
 
   const addTag = () => {
@@ -81,7 +111,8 @@ export const VendorEditProfile = () => {
             </label>
             <Input
               name="businessName"
-              defaultValue="Elegant Events Co."
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
               className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent"
               placeholder="Your business name"
               type="text"
@@ -120,7 +151,8 @@ export const VendorEditProfile = () => {
             </label>
             <textarea
               name="description"
-              defaultValue="Specializing in luxury weddings, Elegant Events Co. offers bespoke planning services."
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
               className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg min-h-[120px] p-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent"
               placeholder="Describe your business and services..."
               required
@@ -138,16 +170,33 @@ export const VendorEditProfile = () => {
             
             <div className="space-y-3">
               <label className="text-sm font-semibold text-gray-700">
+                Contact Person *
+              </label>
+              <Input
+                name="contactPerson"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                placeholder="Your name"
+                type="text"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700">
                 Email Address *
               </label>
               <Input
                 name="email"
-                defaultValue="contact@elegantevents.com"
-                className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                value={user?.email || ""}
+                className="w-full bg-gray-100 text-gray-600 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4"
                 placeholder="your@email.com"
                 type="email"
+                disabled
                 required
               />
+              <p className="text-xs text-gray-500">Email cannot be changed</p>
             </div>
 
             <div className="space-y-3">
@@ -156,7 +205,8 @@ export const VendorEditProfile = () => {
               </label>
               <Input
                 name="phone"
-                defaultValue="+1 (555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 placeholder="+1 (555) 000-0000"
                 type="tel"
@@ -185,7 +235,8 @@ export const VendorEditProfile = () => {
             </label>
             <Input
               name="location"
-              defaultValue="New York, NY"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
               className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               placeholder="City, State"
               type="text"
@@ -362,13 +413,15 @@ export const VendorEditProfile = () => {
       <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 sticky bottom-0 -mx-4 lg:-mx-8">
         <Button
           onClick={handleSave}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"
+          disabled={saving}
+          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg disabled:opacity-50"
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
         <button
           onClick={() => navigate("/vendor-dashboard")}
-          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          disabled={saving}
+          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600 disabled:opacity-50"
         >
           Cancel
         </button>

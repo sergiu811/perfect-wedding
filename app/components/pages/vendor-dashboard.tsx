@@ -23,7 +23,7 @@ import { useAuth } from "~/contexts/auth-context";
 
 export const VendorDashboard = () => {
   const { navigate } = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -161,10 +161,10 @@ export const VendorDashboard = () => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold mb-1">
-              Elegant Events Co. 💼
+              {profile?.business_name || "Your Business"} 💼
             </h1>
             <p className="text-white/90 text-sm">
-              Wedding Planner
+              {profile?.location || "Location not set"}
             </p>
           </div>
           
@@ -270,6 +270,33 @@ export const VendorDashboard = () => {
       </div>
 
       <main className="p-4 space-y-4 flex-1">
+          {/* Profile Details Card */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Business Profile</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Business Name</p>
+                <p className="text-sm text-gray-900">{profile?.business_name || "Not set"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Contact Person</p>
+                <p className="text-sm text-gray-900">{profile?.first_name || "Not set"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Phone Number</p>
+                <p className="text-sm text-gray-900">{profile?.phone || "Not set"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Service Location</p>
+                <p className="text-sm text-gray-900">{profile?.location || "Not set"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Business Description</p>
+                <p className="text-sm text-gray-900">{profile?.bio || "Not set"}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Add Service Button */}
           <Button
             onClick={() => navigate("/add-service/step-1")}

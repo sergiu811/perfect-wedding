@@ -36,10 +36,15 @@ export const LoginPage = () => {
       setError(error.message || "Failed to sign in");
       setLoading(false);
     } else {
-      // Wait a moment for profile to load, then redirect based on role
+      // Wait a moment for profile to load, then redirect based on role and profile completion
       setTimeout(() => {
         if (profile?.role === "vendor") {
-          navigate("/vendor-dashboard");
+          // Check if vendor has completed profile setup
+          if (!profile?.profile_completed) {
+            navigate("/join-vendor");
+          } else {
+            navigate("/vendor-dashboard");
+          }
         } else {
           navigate("/");
         }

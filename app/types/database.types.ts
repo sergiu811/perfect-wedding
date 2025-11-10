@@ -134,41 +134,71 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          business_hours: string | null
           business_name: string | null
           created_at: string | null
+          facebook: string | null
           first_name: string | null
           id: string
+          instagram: string | null
           last_name: string | null
           location: string | null
           phone: string | null
+          pinterest: string | null
+          profile_completed: boolean | null
           role: Database["public"]["Enums"]["user_role"]
+          service_areas: string | null
+          specialties: string[] | null
+          starting_price: number | null
           updated_at: string | null
+          website: string | null
+          years_experience: number | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          business_hours?: string | null
           business_name?: string | null
           created_at?: string | null
+          facebook?: string | null
           first_name?: string | null
           id: string
+          instagram?: string | null
           last_name?: string | null
           location?: string | null
           phone?: string | null
+          pinterest?: string | null
+          profile_completed?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          service_areas?: string | null
+          specialties?: string[] | null
+          starting_price?: number | null
           updated_at?: string | null
+          website?: string | null
+          years_experience?: number | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          business_hours?: string | null
           business_name?: string | null
           created_at?: string | null
+          facebook?: string | null
           first_name?: string | null
           id?: string
+          instagram?: string | null
           last_name?: string | null
           location?: string | null
           phone?: string | null
+          pinterest?: string | null
+          profile_completed?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          service_areas?: string | null
+          specialties?: string[] | null
+          starting_price?: number | null
           updated_at?: string | null
+          website?: string | null
+          years_experience?: number | null
         }
         Relationships: []
       }

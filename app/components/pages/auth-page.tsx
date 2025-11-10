@@ -54,7 +54,7 @@ export const AuthPage = () => {
         if (role === "couple") {
           navigate("/planning/step-1");
         } else {
-          navigate("/add-service/step-1");
+          navigate("/join-vendor");
         }
       }
     } else {
@@ -66,6 +66,7 @@ export const AuthPage = () => {
         setError(error.message || "Failed to sign in");
         setLoading(false);
       } else {
+        // Redirect will be handled by ProtectedRoute based on profile completion
         navigate("/");
       }
     }

@@ -1,19 +1,64 @@
 import React, { useState } from "react";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
+import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
+
+const BUSINESS_TYPES = [
+  { value: "venue", label: "Venue" },
+  { value: "photo_video", label: "Photo & Video" },
+  { value: "music_dj", label: "Music/DJ" },
+  { value: "decorations", label: "Decorations" },
+  { value: "invitations", label: "Invitations" },
+  { value: "sweets", label: "Sweets" },
+];
 
 export const JoinVendorStep2 = () => {
   const { navigate } = useRouter();
-  const [selectedMembership, setSelectedMembership] = useState("basic");
+  const { data, updateStep2 } = useVendorOnboarding();
+  
+  const [selectedMembership, setSelectedMembership] = useState(data.membershipLevel);
+  const [selectedBusinessTypes, setSelectedBusinessTypes] = useState<string[]>(data.businessTypes);
+  const [website, setWebsite] = useState(data.website);
+  const [yearsExperience, setYearsExperience] = useState(data.yearsExperience);
+
+  const toggleBusinessType = (value: string) => {
+    setSelectedBusinessTypes(prev =>
+      prev.includes(value)
+        ? prev.filter(type => type !== value)
+        : [...prev, value]
+    );
+  };
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/join-vendor/step-3");
+    if (selectedBusinessTypes.length === 0) {
+      alert("Please select at least one business type");
+      return;
+    }
+    
+    console.log("Step 2 - Submitting data:", {
+      businessTypes: selectedBusinessTypes,
+      membershipLevel: selectedMembership,
+      website,
+      yearsExperience,
+    });
+    
+    updateStep2({
+      businessTypes: selectedBusinessTypes,
+      membershipLevel: selectedMembership,
+      website,
+      yearsExperience,
+    });
+    
+    setTimeout(() => {
+      navigate("/join-vendor/step-3");
+    }, 100);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
+    <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8 lg:-ml-64 xl:-ml-72">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
         <button
@@ -33,35 +78,41 @@ export const JoinVendorStep2 = () => {
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-rose-600 rounded-full" />
           <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
+          <div className="flex-1 h-1.5 bg-gray-200 rounded-full" />
         </div>
         <p className="text-sm lg:text-base text-gray-600 mt-2 text-center">
-          Step 2 of 3: Business Offering
+          Step 2 of 4: Business Offering
         </p>
       </div>
 
       <main className="flex-1 py-6 lg:py-8 space-y-6">
         <form onSubmit={handleContinue} className="space-y-6">
-          {/* Business Type Dropdown */}
+          {/* Business Type Multi-Select */}
           <div className="space-y-2">
             <label className="text-base font-semibold text-gray-900">
-              Business Type
+              Business Type(s)
             </label>
-            <div className="relative">
-              <select
-                defaultValue=""
-                className="appearance-none w-full bg-white text-gray-900 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
-              >
-                <option value="" disabled>
-                  Select your business type
-                </option>
-                <option value="venue">Venue</option>
-                <option value="photo_video">Photo &amp; Video</option>
-                <option value="music_dj">Music/DJ</option>
-                <option value="decorations">Decorations</option>
-                <option value="invitations">Invitations</option>
-                <option value="sweets">Sweets</option>
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+            <p className="text-sm text-gray-600">
+              Select all services you offer
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {BUSINESS_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => toggleBusinessType(type.value)}
+                  className={`flex items-center justify-between p-4 rounded-lg font-medium transition-all duration-300 ${
+                    selectedBusinessTypes.includes(type.value)
+                      ? "bg-rose-600 text-white shadow-md"
+                      : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                  }`}
+                >
+                  <span>{type.label}</span>
+                  {selectedBusinessTypes.includes(type.value) && (
+                    <Check className="w-5 h-5" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -141,33 +192,36 @@ export const JoinVendorStep2 = () => {
             </div>
           </div>
 
-          {/* Discount Code Management */}
+          {/* Website */}
           <div className="space-y-2">
-            <label
-              className="text-base font-semibold text-gray-900"
-              htmlFor="discount_code"
-            >
-              Discount Code Management
+            <label className="text-base font-semibold text-gray-900">
+              Website (Optional)
             </label>
-            <p className="text-sm text-gray-600">
-              Create a special discount code for couples booking through our
-              platform
-            </p>
-            <div className="flex items-center bg-white rounded-lg h-14 px-4 shadow-sm focus-within:ring-2 focus-within:ring-rose-600/50 transition-all duration-300">
-              <input
-                className="w-full bg-transparent text-gray-900 placeholder:text-gray-500 border-none focus:ring-0"
-                id="discount_code"
-                placeholder="e.g., NUNTA10 for 10% off"
-                type="text"
-              />
-              <button
-                type="button"
-                className="text-rose-600 font-bold text-sm hover:text-rose-700"
-              >
-                Create
-              </button>
-            </div>
+            <Input
+              className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
+              placeholder="www.yourbusiness.com"
+              type="url"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+            />
           </div>
+
+          {/* Years of Experience */}
+          <div className="space-y-2">
+            <label className="text-base font-semibold text-gray-900">
+              Years of Experience
+            </label>
+            <Input
+              className="w-full bg-white text-gray-900 placeholder:text-gray-500 border-none rounded-lg h-14 px-4 focus:ring-2 focus:ring-rose-600/50 transition-all duration-300 shadow-sm"
+              placeholder="e.g., 5"
+              type="number"
+              min="0"
+              value={yearsExperience}
+              onChange={(e) => setYearsExperience(e.target.value)}
+              required
+            />
+          </div>
+
         </form>
       </main>
 
