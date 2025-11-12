@@ -19,13 +19,39 @@ export async function loader({ request }: LoaderFunctionArgs) {
       query = query.eq("is_active", true);
     }
 
-    const { data, error } = await query;
+    const { data: services, error } = await query;
 
     if (error) {
       return Response.json({ error: error.message }, { status: 500, headers });
     }
 
-    return Response.json({ services: data }, { headers });
+    // Fetch vendor profiles separately
+    if (services && services.length > 0) {
+      const vendorIds = [
+        ...new Set(
+          (services as any[]).map((s) => s.vendor_id).filter((id) => id)
+        ),
+      ];
+
+      if (vendorIds.length > 0) {
+        const { data: vendors } = await supabase
+          .from("profiles")
+          .select("id, business_name, avatar_url")
+          .in("id", vendorIds);
+
+        const vendorMap = new Map((vendors || []).map((v: any) => [v.id, v]));
+
+        // Attach vendor info to each service
+        const servicesWithVendors = (services || []).map((service: any) => ({
+          ...service,
+          vendor: vendorMap.get(service.vendor_id) || null,
+        }));
+
+        return Response.json({ services: servicesWithVendors }, { headers });
+      }
+    }
+
+    return Response.json({ services: services || [] }, { headers });
   } catch (error) {
     return Response.json(
       { error: "Failed to fetch services" },

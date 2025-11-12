@@ -29,6 +29,7 @@ import {
   VendorDashboard,
   VendorEditProfile,
   VendorPublicProfile,
+  VendorPublicProfileWrapper,
   AddServiceStep1,
   AddServiceStep2,
   AddServiceStep3,
@@ -239,6 +240,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/vendor-public-profile/:id"
+                  render={(params) => (
+                    <ProtectedRoute>
+                      <VendorPublicProfileWrapper vendorId={params.id} />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
                   path="/add-service/step-1"
                   element={
                     <ProtectedRoute requireRole="vendor">
@@ -378,7 +387,7 @@ export default function App() {
                   path="/chat/:id"
                   render={(params) => (
                     <ProtectedRoute>
-                      <ChatWrapper vendorId={params.id} />
+                      <ChatWrapper conversationId={params.id} />
                     </ProtectedRoute>
                   )}
                 />

@@ -31,11 +31,21 @@ export const VendorDashboard = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [services, setServices] = useState<any[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [recentInquiries, setRecentInquiries] = useState<any[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
 
   // Fetch services when listings tab is clicked
   useEffect(() => {
     if (activeTab === "listings" && user?.id) {
       fetchServices();
+    }
+  }, [activeTab, user?.id]);
+
+  // Fetch dashboard data when dashboard tab is active
+  useEffect(() => {
+    if (activeTab === "dashboard" && user?.id) {
+      fetchDashboardData();
     }
   }, [activeTab, user?.id]);
 
@@ -57,6 +67,60 @@ export const VendorDashboard = () => {
       setServices([]);
     } finally {
       setLoadingServices(false);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    if (!user?.id) return;
+
+    setLoadingDashboard(true);
+    try {
+      // Fetch conversations and bookings in parallel
+      const [conversationsRes, bookingsRes] = await Promise.all([
+        fetch("/api/conversations"),
+        fetch("/api/bookings"),
+      ]);
+
+      if (!conversationsRes.ok || !bookingsRes.ok) {
+        throw new Error("Failed to fetch dashboard data");
+      }
+
+      const conversationsData = await conversationsRes.json();
+      const bookingsData = await bookingsRes.json();
+
+      // Get the 3 most recent conversations
+      const recent = (conversationsData.conversations || []).slice(0, 3);
+      setRecentInquiries(recent);
+
+      console.log("All bookings from API:", bookingsData.bookings);
+      
+      // Get upcoming bookings - show all bookings, sorted by event date
+      const allBookings = bookingsData.bookings || [];
+      console.log("Total bookings:", allBookings.length);
+      
+      // Filter and sort bookings
+      const upcoming = allBookings
+        .filter((b: any) => {
+          console.log("Booking:", b.id, "Status:", b.status, "Date:", b.eventDate);
+          // Show confirmed, pending, or if date is in the future
+          const isFutureDate = b.eventDate && new Date(b.eventDate) > new Date();
+          const isRelevantStatus = ["confirmed", "pending"].includes(b.status);
+          return isFutureDate || isRelevantStatus;
+        })
+        .sort((a: any, b: any) => {
+          if (!a.eventDate || !b.eventDate) return 0;
+          return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+        })
+        .slice(0, 3);
+        
+      console.log("Filtered upcoming bookings:", upcoming);
+      setUpcomingBookings(upcoming);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setRecentInquiries([]);
+      setUpcomingBookings([]);
+    } finally {
+      setLoadingDashboard(false);
     }
   };
 
@@ -136,34 +200,13 @@ export const VendorDashboard = () => {
     }
   };
 
-  // Sample data
+  // Sample data for stats (would need additional API endpoints for real data)
   const stats = {
     profileViews: 340,
-    inquiries: 12,
+    inquiries: recentInquiries.length,
     savedByCouples: 25,
     rating: 4.9,
   };
-
-  const upcomingBookings = [
-    {
-      id: 1,
-      coupleNames: "Andrei & Maria",
-      date: "Oct 22, 2025",
-      status: "Confirmed",
-    },
-    {
-      id: 2,
-      coupleNames: "Elena & Victor",
-      date: "Nov 15, 2025",
-      status: "Pending",
-    },
-    {
-      id: 3,
-      coupleNames: "Sofia & Alex",
-      date: "Dec 5, 2025",
-      status: "Confirmed",
-    },
-  ];
 
   const notifications = [
     {
@@ -193,16 +236,32 @@ export const VendorDashboard = () => {
   ];
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Confirmed":
+    const normalizedStatus = status.toLowerCase();
+    switch (normalizedStatus) {
+      case "confirmed":
         return "bg-green-100 text-green-700";
-      case "Pending":
+      case "pending":
         return "bg-amber-100 text-amber-700";
-      case "Cancelled":
+      case "cancelled":
         return "bg-red-100 text-red-700";
+      case "completed":
+        return "bg-blue-100 text-blue-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const capitalizeStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   return (
@@ -412,40 +471,65 @@ export const VendorDashboard = () => {
             <div className="space-y-4 animate-in fade-in duration-300">
               {/* Upcoming Bookings Section */}
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-rose-600" />
-                  Upcoming Bookings
-                </h3>
-                <div className="space-y-3">
-                  {upcomingBookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="flex items-center justify-between p-3 bg-pink-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                          <Heart className="w-5 h-5 text-rose-600" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            {booking.coupleNames}
-                          </p>
-                          <p className="text-sm text-gray-600 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {booking.date}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
-                          booking.status
-                        )}`}
-                      >
-                        {booking.status}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-rose-600" />
+                    Upcoming Bookings
+                  </h3>
+                  <button
+                    onClick={() => navigate("/my-bookings")}
+                    className="text-sm font-medium text-rose-600 hover:text-rose-700"
+                  >
+                    View All
+                  </button>
                 </div>
+                {loadingDashboard ? (
+                  <div className="text-center py-8 text-gray-600">
+                    Loading bookings...
+                  </div>
+                ) : upcomingBookings.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No upcoming bookings yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingBookings.map((booking) => (
+                      <button
+                        key={booking.id}
+                        onClick={() => navigate("/my-bookings")}
+                        className="w-full flex items-center justify-between p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full bg-cover bg-center flex-shrink-0"
+                            style={{
+                              backgroundImage: booking.coupleAvatar
+                                ? `url(${booking.coupleAvatar})`
+                                : `url(https://ui-avatars.com/api/?name=${encodeURIComponent(booking.coupleName || "Couple")})`,
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="font-bold text-gray-900">
+                              {booking.coupleName || "Couple"}
+                            </p>
+                            <p className="text-sm text-gray-600 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDate(booking.eventDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
+                            booking.status
+                          )}`}
+                        >
+                          {capitalizeStatus(booking.status)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Inquiries & Messages */}
@@ -462,76 +546,62 @@ export const VendorDashboard = () => {
                     View All
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {[
-                    {
-                      id: 1,
-                      coupleName: "Sarah & John",
-                      service: "Full Wedding Package",
-                      message: "We're interested in booking for July 2026",
-                      time: "1h ago",
-                      unread: true,
-                      avatar:
-                        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",
-                    },
-                    {
-                      id: 2,
-                      coupleName: "Emma & Michael",
-                      service: "Day-of Coordination",
-                      message: "Can you provide more details about...",
-                      time: "3h ago",
-                      unread: true,
-                      avatar:
-                        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80",
-                    },
-                    {
-                      id: 3,
-                      coupleName: "Lisa & David",
-                      service: "Consultation Package",
-                      message: "Thank you for the quick response!",
-                      time: "1d ago",
-                      unread: false,
-                      avatar:
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80",
-                    },
-                  ].map((inquiry) => (
-                    <button
-                      key={inquiry.id}
-                      onClick={() => navigate(`/chat/${inquiry.id}`)}
-                      className="w-full flex items-start gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors text-left"
-                    >
-                      <div
-                        className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
-                        style={{ backgroundImage: `url(${inquiry.avatar})` }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate">
-                              {inquiry.coupleName}
-                            </p>
-                            <p className="text-xs text-rose-600">
-                              {inquiry.service}
-                            </p>
+                {loadingDashboard ? (
+                  <div className="text-center py-8 text-gray-600">
+                    Loading messages...
+                  </div>
+                ) : recentInquiries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No recent inquiries</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentInquiries.map((inquiry: any) => (
+                      <button
+                        key={inquiry.conversationId}
+                        onClick={() =>
+                          navigate(`/chat/${inquiry.conversationId}`)
+                        }
+                        className="w-full flex items-start gap-3 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors text-left"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                          style={{
+                            backgroundImage: inquiry.coupleAvatar
+                              ? `url(${inquiry.coupleAvatar})`
+                              : `url(https://ui-avatars.com/api/?name=${encodeURIComponent(inquiry.coupleName || "Couple")})`,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {inquiry.coupleName || "Couple"}
+                              </p>
+                              <p className="text-xs text-rose-600 truncate">
+                                {inquiry.serviceTitle || "General Inquiry"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <p className="text-xs text-gray-500">
+                                {inquiry.timestamp}
+                              </p>
+                              {inquiry.unread && (
+                                <div className="w-2 h-2 bg-rose-600 rounded-full" />
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
-                            <p className="text-xs text-gray-500">
-                              {inquiry.time}
-                            </p>
-                            {inquiry.unread && (
-                              <div className="w-2 h-2 bg-rose-600 rounded-full" />
-                            )}
-                          </div>
+                          <p
+                            className={`text-xs ${inquiry.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
+                          >
+                            {inquiry.lastMessage || "New conversation"}
+                          </p>
                         </div>
-                        <p
-                          className={`text-xs ${inquiry.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
-                        >
-                          {inquiry.message}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Notifications Feed */}

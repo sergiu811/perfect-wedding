@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
   MapPin,
@@ -20,12 +20,6 @@ import {
 import { useRouter } from "~/contexts/router-context";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { VENUES } from "~/constants/venues";
-import { PHOTOGRAPHERS } from "~/constants/photographers";
-import { MUSICIANS } from "~/constants/musicians";
-import { DECORATIONS } from "~/constants/decorations";
-import { SWEETS } from "~/constants/sweets";
-import { INVITATIONS } from "~/constants/invitations";
 
 const VENDOR_CATEGORIES = [
   {
@@ -33,23 +27,20 @@ const VENDOR_CATEGORIES = [
     name: "Venues",
     icon: Users,
     color: "from-rose-500 to-pink-600",
-    count: 145,
     route: "/venues",
   },
   {
-    id: "photo-video",
+    id: "photo_video",
     name: "Photo & Video",
     icon: Camera,
     color: "from-blue-500 to-indigo-600",
-    count: 89,
     route: "/photo-video",
   },
   {
-    id: "music-dj",
+    id: "music_dj",
     name: "Music & DJ",
     icon: Music,
     color: "from-purple-500 to-violet-600",
-    count: 67,
     route: "/music-dj",
   },
   {
@@ -57,7 +48,6 @@ const VENDOR_CATEGORIES = [
     name: "Decorations",
     icon: Flower2,
     color: "from-green-500 to-emerald-600",
-    count: 112,
     route: "/decorations",
   },
   {
@@ -65,7 +55,6 @@ const VENDOR_CATEGORIES = [
     name: "Sweets & Cakes",
     icon: Cake,
     color: "from-amber-500 to-orange-600",
-    count: 54,
     route: "/sweets",
   },
   {
@@ -73,24 +62,7 @@ const VENDOR_CATEGORIES = [
     name: "Invitations",
     icon: Mail,
     color: "from-pink-500 to-rose-600",
-    count: 43,
     route: "/invitations",
-  },
-  {
-    id: "catering",
-    name: "Catering",
-    icon: Utensils,
-    color: "from-teal-500 to-cyan-600",
-    count: 78,
-    route: "/vendors",
-  },
-  {
-    id: "planning",
-    name: "Wedding Planners",
-    icon: Palette,
-    color: "from-fuchsia-500 to-purple-600",
-    count: 34,
-    route: "/vendors",
   },
 ];
 
@@ -102,59 +74,226 @@ const POPULAR_SEARCHES = [
   "Custom cakes",
 ];
 
+interface Service {
+  id: string;
+  vendor_id: string;
+  title: string;
+  category: string;
+  description: string;
+  price_min: number | null;
+  price_max: number | null;
+  location: string;
+  images: string[] | null;
+  rating: number | null;
+  review_count: number | null;
+  tags: string[] | null;
+  vendor?: {
+    id: string;
+    business_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 export const VendorsPage = () => {
   const { navigate } = useRouter();
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<string[]>([]);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Get search query from URL parameter on mount
   useEffect(() => {
-    console.log("VendorsPage mounted");
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const query = params.get("q") || "";
-      console.log("Search query from URL:", query);
       setSearchQuery(query);
     }
   }, []);
 
-  // Combine all vendors into one searchable list
-  const allVendors = [
-    ...VENUES.map(v => ({ ...v, category: 'venue', categoryName: 'Venues', route: `/venues/${v.id}` })),
-    ...PHOTOGRAPHERS.map(v => ({ ...v, category: 'photo-video', categoryName: 'Photo & Video', route: `/photo-video/${v.id}` })),
-    ...MUSICIANS.map(v => ({ ...v, category: 'music-dj', categoryName: 'Music & DJ', route: `/music-dj/${v.id}` })),
-    ...DECORATIONS.map(v => ({ ...v, category: 'decorations', categoryName: 'Decorations', route: `/decorations/${v.id}` })),
-    ...SWEETS.map(v => ({ ...v, category: 'sweets', categoryName: 'Sweets & Cakes', route: `/sweets/${v.id}` })),
-    ...INVITATIONS.map(v => ({ ...v, category: 'invitations', categoryName: 'Invitations', route: `/invitations/${v.id}` })),
-  ];
+  // Fetch services from database
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/services");
 
-  // Filter vendors by search query
-  const filteredVendors = searchQuery
-    ? allVendors.filter((vendor: any) => {
-        const query = searchQuery.toLowerCase();
+        if (!response.ok) {
+          throw new Error("Failed to load vendors");
+        }
+
+        const data = await response.json();
+        setServices(data.services || []);
+      } catch (err: any) {
+        console.error("Error fetching services:", err);
+        setError(err.message || "Failed to load vendors");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  // Get category counts from real data
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    services.forEach((service) => {
+      counts[service.category] = (counts[service.category] || 0) + 1;
+    });
+    return counts;
+  }, [services]);
+
+  // Get unique vendors (grouped by vendor_id)
+  const uniqueVendors = useMemo(() => {
+    const vendorMap = new Map<string, Service[]>();
+    services.forEach((service) => {
+      const existing = vendorMap.get(service.vendor_id) || [];
+      vendorMap.set(service.vendor_id, [...existing, service]);
+    });
+    return Array.from(vendorMap.entries()).map(([vendorId, vendorServices]) => {
+      const firstService = vendorServices[0];
+      const avgRating =
+        vendorServices.reduce((sum, s) => sum + (s.rating || 0), 0) /
+          vendorServices.filter((s) => s.rating).length || 0;
+      const totalReviews = vendorServices.reduce(
+        (sum, s) => sum + (s.review_count || 0),
+        0
+      );
+      const minPrice = Math.min(
+        ...vendorServices
+          .map((s) => s.price_min)
+          .filter((p): p is number => p !== null)
+      );
+
+      return {
+        vendorId,
+        vendorName: firstService.vendor?.business_name || "Vendor",
+        vendorAvatar:
+          firstService.vendor?.avatar_url ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            firstService.vendor?.business_name || "Vendor"
+          )}`,
+        services: vendorServices,
+        category: firstService.category,
+        location: firstService.location,
+        rating: avgRating || null,
+        reviewCount: totalReviews,
+        minPrice: isFinite(minPrice) ? minPrice : null,
+        image:
+          firstService.images?.[0] || firstService.vendor?.avatar_url || "",
+      };
+    });
+  }, [services]);
+
+  // Filter vendors by search query, location, price, and rating
+  const filteredVendors = useMemo(() => {
+    let filtered = uniqueVendors;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((vendor) => {
         return (
-          vendor.name.toLowerCase().includes(query) ||
-          vendor.categoryName.toLowerCase().includes(query) ||
-          (vendor.location && vendor.location.toLowerCase().includes(query)) ||
-          (vendor.description && vendor.description.toLowerCase().includes(query)) ||
-          (vendor.shortDescription && vendor.shortDescription.toLowerCase().includes(query))
+          vendor.vendorName.toLowerCase().includes(query) ||
+          vendor.services.some(
+            (s) =>
+              s.title.toLowerCase().includes(query) ||
+              s.description.toLowerCase().includes(query) ||
+              s.tags?.some((tag) => tag.toLowerCase().includes(query))
+          ) ||
+          vendor.location.toLowerCase().includes(query)
         );
-      })
-    : [];
+      });
+    }
 
+    // Location filter
+    if (selectedLocation) {
+      const location = selectedLocation.toLowerCase();
+      filtered = filtered.filter((vendor) =>
+        vendor.location.toLowerCase().includes(location)
+      );
+    }
+
+    // Price filter
+    if (priceRange.length > 0) {
+      filtered = filtered.filter((vendor) => {
+        if (!vendor.minPrice) return false;
+        return priceRange.some((range) => {
+          const maxPrice = range.length * 5000; // $ = 0-5k, $$ = 5k-10k, etc.
+          const minPrice = (range.length - 1) * 5000;
+          return vendor.minPrice! >= minPrice && vendor.minPrice! < maxPrice;
+        });
+      });
+    }
+
+    // Rating filter
+    if (selectedRating !== null) {
+      filtered = filtered.filter(
+        (vendor) => vendor.rating && vendor.rating >= selectedRating
+      );
+    }
+
+    return filtered;
+  }, [
+    uniqueVendors,
+    searchQuery,
+    selectedLocation,
+    priceRange,
+    selectedRating,
+  ]);
+
+  // Filter categories by search
   const filteredCategories = VENDOR_CATEGORIES.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getCategoryLabel = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      venue: "Venues",
+      photo_video: "Photo & Video",
+      music_dj: "Music & DJ",
+      sweets: "Sweets & Cakes",
+      decorations: "Decorations",
+      invitations: "Invitations",
+    };
+    return categoryMap[category] || category;
+  };
+
+  const getCategoryRoute = (category: string, serviceId: string) => {
+    const routeMap: Record<string, string> = {
+      venue: "/venues",
+      photo_video: "/photo-video",
+      music_dj: "/music-dj",
+      sweets: "/sweets",
+      decorations: "/decorations",
+      invitations: "/invitations",
+    };
+    return `${routeMap[category] || "/vendors"}/${serviceId}`;
+  };
 
   const togglePriceRange = (range: string) => {
     setPriceRange((prev) =>
       prev.includes(range) ? prev.filter((r) => r !== range) : [...prev, range]
     );
   };
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalVendors = uniqueVendors.length;
+    const avgRating =
+      uniqueVendors.reduce((sum, v) => sum + (v.rating || 0), 0) /
+        uniqueVendors.filter((v) => v.rating).length || 0;
+    const totalReviews = uniqueVendors.reduce(
+      (sum, v) => sum + (v.reviewCount || 0),
+      0
+    );
+    return { totalVendors, avgRating, totalReviews };
+  }, [uniqueVendors]);
 
   return (
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 lg:pb-8">
@@ -165,10 +304,9 @@ export const VendorsPage = () => {
             {searchQuery ? "Search Results" : "Find Your Vendors"}
           </h1>
           <p className="text-white/90 text-sm lg:text-base">
-            {searchQuery 
+            {searchQuery
               ? `Showing results for "${searchQuery}"`
-              : "Discover the perfect professionals for your big day"
-            }
+              : "Discover the perfect professionals for your big day"}
           </p>
 
           {/* Search Bar */}
@@ -209,63 +347,65 @@ export const VendorsPage = () => {
             </div>
           </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-4">
-            {/* Price Range */}
-            <div>
-              <p className="text-sm font-semibold mb-2">Price Range</p>
-              <div className="flex flex-wrap gap-2">
-                {["$", "$$", "$$$", "$$$$"].map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => togglePriceRange(range)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      priceRange.includes(range)
-                        ? "bg-white text-rose-600"
-                        : "bg-white/20 text-white hover:bg-white/30"
-                    }`}
-                  >
-                    {range}
-                  </button>
-                ))}
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-4">
+              {/* Price Range */}
+              <div>
+                <p className="text-sm font-semibold mb-2">Price Range</p>
+                <div className="flex flex-wrap gap-2">
+                  {["$", "$$", "$$$", "$$$$"].map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => togglePriceRange(range)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        priceRange.includes(range)
+                          ? "bg-white text-rose-600"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Rating */}
-            <div>
-              <p className="text-sm font-semibold mb-2">Minimum Rating</p>
-              <div className="flex gap-2">
-                {[5, 4, 3].map((rating) => (
-                  <button
-                    key={rating}
-                    onClick={() =>
-                      setSelectedRating(selectedRating === rating ? null : rating)
-                    }
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-                      selectedRating === rating
-                        ? "bg-white text-rose-600"
-                        : "bg-white/20 text-white hover:bg-white/30"
-                    }`}
-                  >
-                    <Star className="w-3 h-3 fill-current" />
-                    {rating}+
-                  </button>
-                ))}
+              {/* Rating */}
+              <div>
+                <p className="text-sm font-semibold mb-2">Minimum Rating</p>
+                <div className="flex gap-2">
+                  {[5, 4, 3].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() =>
+                        setSelectedRating(
+                          selectedRating === rating ? null : rating
+                        )
+                      }
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+                        selectedRating === rating
+                          ? "bg-white text-rose-600"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      }`}
+                    >
+                      <Star className="w-3 h-3 fill-current" />
+                      {rating}+
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => {
-                setPriceRange([]);
-                setSelectedRating(null);
-              }}
-              className="text-xs text-white/80 hover:text-white underline"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
+              <button
+                onClick={() => {
+                  setPriceRange([]);
+                  setSelectedRating(null);
+                }}
+                className="text-xs text-white/80 hover:text-white underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -292,14 +432,39 @@ export const VendorsPage = () => {
         )}
 
         {/* Vendor Results */}
-        {searchQuery && filteredVendors.length > 0 && (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">Loading vendors...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-red-400" />
+            </div>
+            <p className="text-gray-600 font-medium">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        ) : searchQuery && filteredVendors.length > 0 ? (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">
                 Vendor Results ({filteredVendors.length})
               </h3>
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedLocation("");
+                  setPriceRange([]);
+                  setSelectedRating(null);
+                }}
                 className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
               >
                 <X className="w-4 h-4" />
@@ -308,69 +473,101 @@ export const VendorsPage = () => {
             </div>
 
             <div className="space-y-3">
-              {filteredVendors.map((vendor: any) => (
-                <button
-                  key={`${vendor.category}-${vendor.id}`}
-                  onClick={() => navigate(vendor.route)}
-                  className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all text-left group"
-                >
-                  <div className="flex gap-4">
-                    <img
-                      src={vendor.image}
-                      alt={vendor.name}
-                      className="w-20 h-20 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 truncate group-hover:text-rose-600 transition-colors">
-                            {vendor.name}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {vendor.categoryName}
-                          </p>
+              {filteredVendors.map((vendor) => {
+                const firstService = vendor.services[0];
+                return (
+                  <button
+                    key={vendor.vendorId}
+                    onClick={() =>
+                      navigate(
+                        getCategoryRoute(vendor.category, firstService.id)
+                      )
+                    }
+                    className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all text-left group"
+                  >
+                    <div className="flex gap-4">
+                      <img
+                        src={vendor.image || vendor.vendorAvatar}
+                        alt={vendor.vendorName}
+                        className="w-20 h-20 rounded-lg object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 truncate group-hover:text-rose-600 transition-colors">
+                              {vendor.vendorName}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {getCategoryLabel(vendor.category)}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors flex-shrink-0" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors flex-shrink-0" />
-                      </div>
-                      {vendor.location && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
-                          <MapPin className="w-3 h-3" />
-                          {vendor.location}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                          <span className="text-sm font-semibold text-gray-900">
-                            {vendor.rating}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({vendor.reviewCount})
-                          </span>
-                        </div>
-                        {vendor.pricing && (
-                          <span className="text-xs text-gray-600">
-                            {typeof vendor.pricing === 'string' 
-                              ? vendor.pricing 
-                              : Array.isArray(vendor.pricing) && vendor.pricing[0]
-                              ? `From ${vendor.pricing[0].price}`
-                              : ''}
-                          </span>
+                        {vendor.location && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
+                            <MapPin className="w-3 h-3" />
+                            {vendor.location}
+                          </div>
                         )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {vendor.rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                              <span className="text-sm font-semibold text-gray-900">
+                                {vendor.rating.toFixed(1)}
+                              </span>
+                              {vendor.reviewCount > 0 && (
+                                <span className="text-xs text-gray-500">
+                                  ({vendor.reviewCount})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {vendor.minPrice && (
+                            <span className="text-xs text-gray-600">
+                              From ${vendor.minPrice.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        )}
+        ) : searchQuery && filteredVendors.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">No vendors found</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Try adjusting your search or filters
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedLocation("");
+                setPriceRange([]);
+                setSelectedRating(null);
+              }}
+              className="mt-4 text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : null}
 
         {/* Category Cards */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900">
-              {searchQuery && filteredVendors.length === 0 ? "No Vendors Found - Browse Categories" : searchQuery ? "Categories" : "Browse by Category"}
+              {searchQuery && filteredVendors.length === 0
+                ? "No Vendors Found - Browse Categories"
+                : searchQuery
+                  ? "Categories"
+                  : "Browse by Category"}
             </h3>
             {searchQuery && filteredVendors.length === 0 && (
               <button
@@ -386,6 +583,7 @@ export const VendorsPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
             {filteredCategories.map((category) => {
               const Icon = category.icon;
+              const count = categoryCounts[category.id] || 0;
               return (
                 <button
                   key={category.id}
@@ -409,7 +607,7 @@ export const VendorsPage = () => {
                         {category.name}
                       </h4>
                       <p className="text-xs text-gray-500">
-                        {category.count} vendors
+                        {count} {count === 1 ? "vendor" : "vendors"}
                       </p>
                     </div>
                     <ChevronRight className="absolute top-4 right-0 w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors" />
@@ -424,7 +622,7 @@ export const VendorsPage = () => {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-gray-400" />
               </div>
-              <p className="text-gray-600 font-medium">No vendors found</p>
+              <p className="text-gray-600 font-medium">No categories found</p>
               <p className="text-sm text-gray-500 mt-1">
                 Try adjusting your search or filters
               </p>
@@ -432,35 +630,24 @@ export const VendorsPage = () => {
           )}
         </div>
 
-        {/* Featured Vendors */}
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-bold text-gray-900">Featured Vendors</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Handpicked professionals with exceptional reviews
-          </p>
-          <Button
-            onClick={() => navigate("/venues")}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl h-11 font-semibold shadow-md"
-          >
-            View Featured
-          </Button>
-        </div>
-
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-rose-600">500+</p>
+            <p className="text-2xl font-bold text-rose-600">
+              {stats.totalVendors}+
+            </p>
             <p className="text-xs text-gray-600 mt-1">Vendors</p>
           </div>
           <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-blue-600">4.8</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}
+            </p>
             <p className="text-xs text-gray-600 mt-1">Avg Rating</p>
           </div>
           <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-green-600">1000+</p>
+            <p className="text-2xl font-bold text-green-600">
+              {stats.totalReviews}+
+            </p>
             <p className="text-xs text-gray-600 mt-1">Reviews</p>
           </div>
         </div>

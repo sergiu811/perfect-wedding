@@ -30,6 +30,10 @@ interface ServiceRecord {
   is_active?: boolean | null;
 }
 
+interface VendorPublicProfileProps {
+  vendorId?: string;
+}
+
 const formatPriceRange = (service: ServiceRecord) => {
   const min =
     service.price_min !== null && service.price_min !== undefined
@@ -54,43 +58,67 @@ const formatPriceRange = (service: ServiceRecord) => {
   return "Contact for pricing";
 };
 
-export const VendorPublicProfile = () => {
+export const VendorPublicProfile = ({ vendorId }: VendorPublicProfileProps) => {
   const { navigate } = useRouter();
   const { profile, user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [vendorProfile, setVendorProfile] = useState<any>(null);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Determine which vendor ID to use
+  const targetVendorId = vendorId || user?.id;
+  const isViewingOwnProfile = !vendorId || vendorId === user?.id;
 
   useEffect(() => {
-    const fetchServices = async () => {
-      if (!user?.id) return;
+    const fetchVendorData = async () => {
+      if (!targetVendorId) return;
 
       try {
+        setLoadingProfile(true);
         setLoadingServices(true);
-        const response = await fetch(`/api/services?vendorId=${user.id}`);
+        setError(null);
 
-        if (!response.ok) {
+        // Fetch vendor profile
+        const profileResponse = await fetch(`/api/profiles/${targetVendorId}`);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setVendorProfile(profileData.profile || profileData);
+        }
+
+        // Fetch vendor services
+        const servicesResponse = await fetch(
+          `/api/services?vendorId=${targetVendorId}`
+        );
+        if (!servicesResponse.ok) {
           throw new Error("Failed to load services");
         }
 
-        const data = await response.json();
-        setServices(data.services || []);
-      } catch (error) {
-        console.error("Error fetching services:", error);
+        const servicesData = await servicesResponse.json();
+        setServices(servicesData.services || []);
+      } catch (err: any) {
+        console.error("Error fetching vendor data:", err);
+        setError(err.message || "Failed to load vendor profile");
       } finally {
+        setLoadingProfile(false);
         setLoadingServices(false);
       }
     };
 
-    fetchServices();
-  }, [user?.id]);
+    fetchVendorData();
+  }, [targetVendorId]);
+
+  // Use vendorProfile if available, otherwise fall back to current user's profile
+  const displayProfile = vendorProfile || profile;
 
   const portfolioImages = useMemo(() => {
     const images = new Set<string>();
 
-    if (profile?.avatar_url) {
-      images.add(profile.avatar_url);
+    if (displayProfile?.avatar_url) {
+      images.add(displayProfile.avatar_url);
     }
 
     services.forEach((service) => {
@@ -102,7 +130,7 @@ export const VendorPublicProfile = () => {
     });
 
     return Array.from(images);
-  }, [profile?.avatar_url, services]);
+  }, [displayProfile?.avatar_url, services]);
 
   useEffect(() => {
     if (portfolioImages.length === 0) {
@@ -173,14 +201,15 @@ export const VendorPublicProfile = () => {
     ? portfolioImages[currentImageIndex]
     : null;
 
-  const businessName = profile?.business_name || "Your Business";
+  const businessName = displayProfile?.business_name || "Vendor";
   const categoryLabel = "Vendor";
   const description =
-    profile?.bio ||
-    "This vendor hasn’t shared a description yet. Once they update their profile, you’ll see more details here.";
-  const businessLocation = profile?.location || "Location not provided";
-  const contactPhone = profile?.phone || "";
-  const contactEmail = user?.email || "";
+    displayProfile?.bio ||
+    "This vendor hasn't shared a description yet. Once they update their profile, you'll see more details here.";
+  const businessLocation = displayProfile?.location || "Location not provided";
+  const contactPhone = displayProfile?.phone || "";
+  // Email is not stored in profiles table, so we only show it if viewing own profile
+  const contactEmail = isViewingOwnProfile ? user?.email || "" : "";
 
   const activeServices = services.filter(
     (service) => service.is_active !== false
@@ -200,19 +229,61 @@ export const VendorPublicProfile = () => {
     );
   };
 
+  const handleContactClick = async () => {
+    if (!targetVendorId) return;
+
+    try {
+      // Navigate to contact vendor page or create conversation
+      navigate(
+        `/contact-vendor/${targetVendorId}?name=${encodeURIComponent(businessName)}`
+      );
+    } catch (err) {
+      console.error("Error contacting vendor:", err);
+    }
+  };
+
+  if (loadingProfile || loadingServices) {
+    return (
+      <div className="flex-grow flex items-center justify-center p-6 min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-gray-400 text-2xl">👤</span>
+          </div>
+          <p className="text-gray-600 font-medium">Loading vendor profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-grow flex items-center justify-center p-6 min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Vendor Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => navigate("/vendors")}>Back to Vendors</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col min-h-screen w-full bg-pink-50">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-pink-50/95 backdrop-blur-sm">
         <div className="flex items-center justify-between p-4">
           <button
-            onClick={() => navigate("/vendor-dashboard")}
+            onClick={() =>
+              navigate(isViewingOwnProfile ? "/vendor-dashboard" : "/vendors")
+            }
             className="text-gray-900"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h2 className="text-lg font-bold text-gray-900">Public Profile</h2>
-          {profile?.role !== "vendor" && (
+          {!isViewingOwnProfile && (
             <button
               onClick={() => setIsFavorite(!isFavorite)}
               className="text-rose-600"
@@ -224,13 +295,13 @@ export const VendorPublicProfile = () => {
               />
             </button>
           )}
-          {profile?.role === "vendor" && <div className="w-6 h-6" />}
+          {isViewingOwnProfile && <div className="w-6 h-6" />}
         </div>
       </header>
 
       <main className="flex-grow pb-20">
         {/* Image Carousel */}
-        <div className="relative h-64">
+        <div className="relative h-64 lg:h-96">
           {heroImage ? (
             <div
               className="absolute inset-0 bg-cover bg-center transition-all duration-300"
@@ -276,16 +347,18 @@ export const VendorPublicProfile = () => {
           )}
         </div>
 
-        <div className="p-4 space-y-6">
+        <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
           {/* Title & Category */}
           <div className="text-center">
             <p className="text-rose-600 text-sm font-semibold uppercase tracking-wide">
               {categoryLabel}
             </p>
-            <h1 className="text-3xl font-bold text-gray-900 mt-1">
+            <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 mt-1">
               {businessName}
             </h1>
-            <p className="mt-2 text-gray-700">{description}</p>
+            <p className="mt-2 text-base lg:text-lg text-gray-700">
+              {description}
+            </p>
 
             {/* Rating */}
             {ratingSummary && (
@@ -302,32 +375,40 @@ export const VendorPublicProfile = () => {
           </div>
 
           {/* Quick Info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-rose-600">
+          <div className="grid grid-cols-2 gap-3 lg:gap-4">
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm text-center">
+              <p className="text-2xl lg:text-3xl font-bold text-rose-600">
                 {activeServices.length}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Active Listings</p>
+              <p className="text-sm lg:text-base text-gray-600 mt-1">
+                Active Listings
+              </p>
             </div>
             {startingPrice !== null ? (
-              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                <p className="text-2xl font-bold text-rose-600">
+              <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm text-center">
+                <p className="text-2xl lg:text-3xl font-bold text-rose-600">
                   ${startingPrice.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">Starting Price</p>
+                <p className="text-sm lg:text-base text-gray-600 mt-1">
+                  Starting Price
+                </p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                <p className="text-2xl font-bold text-rose-600">—</p>
-                <p className="text-sm text-gray-600 mt-1">Starting Price</p>
+              <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm text-center">
+                <p className="text-2xl lg:text-3xl font-bold text-rose-600">
+                  —
+                </p>
+                <p className="text-sm lg:text-base text-gray-600 mt-1">
+                  Starting Price
+                </p>
               </div>
             )}
           </div>
 
           {/* Specialties */}
           {specialtyTags.length > 0 && (
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
+              <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">
                 Specialties
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -344,14 +425,18 @@ export const VendorPublicProfile = () => {
           )}
 
           {/* About */}
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">About</h3>
-            <p className="text-gray-700 leading-relaxed">{description}</p>
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">
+              About
+            </h3>
+            <p className="text-base lg:text-lg text-gray-700 leading-relaxed">
+              {description}
+            </p>
           </div>
 
           {/* Services & Pricing */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
               Services & Pricing
             </h3>
             {loadingServices ? (
@@ -363,20 +448,37 @@ export const VendorPublicProfile = () => {
                 {activeServices.map((service) => (
                   <div
                     key={service.id}
-                    className="bg-white rounded-xl p-4 shadow-sm"
+                    className="bg-white rounded-xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => {
+                      // Navigate to service detail page based on category
+                      const category = (service as any).category;
+                      if (category === "venue") {
+                        navigate(`/venues/${service.id}`);
+                      } else if (category === "photo_video") {
+                        navigate(`/photo-video/${service.id}`);
+                      } else if (category === "music_dj") {
+                        navigate(`/music-dj/${service.id}`);
+                      } else if (category === "decorations") {
+                        navigate(`/decorations/${service.id}`);
+                      } else if (category === "sweets") {
+                        navigate(`/sweets/${service.id}`);
+                      } else if (category === "invitations") {
+                        navigate(`/invitations/${service.id}`);
+                      }
+                    }}
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
-                        <p className="font-bold text-gray-900">
+                        <p className="font-bold text-gray-900 text-base lg:text-lg">
                           {service.title || "Untitled Service"}
                         </p>
                         {service.description && (
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm lg:text-base text-gray-600 mt-1">
                             {service.description}
                           </p>
                         )}
                       </div>
-                      <p className="text-lg font-bold text-rose-600 min-w-[120px] text-left sm:text-right">
+                      <p className="text-lg lg:text-xl font-bold text-rose-600 min-w-[120px] text-left sm:text-right">
                         {formatPriceRange(service)}
                       </p>
                     </div>
@@ -397,14 +499,14 @@ export const VendorPublicProfile = () => {
               </div>
             ) : (
               <div className="bg-white rounded-xl p-6 text-center text-gray-600 shadow-sm">
-                This vendor hasn’t added any services yet.
+                This vendor hasn't added any services yet.
               </div>
             )}
           </div>
 
           {/* Contact Information */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-4">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900">
               Contact Information
             </h3>
 
@@ -412,7 +514,9 @@ export const VendorPublicProfile = () => {
               <div className="flex items-start gap-3 text-gray-700">
                 <MapPin className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">{businessLocation}</p>
+                  <p className="font-medium text-base lg:text-lg">
+                    {businessLocation}
+                  </p>
                 </div>
               </div>
 
@@ -421,7 +525,7 @@ export const VendorPublicProfile = () => {
                   <Phone className="w-5 h-5 text-rose-600 flex-shrink-0" />
                   <a
                     href={`tel:${contactPhone}`}
-                    className="hover:text-rose-600 transition-colors"
+                    className="hover:text-rose-600 transition-colors text-base lg:text-lg"
                   >
                     {contactPhone}
                   </a>
@@ -433,7 +537,7 @@ export const VendorPublicProfile = () => {
                   <Mail className="w-5 h-5 text-rose-600 flex-shrink-0" />
                   <a
                     href={`mailto:${contactEmail}`}
-                    className="hover:text-rose-600 transition-colors"
+                    className="hover:text-rose-600 transition-colors text-base lg:text-lg"
                   >
                     {contactEmail}
                   </a>
@@ -443,58 +547,62 @@ export const VendorPublicProfile = () => {
           </div>
 
           {/* Social Media */}
-          {(profile?.website || profile?.instagram || profile?.facebook) && (
-            <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">Social Media</h3>
+          {(displayProfile?.website ||
+            displayProfile?.instagram ||
+            displayProfile?.facebook) && (
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
+              <h3 className="text-lg lg:text-xl font-bold text-gray-900">
+                Social Media
+              </h3>
               <div className="space-y-3">
-                {profile.website && (
+                {displayProfile.website && (
                   <div className="flex items-center gap-3 text-gray-700">
                     <Globe className="w-5 h-5 text-rose-600 flex-shrink-0" />
                     <a
                       href={
-                        profile.website.startsWith("http")
-                          ? profile.website
-                          : `https://${profile.website}`
+                        displayProfile.website.startsWith("http")
+                          ? displayProfile.website
+                          : `https://${displayProfile.website}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-rose-600 transition-colors text-sm"
+                      className="hover:text-rose-600 transition-colors text-sm lg:text-base"
                     >
-                      {profile.website}
+                      {displayProfile.website}
                     </a>
                   </div>
                 )}
-                {profile.instagram && (
+                {displayProfile.instagram && (
                   <div className="flex items-center gap-3 text-gray-700">
                     <Instagram className="w-5 h-5 text-rose-600 flex-shrink-0" />
                     <a
                       href={
-                        profile.instagram.startsWith("http")
-                          ? profile.instagram
-                          : `https://instagram.com/${profile.instagram.replace("@", "")}`
+                        displayProfile.instagram.startsWith("http")
+                          ? displayProfile.instagram
+                          : `https://instagram.com/${displayProfile.instagram.replace("@", "")}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-rose-600 transition-colors text-sm"
+                      className="hover:text-rose-600 transition-colors text-sm lg:text-base"
                     >
-                      {profile.instagram}
+                      {displayProfile.instagram}
                     </a>
                   </div>
                 )}
-                {profile.facebook && (
+                {displayProfile.facebook && (
                   <div className="flex items-center gap-3 text-gray-700">
                     <Facebook className="w-5 h-5 text-rose-600 flex-shrink-0" />
                     <a
                       href={
-                        profile.facebook.startsWith("http")
-                          ? profile.facebook
-                          : `https://${profile.facebook}`
+                        displayProfile.facebook.startsWith("http")
+                          ? displayProfile.facebook
+                          : `https://${displayProfile.facebook}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-rose-600 transition-colors text-sm"
+                      className="hover:text-rose-600 transition-colors text-sm lg:text-base"
                     >
-                      {profile.facebook}
+                      {displayProfile.facebook}
                     </a>
                   </div>
                 )}
@@ -503,16 +611,16 @@ export const VendorPublicProfile = () => {
           )}
 
           {/* Business Hours */}
-          {profile?.business_hours && (
-            <div className="bg-white rounded-xl p-4 shadow-sm">
+          {displayProfile?.business_hours && (
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-5 h-5 text-rose-600" />
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg lg:text-xl font-bold text-gray-900">
                   Business Hours
                 </h3>
               </div>
-              <div className="text-gray-700 text-sm whitespace-pre-line">
-                {profile.business_hours}
+              <div className="text-gray-700 text-sm lg:text-base whitespace-pre-line">
+                {displayProfile.business_hours}
               </div>
             </div>
           )}
@@ -520,16 +628,19 @@ export const VendorPublicProfile = () => {
       </main>
 
       {/* Footer CTA - Only show for couples viewing vendor profiles */}
-      {profile?.role !== "vendor" && (
+      {!isViewingOwnProfile && (
         <footer className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-          <div className="flex gap-3">
+          <div className="flex gap-3 max-w-4xl mx-auto w-full">
             <Button
               variant="outline"
               className="flex-1 h-12 text-sm font-bold rounded-full border-2 border-rose-600 text-rose-600 hover:bg-rose-50"
             >
               Save to Favorites
             </Button>
-            <Button className="flex-1 h-12 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-md">
+            <Button
+              onClick={handleContactClick}
+              className="flex-1 h-12 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-md"
+            >
               Contact Vendor
             </Button>
           </div>

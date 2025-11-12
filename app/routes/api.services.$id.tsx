@@ -23,6 +23,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       return Response.json({ error: error.message }, { status: 404, headers });
     }
 
+    // Fetch vendor profile information
+    if (service && service.vendor_id) {
+      const { data: vendor } = await supabase
+        .from("profiles")
+        .select(
+          "id, business_name, avatar_url, bio, location, phone, website, instagram, facebook, business_hours, service_areas, specialties, starting_price, years_experience"
+        )
+        .eq("id", service.vendor_id)
+        .single();
+
+      return Response.json(
+        { service: { ...service, vendor: vendor || null } },
+        { headers }
+      );
+    }
+
     return Response.json({ service }, { headers });
   } catch (error) {
     console.error("Error in service fetch:", error);

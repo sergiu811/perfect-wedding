@@ -20,6 +20,7 @@ export { JoinVendorSuccess } from "./join-vendor-success";
 export { VendorDashboard } from "./vendor-dashboard";
 export { VendorEditProfile } from "./vendor-edit-profile";
 export { VendorPublicProfile } from "./vendor-public-profile";
+export { VendorPublicProfileWrapper } from "./vendor-public-profile-wrapper";
 export { AddServiceStep1 } from "./add-service-step1";
 export { AddServiceStep2 } from "./add-service-step2";
 export { AddServiceStep3 } from "./add-service-step3";

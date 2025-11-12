@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   MapPin,
@@ -8,7 +8,6 @@ import {
   XCircle,
   MessageCircle,
   FileText,
-  ChevronRight,
 } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
 import { Button } from "~/components/ui/button";
@@ -25,43 +24,56 @@ interface Booking {
   location: string;
   depositPaid: boolean;
   depositAmount?: string;
+  conversationId?: string;
 }
 
-const SAMPLE_BOOKINGS: Booking[] = [
-  {
-    id: "1",
-    vendorId: "1",
-    vendorName: "The Grand Ballroom",
-    vendorCategory: "Venue",
-    vendorImage:
-      "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=400&q=80",
-    status: "confirmed",
-    date: "July 12, 2026",
-    price: "$15,000",
-    location: "Bucharest, Romania",
-    depositPaid: true,
-    depositAmount: "$3,000",
-  },
-  {
-    id: "2",
-    vendorId: "2",
-    vendorName: "Elegant Moments Photography",
-    vendorCategory: "Photo & Video",
-    vendorImage:
-      "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400&q=80",
-    status: "pending",
-    date: "July 12, 2026",
-    price: "$3,500",
-    location: "Bucharest, Romania",
-    depositPaid: false,
-  },
-];
+interface BookingsSummary {
+  totalBookings: number;
+  totalSpent: string;
+  confirmed: number;
+  pending: number;
+}
 
 export const MyBookingsPage = () => {
   const { navigate } = useRouter();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [summary, setSummary] = useState<BookingsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredBookings = SAMPLE_BOOKINGS.filter((booking) => {
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/bookings");
+
+        if (!response.ok) {
+          throw new Error("Failed to load bookings");
+        }
+
+        const data = await response.json();
+        console.log("Bookings API Response:", data);
+        console.log("Number of bookings:", data.bookings?.length);
+        
+        if (data.bookings && data.bookings.length > 0) {
+          console.log("First booking structure:", data.bookings[0]);
+        }
+        
+        setBookings(data.bookings || []);
+        setSummary(data.summary || null);
+      } catch (err: any) {
+        console.error("Error fetching bookings:", err);
+        setError(err.message || "Failed to load bookings");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  const filteredBookings = bookings.filter((booking) => {
     if (filterStatus === "all") return true;
     return booking.status === filterStatus;
   });
@@ -133,31 +145,63 @@ export const MyBookingsPage = () => {
         </div>
       </div>
 
-      <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 space-y-6">
+      <main className="flex-1 px-4 lg:px-8 xl:px-12 py-6 lg:py-8 max-w-7xl mx-auto w-full">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
-            <p className="text-xs lg:text-sm text-gray-500 mb-1">Total Bookings</p>
-            <p className="text-2xl lg:text-3xl font-bold text-gray-900">
-              {SAMPLE_BOOKINGS.length}
-            </p>
+        {summary && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+            <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+              <p className="text-xs lg:text-sm text-gray-500 mb-1">
+                Total Bookings
+              </p>
+              <p className="text-2xl lg:text-3xl font-bold text-gray-900">
+                {summary.totalBookings}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+              <p className="text-xs lg:text-sm text-gray-500 mb-1">
+                Total Spent
+              </p>
+              <p className="text-2xl lg:text-3xl font-bold text-green-600">
+                {summary.totalSpent}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+              <p className="text-xs lg:text-sm text-gray-500 mb-1">Confirmed</p>
+              <p className="text-2xl lg:text-3xl font-bold text-blue-600">
+                {summary.confirmed}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+              <p className="text-xs lg:text-sm text-gray-500 mb-1">Pending</p>
+              <p className="text-2xl lg:text-3xl font-bold text-amber-600">
+                {summary.pending}
+              </p>
+            </div>
           </div>
-          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
-            <p className="text-xs lg:text-sm text-gray-500 mb-1">Total Spent</p>
-            <p className="text-2xl lg:text-3xl font-bold text-green-600">$18,500</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
-            <p className="text-xs lg:text-sm text-gray-500 mb-1">Confirmed</p>
-            <p className="text-2xl lg:text-3xl font-bold text-blue-600">1</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
-            <p className="text-xs lg:text-sm text-gray-500 mb-1">Pending</p>
-            <p className="text-2xl lg:text-3xl font-bold text-amber-600">1</p>
-          </div>
-        </div>
+        )}
 
         {/* Bookings List */}
-        {filteredBookings.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">Loading bookings...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-8 h-8 text-red-400" />
+            </div>
+            <p className="text-gray-600 font-medium">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        ) : filteredBookings.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-gray-400" />
@@ -174,15 +218,15 @@ export const MyBookingsPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5">
             {filteredBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white rounded-2xl shadow-md overflow-hidden"
+                className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* Image Header */}
                 <div
-                  className="h-32 bg-cover bg-center relative"
+                  className="h-32 lg:h-40 bg-cover bg-center relative"
                   style={{ backgroundImage: `url(${booking.vendorImage})` }}
                 >
                   <div className="absolute top-3 right-3">
@@ -191,29 +235,29 @@ export const MyBookingsPage = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-4 space-y-3">
+                <div className="p-4 lg:p-5 space-y-3">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">
                       {booking.vendorCategory}
                     </p>
-                    <h3 className="text-lg font-bold text-gray-900">
+                    <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
                       {booking.vendorName}
                     </h3>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 text-rose-600" />
-                      <span>{booking.date}</span>
+                      <Calendar className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <span className="truncate">{booking.date}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-rose-600" />
-                      <span>{booking.location}</span>
+                      <MapPin className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <span className="truncate">{booking.location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <DollarSign className="w-4 h-4 text-rose-600" />
+                      <DollarSign className="w-4 h-4 text-rose-600 flex-shrink-0" />
                       <span className="font-semibold">{booking.price}</span>
-                      {booking.depositPaid && (
+                      {booking.depositPaid && booking.depositAmount && (
                         <span className="text-xs text-green-600">
                           • Deposit paid ({booking.depositAmount})
                         </span>
@@ -224,17 +268,18 @@ export const MyBookingsPage = () => {
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Button
-                      onClick={() => navigate(`/chat/${booking.vendorId}`)}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg h-10 font-medium flex items-center justify-center gap-2"
+                      onClick={() => {
+                        // Find conversation for this vendor
+                        navigate(`/messages`);
+                      }}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg h-10 font-medium flex items-center justify-center gap-2 text-xs"
                     >
                       <MessageCircle className="w-4 h-4" />
                       Message
                     </Button>
                     <Button
-                      onClick={() =>
-                        navigate(`/booking-details/${booking.id}`)
-                      }
-                      className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg h-10 font-medium flex items-center justify-center gap-2"
+                      onClick={() => navigate(`/booking-details/${booking.id}`)}
+                      className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg h-10 font-medium flex items-center justify-center gap-2 text-xs"
                     >
                       <FileText className="w-4 h-4" />
                       Details

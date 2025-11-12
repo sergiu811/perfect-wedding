@@ -4,7 +4,6 @@ import {
   Send,
   Paperclip,
   Image as ImageIcon,
-  FileText,
   MoreVertical,
   CheckCheck,
   DollarSign,
@@ -12,11 +11,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 
 interface ChatPageProps {
-  vendorId: string;
+  conversationId: string;
 }
 
 interface ChatMessage {
@@ -29,53 +29,23 @@ interface ChatMessage {
     price: string;
     services: string[];
     date: string;
+    status?: "pending" | "accepted" | "rejected" | "negotiated";
   };
 }
 
-const SAMPLE_CHAT: ChatMessage[] = [
-  {
-    id: "1",
-    sender: "couple",
-    message:
-      "Hi! We're interested in booking your venue for July 12, 2026. We're expecting around 150 guests.",
-    timestamp: "10:30 AM",
-    type: "text",
-  },
-  {
-    id: "2",
-    sender: "vendor",
-    message:
-      "Hello! Thank you for reaching out. We'd love to host your special day! July 12, 2026 is available. Let me send you our package details.",
-    timestamp: "10:45 AM",
-    type: "text",
-  },
-  {
-    id: "3",
-    sender: "vendor",
-    message: "Booking Offer",
-    timestamp: "10:46 AM",
-    type: "offer",
-    offerDetails: {
-      price: "$15,000",
-      services: [
-        "Venue rental for 8 hours",
-        "Tables, chairs, and linens for 150 guests",
-        "Premium lighting and sound system",
-        "Full bar service",
-        "Dedicated event coordinator",
-        "Complimentary parking and valet",
-        "Bridal suite access",
-      ],
-      date: "July 12, 2026",
-    },
-  },
-];
-
-export const ChatPage = ({ vendorId }: ChatPageProps) => {
+export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const { navigate } = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>(SAMPLE_CHAT);
+  const { user, profile } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showOfferForm, setShowOfferForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [conversationInfo, setConversationInfo] = useState<{
+    vendorName: string;
+    vendorAvatar: string;
+    vendorCategory: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Offer form state
@@ -85,38 +55,183 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
     services: [""],
   });
 
-  const vendorName = "The Grand Ballroom";
-  const vendorAvatar =
-    "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=200&q=80";
-  
-  // Check if current user is vendor (in real app, this would come from auth context)
-  const isVendor = true; // Set to true for demo purposes
+  const isVendor = profile?.role === "vendor";
+
+  // Fetch messages and conversation info
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [messagesRes, conversationsRes] = await Promise.all([
+          fetch(`/api/messages?conversationId=${conversationId}`),
+          fetch("/api/conversations"),
+        ]);
+
+        if (!messagesRes.ok) {
+          const error = await messagesRes.json();
+          console.error("Messages API error:", error);
+          throw new Error(error.error || "Failed to load messages");
+        }
+
+        if (!conversationsRes.ok) {
+          const error = await conversationsRes.json();
+          console.error("Conversations API error:", error);
+          throw new Error(error.error || "Failed to load conversations");
+        }
+
+        const messagesData = await messagesRes.json();
+        const conversationsData = await conversationsRes.json();
+
+        console.log("Messages:", messagesData);
+        console.log("Conversations:", conversationsData);
+        console.log("Looking for conversation ID:", conversationId);
+
+        setMessages(messagesData.messages || []);
+
+        // Find conversation info
+        const conv = conversationsData.conversations?.find(
+          (c: any) => c.id === conversationId
+        );
+
+        console.log("Found conversation:", conv);
+
+        if (conv) {
+          // Determine what to show based on user role
+          const isVendorView = profile?.role === "vendor";
+          
+          setConversationInfo({
+            vendorName: isVendorView ? (conv.coupleName || "Couple") : conv.vendorName,
+            vendorAvatar: isVendorView 
+              ? (conv.coupleAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.coupleName || "Couple")}`)
+              : conv.vendorAvatar,
+            vendorCategory: isVendorView ? "Wedding Couple" : conv.vendorCategory,
+          });
+        } else {
+          console.warn("Conversation not found in list");
+        }
+      } catch (error: any) {
+        console.error("Error fetching chat data:", error);
+        alert(`Error loading chat: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (conversationId) {
+      fetchData();
+    }
+  }, [conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!newMessage.trim()) return;
+  const handleSend = async () => {
+    if (!newMessage.trim() || sending) return;
 
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      sender: "couple",
-      message: newMessage,
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      type: "text",
-    };
+    try {
+      setSending(true);
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          message: newMessage.trim(),
+          messageType: "text",
+        }),
+      });
 
-    setMessages([...messages, message]);
-    setNewMessage("");
+      if (!response.ok) {
+        throw new Error("Failed to send message");
+      }
+
+      const data = await response.json();
+      setMessages([...messages, data.message]);
+      setNewMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleAcceptOffer = (offerId: string) => {
-    console.log("Accepting offer:", offerId);
-    navigate("/my-bookings");
+  const handleAcceptOffer = async (messageId: string, offerDetails: any) => {
+    try {
+      const response = await fetch("/api/messages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          status: "accepted",
+          bookingData: {
+            date: offerDetails.date,
+            price: offerDetails.price,
+            deposit: null,
+            notes: null,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to accept offer");
+      }
+
+      // Update message in local state
+      setMessages(
+        messages.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                offerDetails: {
+                  ...msg.offerDetails!,
+                  status: "accepted",
+                },
+              }
+            : msg
+        )
+      );
+
+      navigate("/my-bookings");
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+      alert("Failed to accept offer. Please try again.");
+    }
+  };
+
+  const handleRejectOffer = async (messageId: string) => {
+    try {
+      const response = await fetch("/api/messages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          status: "rejected",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reject offer");
+      }
+
+      // Update message in local state
+      setMessages(
+        messages.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                offerDetails: {
+                  ...msg.offerDetails!,
+                  status: "rejected",
+                },
+              }
+            : msg
+        )
+      );
+    } catch (error) {
+      console.error("Error rejecting offer:", error);
+      alert("Failed to reject offer. Please try again.");
+    }
   };
 
   const addService = () => {
@@ -137,45 +252,85 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
     setOfferData({ ...offerData, services: newServices });
   };
 
-  const handleSendOffer = () => {
-    const offer: ChatMessage = {
-      id: Date.now().toString(),
-      sender: "vendor",
-      message: "Booking Offer",
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      type: "offer",
-      offerDetails: {
-        price: offerData.price,
-        services: offerData.services.filter((s) => s.trim() !== ""),
-        date: offerData.date,
-      },
-    };
+  const handleSendOffer = async () => {
+    if (
+      !offerData.price ||
+      !offerData.date ||
+      !offerData.services.some((s) => s.trim())
+    ) {
+      alert("Please fill in all required fields");
+      return;
+    }
 
-    setMessages([...messages, offer]);
-    setShowOfferForm(false);
-    setOfferData({ price: "", date: "", services: [""] });
+    try {
+      setSending(true);
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          messageType: "offer",
+          offerData: {
+            price: offerData.price,
+            date: offerData.date,
+            services: offerData.services.filter((s) => s.trim() !== ""),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send offer");
+      }
+
+      const data = await response.json();
+      setMessages([...messages, data.message]);
+      setShowOfferForm(false);
+      setOfferData({ price: "", date: "", services: [""] });
+    } catch (error) {
+      console.error("Error sending offer:", error);
+      alert("Failed to send offer. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-pink-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Send className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const vendorName = conversationInfo?.vendorName || "Vendor";
+  const vendorAvatar = conversationInfo?.vendorAvatar || "";
+  const vendorCategory = conversationInfo?.vendorCategory || "Service";
+
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-pink-50">
+    <div className="w-full min-h-screen flex flex-col bg-pink-50">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="flex items-center justify-between p-4 lg:p-6 bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="flex items-center gap-3 flex-1">
-          <button onClick={() => navigate("/messages")} className="text-gray-900">
+          <button
+            onClick={() => navigate("/messages")}
+            className="text-gray-900"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div
-            className="w-10 h-10 rounded-full bg-cover bg-center"
+            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-cover bg-center flex-shrink-0"
             style={{ backgroundImage: `url(${vendorAvatar})` }}
           />
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-gray-900 truncate">
+            <h1 className="text-base lg:text-lg font-bold text-gray-900 truncate">
               {vendorName}
             </h1>
-            <p className="text-xs text-gray-500">Venue</p>
+            <p className="text-xs lg:text-sm text-gray-500">{vendorCategory}</p>
           </div>
         </div>
         <button className="text-gray-600 hover:text-gray-900">
@@ -184,93 +339,124 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
       </header>
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${
-              msg.sender === "couple" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {msg.type === "offer" ? (
-              // Offer Card
-              <div className="max-w-[85%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200 shadow-md">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">Booking Offer</p>
-                    <p className="text-xs text-gray-500">{msg.timestamp}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-1">Total Price</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {msg.offerDetails?.price}
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-2">Event Date</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {msg.offerDetails?.date}
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-2">Included Services</p>
-                    <ul className="space-y-1.5">
-                      {msg.offerDetails?.services.map((service, idx) => (
-                        <li
-                          key={idx}
-                          className="text-xs text-gray-700 flex items-start gap-2"
-                        >
-                          <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span>{service}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => handleAcceptOffer(msg.id)}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
-                    >
-                      Accept Offer
-                    </Button>
-                    <Button className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300">
-                      Negotiate
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // Regular Message
-              <div
-                className={`max-w-[75%] ${
-                  msg.sender === "couple"
-                    ? "bg-rose-600 text-white"
-                    : "bg-white text-gray-900"
-                } rounded-2xl px-4 py-3 shadow-sm`}
-              >
-                <p className="text-sm leading-relaxed">{msg.message}</p>
-                <p
-                  className={`text-xs mt-1 ${
-                    msg.sender === "couple"
-                      ? "text-white/70"
-                      : "text-gray-500"
-                  }`}
-                >
-                  {msg.timestamp}
-                </p>
-              </div>
-            )}
+      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+        {messages.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No messages yet. Start the conversation!
+            </p>
           </div>
-        ))}
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${
+                msg.sender === (isVendor ? "vendor" : "couple") ? "justify-end" : "justify-start"
+              }`}
+            >
+              {msg.type === "offer" ? (
+                // Offer Card
+                <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Booking Offer</p>
+                      <p className="text-xs text-gray-500">{msg.timestamp}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Total Price</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {msg.offerDetails?.price}
+                      </p>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Event Date</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {msg.offerDetails?.date}
+                      </p>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">
+                        Included Services
+                      </p>
+                      <ul className="space-y-1.5">
+                        {msg.offerDetails?.services.map((service, idx) => (
+                          <li
+                            key={idx}
+                            className="text-xs text-gray-700 flex items-start gap-2"
+                          >
+                            <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span>{service}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {msg.offerDetails?.status === "accepted" ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-green-700">
+                          ✓ Offer Accepted
+                        </p>
+                      </div>
+                    ) : msg.offerDetails?.status === "rejected" ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-red-700">
+                          Offer Rejected
+                        </p>
+                      </div>
+                    ) : !isVendor && msg.offerDetails?.status === "pending" ? (
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() =>
+                            handleAcceptOffer(msg.id, msg.offerDetails)
+                          }
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
+                        >
+                          Accept Offer
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectOffer(msg.id)}
+                          className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                // Regular Message
+                <div
+                  className={`max-w-[75%] lg:max-w-[60%] ${
+                    msg.sender === (isVendor ? "vendor" : "couple")
+                      ? "bg-rose-600 text-white"
+                      : "bg-white text-gray-900"
+                  } rounded-2xl px-4 py-3 shadow-sm`}
+                >
+                  <p className="text-sm lg:text-base leading-relaxed">
+                    {msg.message}
+                  </p>
+                  <p
+                    className={`text-xs mt-1 ${
+                      msg.sender === (isVendor ? "vendor" : "couple")
+                        ? "text-white/70"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {msg.timestamp}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))
+        )}
         <div ref={messagesEndRef} />
       </main>
 
@@ -279,7 +465,9 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Create Booking Offer</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                Create Booking Offer
+              </h3>
               <button
                 onClick={() => setShowOfferForm(false)}
                 className="p-2 hover:bg-gray-100 rounded-full"
@@ -367,9 +555,10 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
                 </Button>
                 <Button
                   onClick={handleSendOffer}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-12 font-semibold"
+                  disabled={sending}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-12 font-semibold disabled:opacity-50"
                 >
-                  Send Offer
+                  {sending ? "Sending..." : "Send Offer"}
                 </Button>
               </div>
             </div>
@@ -378,7 +567,7 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4">
+      <div className="bg-white border-t border-gray-200 p-4 lg:p-6">
         {isVendor && (
           <div className="mb-3">
             <button
@@ -401,14 +590,18 @@ export const ChatPage = ({ vendorId }: ChatPageProps) => {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              onKeyPress={(e) =>
+                e.key === "Enter" && !e.shiftKey && handleSend()
+              }
               placeholder="Type a message..."
               className="w-full bg-gray-100 border-0 rounded-xl h-11 px-4"
+              disabled={sending}
             />
           </div>
           <button
             onClick={handleSend}
-            className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl"
+            disabled={sending || !newMessage.trim()}
+            className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>

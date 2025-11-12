@@ -363,6 +363,189 @@ CREATE POLICY "Users can update bookings for their weddings"
   );
 
 -- ============================================
+-- CONVERSATIONS TABLE
+-- ============================================
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  couple_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  vendor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+  
+  last_message_at TIMESTAMPTZ DEFAULT NOW(),
+  last_message_text TEXT,
+  couple_unread_count INTEGER DEFAULT 0,
+  vendor_unread_count INTEGER DEFAULT 0,
+  
+  status TEXT DEFAULT 'active', -- 'active', 'archived', 'closed'
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Ensure one conversation per couple-vendor-service combination
+  UNIQUE(couple_id, vendor_id, service_id)
+);
+
+-- Create indexes
+CREATE INDEX idx_conversations_couple_id ON conversations(couple_id);
+CREATE INDEX idx_conversations_vendor_id ON conversations(vendor_id);
+CREATE INDEX idx_conversations_service_id ON conversations(service_id);
+CREATE INDEX idx_conversations_last_message_at ON conversations(last_message_at DESC);
+
+-- Enable RLS
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+
+-- Policies for conversations
+CREATE POLICY "Users can view their own conversations"
+  ON conversations FOR SELECT
+  USING (auth.uid() = couple_id OR auth.uid() = vendor_id);
+
+CREATE POLICY "Users can create conversations"
+  ON conversations FOR INSERT
+  WITH CHECK (
+    auth.uid() = couple_id
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = vendor_id
+      AND profiles.role = 'vendor'
+    )
+  );
+
+CREATE POLICY "Users can update their own conversations"
+  ON conversations FOR UPDATE
+  USING (auth.uid() = couple_id OR auth.uid() = vendor_id);
+
+-- ============================================
+-- MESSAGES TABLE
+-- ============================================
+CREATE TYPE message_type AS ENUM ('text', 'offer', 'booking');
+
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  
+  message_type message_type DEFAULT 'text',
+  content TEXT NOT NULL,
+  
+  -- For offer messages
+  offer_data JSONB, -- { price, date, services: [], status: 'pending' | 'accepted' | 'rejected' | 'negotiated' }
+  
+  read_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Index for ordering
+  CONSTRAINT valid_offer_data CHECK (
+    (message_type = 'offer' AND offer_data IS NOT NULL) OR
+    (message_type != 'offer')
+  )
+);
+
+-- Create indexes
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_created_at ON messages(created_at DESC);
+CREATE INDEX idx_messages_offer_status ON messages(offer_data) WHERE message_type = 'offer';
+
+-- Enable RLS
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Policies for messages
+CREATE POLICY "Users can view messages in their conversations"
+  ON messages FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM conversations
+      WHERE conversations.id = messages.conversation_id
+      AND (conversations.couple_id = auth.uid() OR conversations.vendor_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can create messages in their conversations"
+  ON messages FOR INSERT
+  WITH CHECK (
+    auth.uid() = sender_id
+    AND EXISTS (
+      SELECT 1 FROM conversations
+      WHERE conversations.id = messages.conversation_id
+      AND (conversations.couple_id = auth.uid() OR conversations.vendor_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can update their own messages"
+  ON messages FOR UPDATE
+  USING (auth.uid() = sender_id);
+
+-- Function to update conversation last_message_at and unread counts
+CREATE OR REPLACE FUNCTION update_conversation_on_message()
+RETURNS TRIGGER AS $$
+DECLARE
+  conv_record conversations%ROWTYPE;
+BEGIN
+  SELECT * INTO conv_record FROM conversations WHERE id = NEW.conversation_id;
+  
+  IF conv_record.couple_id = NEW.sender_id THEN
+    -- Message from couple, increment vendor unread
+    UPDATE conversations
+    SET 
+      last_message_at = NEW.created_at,
+      last_message_text = NEW.content,
+      vendor_unread_count = vendor_unread_count + 1,
+      updated_at = NOW()
+    WHERE id = NEW.conversation_id;
+  ELSE
+    -- Message from vendor, increment couple unread
+    UPDATE conversations
+    SET 
+      last_message_at = NEW.created_at,
+      last_message_text = NEW.content,
+      couple_unread_count = couple_unread_count + 1,
+      updated_at = NOW()
+    WHERE id = NEW.conversation_id;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update conversation when message is created
+CREATE TRIGGER update_conversation_on_message_insert
+  AFTER INSERT ON messages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_conversation_on_message();
+
+-- Function to mark messages as read
+CREATE OR REPLACE FUNCTION mark_messages_read(
+  p_conversation_id UUID,
+  p_user_id UUID
+)
+RETURNS void AS $$
+DECLARE
+  conv_record conversations%ROWTYPE;
+BEGIN
+  SELECT * INTO conv_record FROM conversations WHERE id = p_conversation_id;
+  
+  -- Mark unread messages as read
+  UPDATE messages
+  SET read_at = NOW()
+  WHERE conversation_id = p_conversation_id
+    AND sender_id != p_user_id
+    AND read_at IS NULL;
+  
+  -- Reset unread count
+  IF conv_record.couple_id = p_user_id THEN
+    UPDATE conversations
+    SET couple_unread_count = 0
+    WHERE id = p_conversation_id;
+  ELSE
+    UPDATE conversations
+    SET vendor_unread_count = 0
+    WHERE id = p_conversation_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
 -- SEATING CHARTS TABLE
 -- ============================================
 CREATE TABLE seating_charts (
@@ -450,6 +633,11 @@ CREATE TRIGGER update_bookings_updated_at
 
 CREATE TRIGGER update_seating_charts_updated_at
   BEFORE UPDATE ON seating_charts
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_conversations_updated_at
+  BEFORE UPDATE ON conversations
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
