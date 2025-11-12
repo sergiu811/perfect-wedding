@@ -11,11 +11,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     let query = supabase
       .from("services")
       .select("*")
-      .eq("is_active", true)
       .order("created_at", { ascending: false });
 
     if (vendorId) {
       query = query.eq("vendor_id", vendorId);
+    } else {
+      query = query.eq("is_active", true);
     }
 
     const { data, error } = await query;
@@ -53,11 +54,13 @@ export async function action({ request }: ActionFunctionArgs) {
       location,
       contactMethod,
       tags,
-      serviceRegion,
       videoLink,
       availableDays,
-      leadTime,
+      packages,
       specificFields,
+      serviceRegion,
+      images,
+      leadTime,
     } = body;
 
     // Validate required fields
@@ -95,11 +98,13 @@ export async function action({ request }: ActionFunctionArgs) {
         location,
         contact_method: contactMethod,
         tags: tags || [],
-        service_region: serviceRegion,
         videos: videoLink ? [videoLink] : [],
+        images: images || [],
         available_days: availableDays || [],
-        lead_time: leadTime ? parseInt(leadTime) : null,
+        packages: packages || [],
         specific_fields: specificFields || {},
+        service_region: serviceRegion || null,
+        lead_time: leadTime ? parseInt(leadTime, 10) : null,
         is_active: true,
       })
       .select()

@@ -7,7 +7,8 @@ import { useServiceForm } from "~/contexts/service-context";
 
 export const AddServiceStep1 = () => {
   const { navigate } = useRouter();
-  const { updateFormData, formData } = useServiceForm();
+  const { updateFormData, formData, isEditing, startNewService } =
+    useServiceForm();
   const [selectedCategory, setSelectedCategory] = useState(
     formData.category || ""
   );
@@ -56,7 +57,7 @@ export const AddServiceStep1 = () => {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
-          Add New Service
+          {isEditing ? "Edit Service" : "Add New Service"}
         </h1>
       </header>
 
@@ -268,7 +269,10 @@ export const AddServiceStep1 = () => {
           Continue to Category Details
         </Button>
         <button
-          onClick={() => navigate("/vendor-dashboard")}
+          onClick={() => {
+            startNewService();
+            navigate("/vendor-dashboard");
+          }}
           className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
         >
           Cancel

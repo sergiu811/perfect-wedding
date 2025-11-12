@@ -286,6 +286,7 @@ export type Database = {
           is_featured: boolean | null
           lead_time: number | null
           location: string
+          packages: Json | null
           portfolio: string[] | null
           price_max: number | null
           price_min: number | null
@@ -313,6 +314,7 @@ export type Database = {
           is_featured?: boolean | null
           lead_time?: number | null
           location: string
+          packages?: Json | null
           portfolio?: string[] | null
           price_max?: number | null
           price_min?: number | null
@@ -340,6 +342,7 @@ export type Database = {
           is_featured?: boolean | null
           lead_time?: number | null
           location?: string
+          packages?: Json | null
           portfolio?: string[] | null
           price_max?: number | null
           price_min?: number | null

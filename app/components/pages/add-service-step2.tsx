@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Plus, Trash2, Cake, Music, Upload, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -23,12 +23,112 @@ export const AddServiceStep2 = () => {
   const { navigate } = useRouter();
   const { formData, updateFormData } = useServiceForm();
   const category = formData.category || "venue";
+  const specificFields = (formData.specificFields as Record<string, any>) || {};
+
+  const normalizeSampleOfferings = (offerings: any): SampleOffering[] => {
+    if (!Array.isArray(offerings)) return [];
+    return offerings.map((item, index) => ({
+      id:
+        typeof item?.id === "string" && item.id.length > 0
+          ? item.id
+          : `sample-${index}-${Date.now()}`,
+      name: item?.name ?? "",
+      price:
+        typeof item?.price === "number"
+          ? item.price.toString()
+          : (item?.price ?? ""),
+      description: item?.description ?? "",
+    }));
+  };
+
+  const normalizeAudioSamples = (samples: any): AudioSample[] => {
+    if (!Array.isArray(samples)) return [];
+    return samples.map((item, index) => ({
+      id:
+        typeof item?.id === "string" && item.id.length > 0
+          ? item.id
+          : `audio-${index}-${Date.now()}`,
+      name: item?.name ?? "",
+      url: item?.url,
+    }));
+  };
+
   const [sampleOfferings, setSampleOfferings] = useState<SampleOffering[]>(
-    formData.sampleOfferings || []
+    normalizeSampleOfferings(specificFields.sampleOfferings)
   );
   const [audioSamples, setAudioSamples] = useState<AudioSample[]>(
-    formData.audioSamples || []
+    normalizeAudioSamples(specificFields.audioSamples)
   );
+
+  const getFieldValue = (key: string, fallback: any = "") =>
+    specificFields[key] ?? fallback;
+
+  const getBooleanValue = (key: string) => {
+    const value = specificFields[key];
+    if (typeof value === "string") {
+      return value === "true" || value === "on" || value === "1";
+    }
+    return Boolean(value);
+  };
+
+  const checkboxFieldMap: Record<string, string[]> = {
+    venue: [
+      "cateringInHouse",
+      "cateringExternal",
+      "cateringNone",
+      "parking",
+      "accommodation",
+    ],
+    photo_video: [
+      "drone",
+      "formatUSB",
+      "formatOnline",
+      "formatAlbum",
+      "travel",
+    ],
+    music_dj: [
+      "serviceDJ",
+      "serviceBand",
+      "serviceMC",
+      "serviceSinger",
+      "equipSound",
+      "equipLighting",
+      "equipMics",
+      "playlistCustom",
+    ],
+    decorations: [
+      "decorFloral",
+      "decorLighting",
+      "decorTable",
+      "decorStage",
+      "setupIncluded",
+    ],
+    invitations: [
+      "typePrinted",
+      "typeDigital",
+      "typeHandmade",
+      "designIncluded",
+    ],
+    sweets: [
+      "sweetCake",
+      "sweetCandyBar",
+      "sweetCupcakes",
+      "sweetMacarons",
+      "tasting",
+      "dietVegan",
+      "dietGluten",
+      "dietSugar",
+      "deliveryIncluded",
+    ],
+  };
+
+  useEffect(() => {
+    setSampleOfferings(
+      normalizeSampleOfferings(specificFields.sampleOfferings)
+    );
+    setAudioSamples(normalizeAudioSamples(specificFields.audioSamples));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.specificFields]);
 
   const handleContinue = () => {
     const form = document.querySelector("form");
@@ -36,23 +136,42 @@ export const AddServiceStep2 = () => {
 
     const formDataObj = new FormData(form);
 
-    // Collect all form data
+    // Collect all form data into specificFields
     const categoryData: any = {};
     formDataObj.forEach((value, key) => {
       categoryData[key] = value;
     });
 
+    const booleanFields =
+      checkboxFieldMap[category as keyof typeof checkboxFieldMap] || [];
+    booleanFields.forEach((field) => {
+      categoryData[field] = formDataObj.has(field);
+    });
+
     // Add sample offerings if in sweets category
     if (category === "sweets") {
-      categoryData.sampleOfferings = sampleOfferings;
+      categoryData.sampleOfferings = sampleOfferings.map((sample) => ({
+        id: sample.id,
+        name: sample.name,
+        price: sample.price,
+        description: sample.description,
+      }));
     }
 
     // Add audio samples if in music_dj category
     if (category === "music_dj") {
-      categoryData.audioSamples = audioSamples;
+      categoryData.audioSamples = audioSamples.map((sample) => ({
+        id: sample.id,
+        name: sample.name,
+        url: sample.url ?? null,
+      }));
     }
 
-    updateFormData(categoryData);
+    // Store all category-specific data in specificFields
+    updateFormData({
+      specificFields: categoryData,
+    });
+
     navigate("/add-service/step-3");
   };
 
@@ -119,6 +238,7 @@ export const AddServiceStep2 = () => {
               </label>
               <select
                 name="venueType"
+                defaultValue={getFieldValue("venueType", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               >
@@ -142,6 +262,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="Number of guests"
+                defaultValue={getFieldValue("capacity", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -157,6 +278,7 @@ export const AddServiceStep2 = () => {
                     type="radio"
                     name="locationType"
                     value="indoor"
+                    defaultChecked={getFieldValue("locationType") === "indoor"}
                     className="w-5 h-5 text-rose-600"
                     required
                   />
@@ -167,6 +289,7 @@ export const AddServiceStep2 = () => {
                     type="radio"
                     name="locationType"
                     value="outdoor"
+                    defaultChecked={getFieldValue("locationType") === "outdoor"}
                     className="w-5 h-5 text-rose-600"
                   />
                   <span>Outdoor</span>
@@ -176,6 +299,7 @@ export const AddServiceStep2 = () => {
                     type="radio"
                     name="locationType"
                     value="both"
+                    defaultChecked={getFieldValue("locationType") === "both"}
                     className="w-5 h-5 text-rose-600"
                   />
                   <span>Both</span>
@@ -192,6 +316,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="cateringInHouse"
+                    defaultChecked={getBooleanValue("cateringInHouse")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>In-house catering</span>
@@ -200,6 +325,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="cateringExternal"
+                    defaultChecked={getBooleanValue("cateringExternal")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>External catering allowed</span>
@@ -208,6 +334,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="cateringNone"
+                    defaultChecked={getBooleanValue("cateringNone")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>No catering</span>
@@ -223,6 +350,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="parking"
+                  defaultChecked={getBooleanValue("parking")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -236,6 +364,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="accommodation"
+                  defaultChecked={getBooleanValue("accommodation")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -250,6 +379,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="0"
                 placeholder="e.g., 75"
+                defaultValue={getFieldValue("menuPrice", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               />
             </div>
@@ -261,38 +391,6 @@ export const AddServiceStep2 = () => {
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
               <label className="text-base font-bold text-gray-900">
-                Package Type *
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="packagePhoto"
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>Photography</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="packageVideo"
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>Videography</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="packageBoth"
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>Photography + Videography</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-              <label className="text-base font-bold text-gray-900">
                 Coverage Duration (hours) *
               </label>
               <Input
@@ -300,6 +398,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="e.g., 8"
+                defaultValue={getFieldValue("duration", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -314,6 +413,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="e.g., 2"
+                defaultValue={getFieldValue("teamSize", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -327,6 +427,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="drone"
+                  defaultChecked={getBooleanValue("drone")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -339,6 +440,7 @@ export const AddServiceStep2 = () => {
               <Input
                 name="deliveryTime"
                 placeholder="e.g., 4-6 weeks"
+                defaultValue={getFieldValue("deliveryTime", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -353,6 +455,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="formatUSB"
+                    defaultChecked={getBooleanValue("formatUSB")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>USB Drive</span>
@@ -361,6 +464,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="formatOnline"
+                    defaultChecked={getBooleanValue("formatOnline")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Online Gallery</span>
@@ -369,6 +473,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="formatAlbum"
+                    defaultChecked={getBooleanValue("formatAlbum")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Printed Album</span>
@@ -384,6 +489,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="travel"
+                  defaultChecked={getBooleanValue("travel")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -403,6 +509,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="serviceDJ"
+                    defaultChecked={getBooleanValue("serviceDJ")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>DJ</span>
@@ -411,6 +518,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="serviceBand"
+                    defaultChecked={getBooleanValue("serviceBand")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Live Band</span>
@@ -419,6 +527,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="serviceMC"
+                    defaultChecked={getBooleanValue("serviceMC")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>MC Services</span>
@@ -427,6 +536,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="serviceSinger"
+                    defaultChecked={getBooleanValue("serviceSinger")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Singer</span>
@@ -441,6 +551,7 @@ export const AddServiceStep2 = () => {
               <Input
                 name="genres"
                 placeholder="e.g., Pop, Rock, Jazz, Electronic"
+                defaultValue={getFieldValue("genres", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -455,6 +566,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="e.g., 4"
+                defaultValue={getFieldValue("performanceDuration", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -469,6 +581,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="equipSound"
+                    defaultChecked={getBooleanValue("equipSound")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Sound System</span>
@@ -477,6 +590,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="equipLighting"
+                    defaultChecked={getBooleanValue("equipLighting")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Lighting</span>
@@ -485,6 +599,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="equipMics"
+                    defaultChecked={getBooleanValue("equipMics")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Microphones</span>
@@ -502,6 +617,7 @@ export const AddServiceStep2 = () => {
                 min="0"
                 step="0.5"
                 placeholder="e.g., 2"
+                defaultValue={getFieldValue("setupTime", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               />
             </div>
@@ -514,6 +630,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="playlistCustom"
+                  defaultChecked={getBooleanValue("playlistCustom")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -578,7 +695,9 @@ export const AddServiceStep2 = () => {
                           className="w-full bg-white border border-gray-200 rounded-lg h-9 px-3 text-sm focus:ring-2 focus:ring-rose-600"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          {sample.file ? `${(sample.file.size / 1024 / 1024).toFixed(2)} MB` : ""}
+                          {sample.file
+                            ? `${(sample.file.size / 1024 / 1024).toFixed(2)} MB`
+                            : ""}
                         </p>
                       </div>
                       <button
@@ -629,6 +748,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="decorFloral"
+                    defaultChecked={getBooleanValue("decorFloral")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Floral Arrangements</span>
@@ -637,6 +757,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="decorLighting"
+                    defaultChecked={getBooleanValue("decorLighting")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Lighting</span>
@@ -645,6 +766,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="decorTable"
+                    defaultChecked={getBooleanValue("decorTable")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Table Design</span>
@@ -653,6 +775,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="decorStage"
+                    defaultChecked={getBooleanValue("decorStage")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Stage Setup</span>
@@ -667,6 +790,7 @@ export const AddServiceStep2 = () => {
               <Input
                 name="themeStyles"
                 placeholder="e.g., Rustic, Glam, Minimal"
+                defaultValue={getFieldValue("themeStyles", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -680,6 +804,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="setupIncluded"
+                  defaultChecked={getBooleanValue("setupIncluded")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -695,6 +820,7 @@ export const AddServiceStep2 = () => {
                 min="0"
                 step="0.5"
                 placeholder="e.g., 3"
+                defaultValue={getFieldValue("setupTimeHours", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               />
             </div>
@@ -713,6 +839,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="typePrinted"
+                    defaultChecked={getBooleanValue("typePrinted")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Printed</span>
@@ -721,6 +848,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="typeDigital"
+                    defaultChecked={getBooleanValue("typeDigital")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Digital</span>
@@ -729,6 +857,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="typeHandmade"
+                    defaultChecked={getBooleanValue("typeHandmade")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Handmade</span>
@@ -743,6 +872,7 @@ export const AddServiceStep2 = () => {
               <Input
                 name="materials"
                 placeholder="e.g., Cardstock, Shimmer, Kraft"
+                defaultValue={getFieldValue("materials", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               />
             </div>
@@ -756,6 +886,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="e.g., 50"
+                defaultValue={getFieldValue("minOrder", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -770,6 +901,7 @@ export const AddServiceStep2 = () => {
                 type="number"
                 min="1"
                 placeholder="e.g., 14"
+                defaultValue={getFieldValue("deliveryDays", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -783,6 +915,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="designIncluded"
+                  defaultChecked={getBooleanValue("designIncluded")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -802,6 +935,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="sweetCake"
+                    defaultChecked={getBooleanValue("sweetCake")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Wedding Cake</span>
@@ -810,6 +944,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="sweetCandyBar"
+                    defaultChecked={getBooleanValue("sweetCandyBar")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Candy Bar</span>
@@ -818,6 +953,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="sweetCupcakes"
+                    defaultChecked={getBooleanValue("sweetCupcakes")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Cupcakes</span>
@@ -826,6 +962,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="sweetMacarons"
+                    defaultChecked={getBooleanValue("sweetMacarons")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Macarons</span>
@@ -840,6 +977,7 @@ export const AddServiceStep2 = () => {
               <Input
                 name="flavors"
                 placeholder="e.g., Vanilla, Chocolate, Red Velvet"
+                defaultValue={getFieldValue("flavors", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
                 required
               />
@@ -853,6 +991,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="tasting"
+                  defaultChecked={getBooleanValue("tasting")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>
@@ -914,7 +1053,11 @@ export const AddServiceStep2 = () => {
                         <Input
                           value={sample.name}
                           onChange={(e) =>
-                            updateSampleOffering(sample.id, "name", e.target.value)
+                            updateSampleOffering(
+                              sample.id,
+                              "name",
+                              e.target.value
+                            )
                           }
                           placeholder="e.g., Tasting Box, Mini Cupcake Set"
                           className="w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600"
@@ -932,7 +1075,11 @@ export const AddServiceStep2 = () => {
                           <Input
                             value={sample.price}
                             onChange={(e) =>
-                              updateSampleOffering(sample.id, "price", e.target.value)
+                              updateSampleOffering(
+                                sample.id,
+                                "price",
+                                e.target.value
+                              )
                             }
                             type="number"
                             min="0"
@@ -984,6 +1131,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="dietVegan"
+                    defaultChecked={getBooleanValue("dietVegan")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Vegan</span>
@@ -992,6 +1140,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="dietGluten"
+                    defaultChecked={getBooleanValue("dietGluten")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Gluten-free</span>
@@ -1000,6 +1149,7 @@ export const AddServiceStep2 = () => {
                   <input
                     type="checkbox"
                     name="dietSugar"
+                    defaultChecked={getBooleanValue("dietSugar")}
                     className="w-5 h-5 rounded text-rose-600"
                   />
                   <span>Sugar-free</span>
@@ -1015,6 +1165,7 @@ export const AddServiceStep2 = () => {
                 <input
                   type="checkbox"
                   name="deliveryIncluded"
+                  defaultChecked={getBooleanValue("deliveryIncluded")}
                   className="w-6 h-6 rounded text-rose-600"
                 />
               </label>

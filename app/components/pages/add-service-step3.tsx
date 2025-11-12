@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ArrowLeft, Upload, X, Calendar, Plus, Trash2, Package } from "lucide-react";
+import { ArrowLeft, Package, Plus, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
@@ -21,18 +21,31 @@ export const AddServiceStep3 = () => {
   const [packages, setPackages] = useState<ServicePackage[]>(
     formData.packages || []
   );
+  const [serviceRegion, setServiceRegion] = useState(
+    formData.serviceRegion || ""
+  );
+  const [leadTime, setLeadTime] = useState(formData.leadTime || "");
+  const [seasonSelections, setSeasonSelections] = useState<string[]>(
+    formData.seasonalAvailability || []
+  );
 
   const handleContinue = () => {
     const form = document.querySelector("form");
     if (!form) return;
 
     const formDataObj = new FormData(form);
+    const videoLink = (formDataObj.get("videoLink") as string) || "";
+    const leadTimeValue = leadTime || (formDataObj.get("leadTime") as string);
+    const serviceRegionValue =
+      serviceRegion || (formDataObj.get("serviceRegion") as string) || "";
 
     updateFormData({
-      serviceRegion: formDataObj.get("serviceRegion") as string,
-      videoLink: formDataObj.get("videoLink") as string,
+      videoLink,
       availableDays: selectedDays,
       packages: packages,
+      serviceRegion: serviceRegionValue,
+      leadTime: leadTimeValue || "",
+      seasonalAvailability: seasonSelections,
     });
 
     navigate("/add-service/step-4");
@@ -44,6 +57,14 @@ export const AddServiceStep3 = () => {
     } else {
       setSelectedDays([...selectedDays, day]);
     }
+  };
+
+  const toggleSeasonSelection = (season: string) => {
+    setSeasonSelections((prev) =>
+      prev.includes(season)
+        ? prev.filter((item) => item !== season)
+        : [...prev, season]
+    );
   };
 
   const addPackage = () => {
@@ -60,11 +81,13 @@ export const AddServiceStep3 = () => {
     setPackages(packages.filter((pkg) => pkg.id !== id));
   };
 
-  const updatePackage = (id: string, field: keyof ServicePackage, value: string) => {
+  const updatePackage = (
+    id: string,
+    field: keyof ServicePackage,
+    value: string
+  ) => {
     setPackages(
-      packages.map((pkg) =>
-        pkg.id === id ? { ...pkg, [field]: value } : pkg
-      )
+      packages.map((pkg) => (pkg.id === id ? { ...pkg, [field]: value } : pkg))
     );
   };
 
@@ -187,7 +210,8 @@ export const AddServiceStep3 = () => {
               </div>
             </div>
             <p className="text-sm text-gray-600">
-              Offer different packages at various price points to give couples more options
+              Offer different packages at various price points to give couples
+              more options
             </p>
 
             {packages.length === 0 ? (
@@ -322,17 +346,18 @@ export const AddServiceStep3 = () => {
             </label>
             <select
               name="leadTime"
-              defaultValue={formData.leadTime || ""}
+              value={leadTime}
+              onChange={(e) => setLeadTime(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
             >
               <option value="">Select lead time</option>
-              <option value="1-week">1 week</option>
-              <option value="2-weeks">2 weeks</option>
-              <option value="1-month">1 month</option>
-              <option value="2-months">2 months</option>
-              <option value="3-months">3 months</option>
-              <option value="6-months">6 months</option>
-              <option value="1-year">1 year</option>
+              <option value="7">1 week</option>
+              <option value="14">2 weeks</option>
+              <option value="30">1 month</option>
+              <option value="60">2 months</option>
+              <option value="90">3 months</option>
+              <option value="180">6 months</option>
+              <option value="365">1 year</option>
             </select>
             <p className="text-xs text-gray-500">
               How far in advance should couples book?
@@ -346,7 +371,8 @@ export const AddServiceStep3 = () => {
             </label>
             <Input
               name="serviceRegion"
-              defaultValue={formData.serviceRegion}
+              value={serviceRegion}
+              onChange={(e) => setServiceRegion(e.target.value)}
               placeholder="e.g., New York City and surrounding areas"
               className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               required
@@ -366,6 +392,8 @@ export const AddServiceStep3 = () => {
                 <input
                   type="checkbox"
                   name="seasonSpring"
+                  checked={seasonSelections.includes("spring")}
+                  onChange={() => toggleSeasonSelection("spring")}
                   className="w-5 h-5 rounded text-rose-600"
                 />
                 <span>Spring</span>
@@ -374,6 +402,8 @@ export const AddServiceStep3 = () => {
                 <input
                   type="checkbox"
                   name="seasonSummer"
+                  checked={seasonSelections.includes("summer")}
+                  onChange={() => toggleSeasonSelection("summer")}
                   className="w-5 h-5 rounded text-rose-600"
                 />
                 <span>Summer</span>
@@ -382,6 +412,8 @@ export const AddServiceStep3 = () => {
                 <input
                   type="checkbox"
                   name="seasonFall"
+                  checked={seasonSelections.includes("fall")}
+                  onChange={() => toggleSeasonSelection("fall")}
                   className="w-5 h-5 rounded text-rose-600"
                 />
                 <span>Fall</span>
@@ -390,6 +422,8 @@ export const AddServiceStep3 = () => {
                 <input
                   type="checkbox"
                   name="seasonWinter"
+                  checked={seasonSelections.includes("winter")}
+                  onChange={() => toggleSeasonSelection("winter")}
                   className="w-5 h-5 rounded text-rose-600"
                 />
                 <span>Winter</span>

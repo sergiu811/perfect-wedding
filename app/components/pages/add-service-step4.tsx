@@ -13,16 +13,29 @@ import { useServiceForm } from "~/contexts/service-context";
 
 export const AddServiceStep4 = () => {
   const { navigate } = useRouter();
-  const { formData, resetFormData } = useServiceForm();
+  const {
+    formData,
+    resetFormData,
+    isEditing,
+    editingServiceId,
+    startNewService,
+  } = useServiceForm();
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
+  const [publishResult, setPublishResult] = useState<
+    "created" | "updated" | null
+  >(null);
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    
+
     try {
-      const response = await fetch("/api/services", {
-        method: "POST",
+      const endpoint =
+        isEditing && editingServiceId
+          ? `/api/services/${editingServiceId}`
+          : "/api/services";
+
+      const response = await fetch(endpoint, {
+        method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -35,63 +48,89 @@ export const AddServiceStep4 = () => {
           location: formData.location,
           contactMethod: formData.contactMethod,
           tags: formData.tags,
-          serviceRegion: formData.serviceRegion,
           videoLink: formData.videoLink,
           availableDays: formData.availableDays,
-          leadTime: formData.leadTime,
+          packages: formData.packages || [],
           specificFields: formData.specificFields || {},
+          serviceRegion: formData.serviceRegion,
+          images: formData.images || [],
+          leadTime: formData.leadTime,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create service");
+        throw new Error(error.error || "Failed to save service");
       }
 
-      setIsPublished(true);
+      setPublishResult(isEditing ? "updated" : "created");
+      startNewService();
     } catch (error) {
       console.error("Error publishing service:", error);
-      alert(error instanceof Error ? error.message : "Failed to publish service. Please try again.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to publish service. Please try again."
+      );
     } finally {
       setIsPublishing(false);
     }
   };
 
   const handleAddAnother = () => {
-    resetFormData();
+    startNewService();
     navigate("/add-service/step-1");
   };
 
-  if (isPublished) {
+  const handleGoToDashboard = () => {
+    resetFormData();
+    navigate("/vendor-dashboard");
+  };
+
+  if (publishResult) {
     return (
       <div className="min-h-screen flex flex-col bg-pink-50 justify-center items-center p-4">
         <div className="max-w-2xl mx-auto w-full flex flex-col justify-center items-center">
-        <div className="bg-white rounded-2xl p-8 shadow-xl text-center w-full max-w-md">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-green-600" />
+          <div className="bg-white rounded-2xl p-8 shadow-xl text-center w-full max-w-md">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              {publishResult === "created"
+                ? "Service Published!"
+                : "Service Updated!"}
+            </h2>
+            <p className="text-gray-600 mb-8">
+              {publishResult === "created"
+                ? "Your service has been successfully submitted and is now live. Couples can now discover and contact you!"
+                : "Your service changes have been saved. Couples will now see the updated details!"}
+            </p>
+            <div className="space-y-3">
+              {publishResult === "created" ? (
+                <>
+                  <Button
+                    onClick={handleAddAnother}
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-12"
+                  >
+                    Add Another Service
+                  </Button>
+                  <Button
+                    onClick={handleGoToDashboard}
+                    className="w-full bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 font-bold rounded-full h-12"
+                  >
+                    Go to Dashboard
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleGoToDashboard}
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-12"
+                >
+                  Back to Dashboard
+                </Button>
+              )}
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Service Published!
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Your service has been successfully submitted and is now live.
-            Couples can now discover and contact you!
-          </p>
-          <div className="space-y-3">
-            <Button
-              onClick={handleAddAnother}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-12"
-            >
-              Add Another Service
-            </Button>
-            <Button
-              onClick={() => navigate("/vendor-dashboard")}
-              className="w-full bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 font-bold rounded-full h-12"
-            >
-              Go to Dashboard
-            </Button>
-          </div>
-        </div>
         </div>
       </div>
     );
