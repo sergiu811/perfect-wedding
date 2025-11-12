@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Plus, Trash2, Cake, Music, Upload, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -24,6 +24,11 @@ export const AddServiceStep2 = () => {
   const { formData, updateFormData } = useServiceForm();
   const category = formData.category || "venue";
   const specificFields = (formData.specificFields as Record<string, any>) || {};
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sampleErrors, setSampleErrors] = useState<
+    Record<string, { name?: string; price?: string; description?: string }>
+  >({});
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const normalizeSampleOfferings = (offerings: any): SampleOffering[] => {
     if (!Array.isArray(offerings)) return [];
@@ -130,11 +135,147 @@ export const AddServiceStep2 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.specificFields]);
 
+  const requiredFieldsByCategory: Record<
+    string,
+    { name: string; label: string }[]
+  > = {
+    venue: [
+      { name: "venueType", label: "Venue Type" },
+      { name: "capacity", label: "Capacity" },
+      { name: "locationType", label: "Location Type" },
+    ],
+    photo_video: [
+      { name: "duration", label: "Coverage Duration" },
+      { name: "teamSize", label: "Number of Photographers/Videographers" },
+      { name: "deliveryTime", label: "Editing & Delivery Time" },
+    ],
+    music_dj: [
+      { name: "genres", label: "Genres Played" },
+      { name: "performanceDuration", label: "Performance Duration" },
+    ],
+    decorations: [{ name: "themeStyles", label: "Theme Styles" }],
+    invitations: [
+      { name: "minOrder", label: "Minimum Order Quantity" },
+      { name: "deliveryDays", label: "Delivery Time" },
+    ],
+    sweets: [{ name: "flavors", label: "Flavors Offered" }],
+  };
+
+  const registerInputRef =
+    (fieldName: string) => (element: HTMLInputElement | null) => {
+      if (element) {
+        fieldRefs.current[fieldName] = element;
+      }
+    };
+
+  const registerSelectRef =
+    (fieldName: string) => (element: HTMLSelectElement | null) => {
+      if (element) {
+        fieldRefs.current[fieldName] = element;
+      }
+    };
+
+  const clearError = (fieldName: string) => {
+    if (!errors[fieldName]) return;
+    setErrors((prev) => {
+      const { [fieldName]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const clearSampleError = (
+    sampleId: string,
+    key: keyof (typeof sampleErrors)[string]
+  ) => {
+    setSampleErrors((prev) => {
+      const current = prev[sampleId];
+      if (!current || !current[key]) return prev;
+      const updated = { ...current };
+      delete updated[key];
+      const next = { ...prev, [sampleId]: updated };
+      if (Object.keys(updated).length === 0) {
+        delete next[sampleId];
+      }
+      return next;
+    });
+  };
+
+  const getFieldClasses = (fieldName: string, baseClasses: string) =>
+    `${baseClasses} ${
+      errors[fieldName] ? "border-red-500 focus:ring-red-500" : ""
+    }`;
+
   const handleContinue = () => {
-    const form = document.querySelector("form");
+    const form = document.querySelector("form") as HTMLFormElement | null;
     if (!form) return;
 
     const formDataObj = new FormData(form);
+    const requiredFields = requiredFieldsByCategory[category] || [];
+    const newErrors: Record<string, string> = {};
+
+    requiredFields.forEach(({ name, label }) => {
+      const value = formDataObj.get(name);
+      if (!value || (typeof value === "string" && value.trim() === "")) {
+        newErrors[name] = `${label} is required.`;
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setSampleErrors({});
+      const firstFieldName = Object.keys(newErrors)[0];
+      const target = fieldRefs.current[firstFieldName];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        if ("focus" in target && typeof target.focus === "function") {
+          target.focus();
+        }
+      }
+      return;
+    }
+
+    setErrors({});
+
+    if (category === "sweets") {
+      const nextSampleErrors: Record<
+        string,
+        { name?: string; price?: string; description?: string }
+      > = {};
+
+      sampleOfferings.forEach((sample) => {
+        const sampleError: {
+          name?: string;
+          price?: string;
+          description?: string;
+        } = {};
+        if (!sample.name.trim()) {
+          sampleError.name = "Sample name is required.";
+        }
+        if (!sample.price.toString().trim()) {
+          sampleError.price = "Sample price is required.";
+        }
+        if (!sample.description.trim()) {
+          sampleError.description = "Sample description is required.";
+        }
+        if (Object.keys(sampleError).length > 0) {
+          nextSampleErrors[sample.id] = sampleError;
+        }
+      });
+
+      if (Object.keys(nextSampleErrors).length > 0) {
+        setSampleErrors(nextSampleErrors);
+        const firstSampleId = Object.keys(nextSampleErrors)[0];
+        const target = document.getElementById(`sample-${firstSampleId}`);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      setSampleErrors({});
+    } else {
+      setSampleErrors({});
+    }
 
     // Collect all form data into specificFields
     const categoryData: any = {};
@@ -237,9 +378,14 @@ export const AddServiceStep2 = () => {
                 Venue Type *
               </label>
               <select
+                ref={registerSelectRef("venueType")}
                 name="venueType"
                 defaultValue={getFieldValue("venueType", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("venueType")}
+                className={getFieldClasses(
+                  "venueType",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               >
                 <option value="">Select venue type</option>
@@ -251,6 +397,9 @@ export const AddServiceStep2 = () => {
                 <option value="hotel">Hotel</option>
                 <option value="beach">Beach</option>
               </select>
+              {errors.venueType && (
+                <p className="text-xs text-red-600">{errors.venueType}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -258,27 +407,47 @@ export const AddServiceStep2 = () => {
                 Capacity *
               </label>
               <Input
+                ref={registerInputRef("capacity")}
                 name="capacity"
                 type="number"
                 min="1"
                 placeholder="Number of guests"
                 defaultValue={getFieldValue("capacity", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("capacity")}
+                className={getFieldClasses(
+                  "capacity",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.capacity && (
+                <p className="text-xs text-red-600">{errors.capacity}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
               <label className="text-base font-bold text-gray-900">
                 Location Type *
               </label>
-              <div className="space-y-2">
+              <div
+                ref={(el) => {
+                  if (el) {
+                    fieldRefs.current["locationType"] = el;
+                  }
+                }}
+                className={`space-y-2 ${
+                  errors.locationType
+                    ? "rounded-lg border border-red-500 p-3"
+                    : ""
+                }`}
+              >
                 <label className="flex items-center gap-3">
                   <input
                     type="radio"
                     name="locationType"
                     value="indoor"
                     defaultChecked={getFieldValue("locationType") === "indoor"}
+                    onChange={() => clearError("locationType")}
                     className="w-5 h-5 text-rose-600"
                     required
                   />
@@ -290,6 +459,7 @@ export const AddServiceStep2 = () => {
                     name="locationType"
                     value="outdoor"
                     defaultChecked={getFieldValue("locationType") === "outdoor"}
+                    onChange={() => clearError("locationType")}
                     className="w-5 h-5 text-rose-600"
                   />
                   <span>Outdoor</span>
@@ -300,11 +470,15 @@ export const AddServiceStep2 = () => {
                     name="locationType"
                     value="both"
                     defaultChecked={getFieldValue("locationType") === "both"}
+                    onChange={() => clearError("locationType")}
                     className="w-5 h-5 text-rose-600"
                   />
                   <span>Both</span>
                 </label>
               </div>
+              {errors.locationType && (
+                <p className="text-xs text-red-600">{errors.locationType}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -394,14 +568,22 @@ export const AddServiceStep2 = () => {
                 Coverage Duration (hours) *
               </label>
               <Input
+                ref={registerInputRef("duration")}
                 name="duration"
                 type="number"
                 min="1"
                 placeholder="e.g., 8"
                 defaultValue={getFieldValue("duration", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("duration")}
+                className={getFieldClasses(
+                  "duration",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.duration && (
+                <p className="text-xs text-red-600">{errors.duration}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -409,14 +591,22 @@ export const AddServiceStep2 = () => {
                 Number of Photographers/Videographers *
               </label>
               <Input
+                ref={registerInputRef("teamSize")}
                 name="teamSize"
                 type="number"
                 min="1"
                 placeholder="e.g., 2"
                 defaultValue={getFieldValue("teamSize", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("teamSize")}
+                className={getFieldClasses(
+                  "teamSize",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.teamSize && (
+                <p className="text-xs text-red-600">{errors.teamSize}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -438,12 +628,20 @@ export const AddServiceStep2 = () => {
                 Editing & Delivery Time *
               </label>
               <Input
+                ref={registerInputRef("deliveryTime")}
                 name="deliveryTime"
                 placeholder="e.g., 4-6 weeks"
                 defaultValue={getFieldValue("deliveryTime", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("deliveryTime")}
+                className={getFieldClasses(
+                  "deliveryTime",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.deliveryTime && (
+                <p className="text-xs text-red-600">{errors.deliveryTime}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -549,12 +747,20 @@ export const AddServiceStep2 = () => {
                 Genres Played *
               </label>
               <Input
+                ref={registerInputRef("genres")}
                 name="genres"
                 placeholder="e.g., Pop, Rock, Jazz, Electronic"
                 defaultValue={getFieldValue("genres", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("genres")}
+                className={getFieldClasses(
+                  "genres",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.genres && (
+                <p className="text-xs text-red-600">{errors.genres}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -562,14 +768,24 @@ export const AddServiceStep2 = () => {
                 Performance Duration (hours) *
               </label>
               <Input
+                ref={registerInputRef("performanceDuration")}
                 name="performanceDuration"
                 type="number"
                 min="1"
                 placeholder="e.g., 4"
                 defaultValue={getFieldValue("performanceDuration", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("performanceDuration")}
+                className={getFieldClasses(
+                  "performanceDuration",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.performanceDuration && (
+                <p className="text-xs text-red-600">
+                  {errors.performanceDuration}
+                </p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -788,12 +1004,20 @@ export const AddServiceStep2 = () => {
                 Theme Styles *
               </label>
               <Input
+                ref={registerInputRef("themeStyles")}
                 name="themeStyles"
                 placeholder="e.g., Rustic, Glam, Minimal"
                 defaultValue={getFieldValue("themeStyles", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("themeStyles")}
+                className={getFieldClasses(
+                  "themeStyles",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.themeStyles && (
+                <p className="text-xs text-red-600">{errors.themeStyles}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -882,14 +1106,22 @@ export const AddServiceStep2 = () => {
                 Minimum Order Quantity *
               </label>
               <Input
+                ref={registerInputRef("minOrder")}
                 name="minOrder"
                 type="number"
                 min="1"
                 placeholder="e.g., 50"
                 defaultValue={getFieldValue("minOrder", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("minOrder")}
+                className={getFieldClasses(
+                  "minOrder",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.minOrder && (
+                <p className="text-xs text-red-600">{errors.minOrder}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -897,14 +1129,22 @@ export const AddServiceStep2 = () => {
                 Delivery Time (days) *
               </label>
               <Input
+                ref={registerInputRef("deliveryDays")}
                 name="deliveryDays"
                 type="number"
                 min="1"
                 placeholder="e.g., 14"
                 defaultValue={getFieldValue("deliveryDays", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("deliveryDays")}
+                className={getFieldClasses(
+                  "deliveryDays",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.deliveryDays && (
+                <p className="text-xs text-red-600">{errors.deliveryDays}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -975,12 +1215,20 @@ export const AddServiceStep2 = () => {
                 Flavors Offered *
               </label>
               <Input
+                ref={registerInputRef("flavors")}
                 name="flavors"
                 placeholder="e.g., Vanilla, Chocolate, Red Velvet"
                 defaultValue={getFieldValue("flavors", "")}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                onChange={() => clearError("flavors")}
+                className={getFieldClasses(
+                  "flavors",
+                  "w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                )}
                 required
               />
+              {errors.flavors && (
+                <p className="text-xs text-red-600">{errors.flavors}</p>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -1028,86 +1276,124 @@ export const AddServiceStep2 = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {sampleOfferings.map((sample, index) => (
-                    <div
-                      key={sample.id}
-                      className="border-2 border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-rose-600">
-                          Sample {index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeSampleOffering(sample.id)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                          Sample Name *
-                        </label>
-                        <Input
-                          value={sample.name}
-                          onChange={(e) =>
-                            updateSampleOffering(
-                              sample.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g., Tasting Box, Mini Cupcake Set"
-                          className="w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                          Price *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                            $
+                  {sampleOfferings.map((sample, index) => {
+                    const sampleError = sampleErrors[sample.id] || {};
+                    return (
+                      <div
+                        id={`sample-${sample.id}`}
+                        key={sample.id}
+                        className={`border-2 rounded-xl p-4 space-y-3 bg-gray-50 ${
+                          Object.keys(sampleError).length > 0
+                            ? "border-red-300"
+                            : "border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-rose-600">
+                            Sample {index + 1}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => removeSampleOffering(sample.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                            Sample Name *
+                          </label>
                           <Input
-                            value={sample.price}
-                            onChange={(e) =>
+                            value={sample.name}
+                            onChange={(e) => {
                               updateSampleOffering(
                                 sample.id,
-                                "price",
+                                "name",
                                 e.target.value
-                              )
-                            }
-                            type="number"
-                            min="0"
-                            placeholder="0 (or enter 'Free')"
-                            className="w-full bg-white border border-gray-200 rounded-lg h-11 pl-7 pr-3 focus:ring-2 focus:ring-rose-600"
+                              );
+                              clearSampleError(sample.id, "name");
+                            }}
+                            placeholder="e.g., Tasting Box, Mini Cupcake Set"
+                            className={`w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600 ${
+                              sampleError.name
+                                ? "border-red-500 focus:ring-red-500"
+                                : ""
+                            }`}
                           />
+                          {sampleError.name && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {sampleError.name}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                            Price *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                              $
+                            </span>
+                            <Input
+                              value={sample.price}
+                              onChange={(e) => {
+                                updateSampleOffering(
+                                  sample.id,
+                                  "price",
+                                  e.target.value
+                                );
+                                clearSampleError(sample.id, "price");
+                              }}
+                              type="number"
+                              min="0"
+                              placeholder="0 (or enter 'Free')"
+                              className={`w-full bg-white border border-gray-200 rounded-lg h-11 pl-7 pr-3 focus:ring-2 focus:ring-rose-600 ${
+                                sampleError.price
+                                  ? "border-red-500 focus:ring-red-500"
+                                  : ""
+                              }`}
+                            />
+                          </div>
+                          {sampleError.price && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {sampleError.price}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                            Description *
+                          </label>
+                          <textarea
+                            value={sample.description}
+                            onChange={(e) => {
+                              updateSampleOffering(
+                                sample.id,
+                                "description",
+                                e.target.value
+                              );
+                              clearSampleError(sample.id, "description");
+                            }}
+                            placeholder="Describe what's included (e.g., 6 mini cupcakes in assorted flavors)..."
+                            className={`w-full bg-white border border-gray-200 rounded-lg min-h-[80px] p-3 focus:ring-2 focus:ring-rose-600 focus:border-transparent text-sm ${
+                              sampleError.description
+                                ? "border-red-500 focus:ring-red-500"
+                                : ""
+                            }`}
+                          />
+                          {sampleError.description && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {sampleError.description}
+                            </p>
+                          )}
                         </div>
                       </div>
-
-                      <div>
-                        <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                          Description *
-                        </label>
-                        <textarea
-                          value={sample.description}
-                          onChange={(e) =>
-                            updateSampleOffering(
-                              sample.id,
-                              "description",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Describe what's included (e.g., 6 mini cupcakes in assorted flavors)..."
-                          className="w-full bg-white border border-gray-200 rounded-lg min-h-[80px] p-3 focus:ring-2 focus:ring-rose-600 focus:border-transparent text-sm"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   <Button
                     type="button"
@@ -1225,7 +1511,7 @@ export const AddServiceStep2 = () => {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64 xl:left-72">
         <Button
           onClick={handleContinue}
           className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"

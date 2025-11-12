@@ -1,5 +1,5 @@
 import { ArrowLeft, ChevronDown, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
@@ -14,21 +14,80 @@ export const AddServiceStep1 = () => {
   );
   const [tags, setTags] = useState<string[]>(formData.tags || []);
   const [currentTag, setCurrentTag] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const titleRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const priceMinRef = useRef<HTMLInputElement>(null);
+  const priceMaxRef = useRef<HTMLInputElement>(null);
+  const locationRef = useRef<HTMLInputElement>(null);
+  const contactMethodRef = useRef<HTMLSelectElement>(null);
+
+  const clearError = (field: string) => {
+    if (!errors[field]) return;
+    setErrors((prev) => {
+      const { [field]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
 
   const handleContinue = () => {
     const form = document.querySelector("form");
     if (!form) return;
 
     const formDataObj = new FormData(form);
+    const requiredFields: { name: string; label: string }[] = [
+      { name: "title", label: "Service Title" },
+      { name: "category", label: "Service Category" },
+      { name: "description", label: "Short Description" },
+      { name: "priceMin", label: "Minimum Price" },
+      { name: "priceMax", label: "Maximum Price" },
+      { name: "location", label: "Service Location" },
+      { name: "contactMethod", label: "Preferred Contact Method" },
+    ];
+
+    const newErrors: Record<string, string> = {};
+
+    for (const field of requiredFields) {
+      const value = formDataObj.get(field.name);
+      if (!value || (typeof value === "string" && value.trim() === "")) {
+        newErrors[field.name] = `${field.label} is required.`;
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      const firstFieldName = Object.keys(newErrors)[0];
+      const refsMap: Record<string, HTMLElement | null> = {
+        title: titleRef.current,
+        category: categoryRef.current,
+        description: descriptionRef.current,
+        priceMin: priceMinRef.current,
+        priceMax: priceMaxRef.current,
+        location: locationRef.current,
+        contactMethod: contactMethodRef.current,
+      };
+      const target = refsMap[firstFieldName];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        if ("focus" in target && typeof target.focus === "function") {
+          target.focus();
+        }
+      }
+      return;
+    }
+
+    setErrors({});
 
     updateFormData({
       category: selectedCategory,
-      title: formDataObj.get("title") as string,
-      description: formDataObj.get("description") as string,
-      priceMin: formDataObj.get("priceMin") as string,
-      priceMax: formDataObj.get("priceMax") as string,
-      location: formDataObj.get("location") as string,
-      contactMethod: formDataObj.get("contactMethod") as string,
+      title: (formDataObj.get("title") as string) ?? "",
+      description: (formDataObj.get("description") as string) ?? "",
+      priceMin: (formDataObj.get("priceMin") as string) ?? "",
+      priceMax: (formDataObj.get("priceMax") as string) ?? "",
+      location: (formDataObj.get("location") as string) ?? "",
+      contactMethod: (formDataObj.get("contactMethod") as string) ?? "",
       tags,
     });
 
@@ -82,13 +141,22 @@ export const AddServiceStep1 = () => {
               Service Title *
             </label>
             <Input
+              ref={titleRef}
               name="title"
               defaultValue={formData.title}
-              className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent"
+              onChange={(e) => {
+                clearError("title");
+              }}
+              className={`w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent ${
+                errors.title ? "border-red-500 focus:ring-red-500" : ""
+              }`}
               placeholder="e.g., Full Wedding Photography Package"
               type="text"
               required
             />
+            {errors.title && (
+              <p className="text-xs text-red-600">{errors.title}</p>
+            )}
             <p className="text-xs text-gray-500">
               Make it clear and descriptive
             </p>
@@ -101,9 +169,16 @@ export const AddServiceStep1 = () => {
             </label>
             <div className="relative">
               <select
+                ref={categoryRef}
+                name="category"
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="appearance-none w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent"
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  clearError("category");
+                }}
+                className={`appearance-none w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent ${
+                  errors.category ? "border-red-500 focus:ring-red-500" : ""
+                }`}
                 required
               >
                 <option value="" disabled>
@@ -118,6 +193,9 @@ export const AddServiceStep1 = () => {
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
+            {errors.category && (
+              <p className="text-xs text-red-600">{errors.category}</p>
+            )}
           </div>
 
           {/* Description */}
@@ -126,12 +204,19 @@ export const AddServiceStep1 = () => {
               Short Description *
             </label>
             <textarea
+              ref={descriptionRef}
               name="description"
               defaultValue={formData.description}
-              className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg min-h-[120px] p-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent"
+              onChange={() => clearError("description")}
+              className={`w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg min-h-[120px] p-4 focus:ring-2 focus:ring-rose-600 focus:border-transparent ${
+                errors.description ? "border-red-500 focus:ring-red-500" : ""
+              }`}
               placeholder="Describe what makes your service unique and special..."
               required
             />
+            {errors.description && (
+              <p className="text-xs text-red-600">{errors.description}</p>
+            )}
             <p className="text-xs text-gray-500">
               Highlight your unique selling points
             </p>
@@ -145,25 +230,39 @@ export const AddServiceStep1 = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Input
+                  ref={priceMinRef}
                   name="priceMin"
                   defaultValue={formData.priceMin}
-                  className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                  onChange={() => clearError("priceMin")}
+                  className={`w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 ${
+                    errors.priceMin ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                   placeholder="Min ($)"
                   type="number"
                   min="0"
                   required
                 />
+                {errors.priceMin && (
+                  <p className="mt-1 text-xs text-red-600">{errors.priceMin}</p>
+                )}
               </div>
               <div>
                 <Input
+                  ref={priceMaxRef}
                   name="priceMax"
                   defaultValue={formData.priceMax}
-                  className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+                  onChange={() => clearError("priceMax")}
+                  className={`w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 ${
+                    errors.priceMax ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
                   placeholder="Max ($)"
                   type="number"
                   min="0"
                   required
                 />
+                {errors.priceMax && (
+                  <p className="mt-1 text-xs text-red-600">{errors.priceMax}</p>
+                )}
               </div>
             </div>
           </div>
@@ -174,13 +273,20 @@ export const AddServiceStep1 = () => {
               Service Location *
             </label>
             <Input
+              ref={locationRef}
               name="location"
               defaultValue={formData.location}
-              className="w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+              onChange={() => clearError("location")}
+              className={`w-full bg-gray-50 text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 ${
+                errors.location ? "border-red-500 focus:ring-red-500" : ""
+              }`}
               placeholder="City, State or Full Address"
               type="text"
               required
             />
+            {errors.location && (
+              <p className="text-xs text-red-600">{errors.location}</p>
+            )}
             <p className="text-xs text-gray-500">
               Where you provide this service
             </p>
@@ -243,9 +349,13 @@ export const AddServiceStep1 = () => {
               Preferred Contact Method *
             </label>
             <select
+              ref={contactMethodRef}
               name="contactMethod"
               defaultValue={formData.contactMethod || ""}
-              className="w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
+              onChange={() => clearError("contactMethod")}
+              className={`w-full bg-gray-50 text-gray-900 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600 ${
+                errors.contactMethod ? "border-red-500 focus:ring-red-500" : ""
+              }`}
               required
             >
               <option value="" disabled>
@@ -256,12 +366,15 @@ export const AddServiceStep1 = () => {
               <option value="both">Both</option>
               <option value="message">Message Only</option>
             </select>
+            {errors.contactMethod && (
+              <p className="text-xs text-red-600">{errors.contactMethod}</p>
+            )}
           </div>
         </form>
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64 xl:left-72">
         <Button
           onClick={handleContinue}
           className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"

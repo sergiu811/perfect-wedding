@@ -52,7 +52,7 @@ export const AddServiceStep4 = () => {
           availableDays: formData.availableDays,
           packages: formData.packages || [],
           specificFields: formData.specificFields || {},
-          serviceRegion: formData.serviceRegion,
+          serviceRegion: formData.serviceRegion ?? formData.location,
           images: formData.images || [],
           leadTime: formData.leadTime,
         }),
@@ -309,7 +309,9 @@ export const AddServiceStep4 = () => {
               <p className="text-xs text-gray-500 font-medium uppercase">
                 Service Region
               </p>
-              <p className="text-gray-900">{formData.serviceRegion || "—"}</p>
+              <p className="text-gray-900">
+                {formData.serviceRegion || formData.location || "—"}
+              </p>
             </div>
             {formData.availableDays && formData.availableDays.length > 0 && (
               <div>
@@ -371,7 +373,7 @@ export const AddServiceStep4 = () => {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64 xl:left-72">
         <Button
           onClick={handlePublish}
           disabled={isPublishing}

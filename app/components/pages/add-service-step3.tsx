@@ -1,9 +1,11 @@
 import { ArrowLeft, Package, Plus, Trash2, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
 import { useServiceForm } from "~/contexts/service-context";
+import { useAuth } from "~/contexts/auth-context";
+import { useSupabase } from "~/lib/supabase.client";
 
 interface ServicePackage {
   id: string;
@@ -15,19 +17,135 @@ interface ServicePackage {
 export const AddServiceStep3 = () => {
   const { navigate } = useRouter();
   const { updateFormData, formData } = useServiceForm();
+  const { user } = useAuth();
+  const supabase = useSupabase();
   const [selectedDays, setSelectedDays] = useState<string[]>(
     formData.availableDays || []
   );
   const [packages, setPackages] = useState<ServicePackage[]>(
     formData.packages || []
   );
-  const [serviceRegion, setServiceRegion] = useState(
-    formData.serviceRegion || ""
-  );
   const [leadTime, setLeadTime] = useState(formData.leadTime || "");
-  const [seasonSelections, setSeasonSelections] = useState<string[]>(
-    formData.seasonalAvailability || []
+  const [uploadedImages, setUploadedImages] = useState<
+    { url: string; path: string }[]
+  >(
+    (formData.images || []).map((url) => ({
+      url,
+      path: extractStoragePath(url),
+    }))
   );
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [removingImagePath, setRemovingImagePath] = useState<string | null>(
+    null
+  );
+  const [errors, setErrors] = useState<{ gallery?: string; days?: string }>({});
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const availableDaysRef = useRef<HTMLDivElement>(null);
+
+  const clearError = (field: keyof typeof errors) => {
+    if (!errors[field]) return;
+    setErrors((prev) => {
+      const { [field]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  useEffect(() => {
+    setUploadedImages(
+      (formData.images || []).map((url) => ({
+        url,
+        path: extractStoragePath(url),
+      }))
+    );
+  }, [formData.images]);
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    if (!user) {
+      setUploadError("You need to be signed in to upload images.");
+      return;
+    }
+
+    setIsUploadingImages(true);
+    setUploadError(null);
+
+    const newImages: { url: string; path: string }[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          setUploadError("Each image must be smaller than 10MB.");
+          continue;
+        }
+
+        const extension = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.${extension}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from("service-images")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: file.type,
+          });
+
+        if (error) {
+          console.error("Image upload error:", error);
+          setUploadError(error.message);
+          continue;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("service-images").getPublicUrl(filePath);
+
+        newImages.push({ url: publicUrl, path: filePath });
+      }
+
+      if (newImages.length > 0) {
+        setUploadedImages((prev) => {
+          const updated = [...prev, ...newImages];
+          updateFormData({ images: updated.map((image) => image.url) });
+          return updated;
+        });
+        clearError("gallery");
+      }
+    } catch (error) {
+      console.error("Unexpected image upload error:", error);
+      setUploadError(
+        "There was a problem uploading your images. Please try again."
+      );
+    } finally {
+      setIsUploadingImages(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = async (path: string) => {
+    setRemovingImagePath(path);
+    try {
+      await supabase.storage.from("service-images").remove([path]);
+    } catch (error) {
+      console.error("Error removing image from storage:", error);
+    } finally {
+      setUploadedImages((prev) => {
+        const updated = prev.filter((image) => image.path !== path);
+        updateFormData({ images: updated.map((image) => image.url) });
+        return updated;
+      });
+      setRemovingImagePath(null);
+    }
+  };
 
   const handleContinue = () => {
     const form = document.querySelector("form");
@@ -36,16 +154,43 @@ export const AddServiceStep3 = () => {
     const formDataObj = new FormData(form);
     const videoLink = (formDataObj.get("videoLink") as string) || "";
     const leadTimeValue = leadTime || (formDataObj.get("leadTime") as string);
-    const serviceRegionValue =
-      serviceRegion || (formDataObj.get("serviceRegion") as string) || "";
+
+    if (uploadedImages.length === 0) {
+      setErrors((prev) => ({
+        ...prev,
+        gallery: "Please upload at least one photo before continuing.",
+      }));
+      if (galleryRef.current) {
+        galleryRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+      return;
+    }
+    clearError("gallery");
+
+    if (selectedDays.length === 0) {
+      setErrors((prev) => ({
+        ...prev,
+        days: "Select at least one day you are available.",
+      }));
+      if (availableDaysRef.current) {
+        availableDaysRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+      return;
+    }
+    clearError("days");
 
     updateFormData({
       videoLink,
       availableDays: selectedDays,
       packages: packages,
-      serviceRegion: serviceRegionValue,
       leadTime: leadTimeValue || "",
-      seasonalAvailability: seasonSelections,
+      images: uploadedImages.map((image) => image.url),
     });
 
     navigate("/add-service/step-4");
@@ -57,14 +202,7 @@ export const AddServiceStep3 = () => {
     } else {
       setSelectedDays([...selectedDays, day]);
     }
-  };
-
-  const toggleSeasonSelection = (season: string) => {
-    setSeasonSelections((prev) =>
-      prev.includes(season)
-        ? prev.filter((item) => item !== season)
-        : [...prev, season]
-    );
+    clearError("days");
   };
 
   const addPackage = () => {
@@ -132,17 +270,27 @@ export const AddServiceStep3 = () => {
       <main className="flex-1 py-6 lg:py-8 space-y-6 overflow-y-auto pb-32 lg:pb-40">
         <form className="space-y-6">
           {/* Photo Gallery Upload */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+          <div
+            ref={galleryRef}
+            className="bg-white rounded-xl p-4 shadow-sm space-y-3"
+          >
             <label className="text-base font-bold text-gray-900">
               Photo Gallery *
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-rose-400 transition-colors cursor-pointer">
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                errors.gallery
+                  ? "border-red-400 hover:border-red-500"
+                  : "border-gray-300 hover:border-rose-400"
+              }`}
+            >
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 className="hidden"
                 id="photoUpload"
+                onChange={handleImageUpload}
               />
               <label
                 htmlFor="photoUpload"
@@ -161,6 +309,42 @@ export const AddServiceStep3 = () => {
                 </div>
               </label>
             </div>
+            {uploadError && (
+              <p className="text-xs text-red-600">{uploadError}</p>
+            )}
+            {errors.gallery && (
+              <p className="text-xs text-red-600">{errors.gallery}</p>
+            )}
+            {uploadedImages.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {uploadedImages.map((image) => (
+                  <div
+                    key={image.path}
+                    className="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+                  >
+                    <img
+                      src={image.url}
+                      alt="Service"
+                      className="h-32 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(image.path)}
+                      disabled={removingImagePath === image.path}
+                      className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm transition hover:bg-white disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {removingImagePath === image.path
+                        ? "Removing..."
+                        : "Remove"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {isUploadingImages && (
+              <p className="text-xs text-gray-600">Uploading images...</p>
+            )}
             <p className="text-xs text-gray-500">
               Upload at least 5 high-quality photos showcasing your work
             </p>
@@ -314,14 +498,21 @@ export const AddServiceStep3 = () => {
           </div>
 
           {/* Availability Calendar */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+          <div
+            ref={availableDaysRef}
+            className="bg-white rounded-xl p-4 shadow-sm space-y-3"
+          >
             <label className="text-base font-bold text-gray-900">
               Available Days *
             </label>
             <p className="text-sm text-gray-600">
               Select the days you typically offer your service
             </p>
-            <div className="space-y-2">
+            <div
+              className={`space-y-2 ${
+                errors.days ? "rounded-lg border border-red-400 p-3" : ""
+              }`}
+            >
               {weekDays.map((day) => (
                 <label
                   key={day}
@@ -337,6 +528,9 @@ export const AddServiceStep3 = () => {
                 </label>
               ))}
             </div>
+            {errors.days && (
+              <p className="text-xs text-red-600">{errors.days}</p>
+            )}
           </div>
 
           {/* Booking Lead Time */}
@@ -363,78 +557,11 @@ export const AddServiceStep3 = () => {
               How far in advance should couples book?
             </p>
           </div>
-
-          {/* Service Region - Only show for non-venue categories */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Service Region *
-            </label>
-            <Input
-              name="serviceRegion"
-              value={serviceRegion}
-              onChange={(e) => setServiceRegion(e.target.value)}
-              placeholder="e.g., New York City and surrounding areas"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
-              required
-            />
-            <p className="text-xs text-gray-500">
-              Where do you provide your service?
-            </p>
-          </div>
-
-          {/* Seasonal Availability */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Seasonal Availability
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="seasonSpring"
-                  checked={seasonSelections.includes("spring")}
-                  onChange={() => toggleSeasonSelection("spring")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Spring</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="seasonSummer"
-                  checked={seasonSelections.includes("summer")}
-                  onChange={() => toggleSeasonSelection("summer")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Summer</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="seasonFall"
-                  checked={seasonSelections.includes("fall")}
-                  onChange={() => toggleSeasonSelection("fall")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Fall</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="seasonWinter"
-                  checked={seasonSelections.includes("winter")}
-                  onChange={() => toggleSeasonSelection("winter")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Winter</span>
-              </label>
-            </div>
-          </div>
         </form>
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 mb-16 lg:mb-0 lg:left-64 xl:left-72">
         <Button
           onClick={handleContinue}
           className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full h-14 lg:h-16 text-base lg:text-lg shadow-lg"
@@ -451,3 +578,12 @@ export const AddServiceStep3 = () => {
     </div>
   );
 };
+
+function extractStoragePath(url: string): string {
+  const delimiter = "/object/public/service-images/";
+  const index = url.indexOf(delimiter);
+  if (index === -1) {
+    return url;
+  }
+  return url.slice(index + delimiter.length);
+}

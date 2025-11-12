@@ -29,7 +29,6 @@ interface ServiceFormData {
   packages?: ServicePackage[];
   specificFields?: Record<string, any>;
   images?: string[];
-  seasonalAvailability?: string[];
 }
 
 interface ServiceContextType {
@@ -102,11 +101,6 @@ export const ServiceProvider = ({
           ? String(service.lead_time)
           : undefined,
       images: service.images ?? [],
-      seasonalAvailability:
-        Array.isArray(service.seasonal_availability) &&
-        service.seasonal_availability.length > 0
-          ? service.seasonal_availability
-          : (service.seasonalAvailability ?? []),
     });
   };
 
