@@ -19,6 +19,8 @@ import {
   Target,
   TrendingUp,
   Users,
+  X,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -39,7 +41,13 @@ export const MyWeddingPage = () => {
   const [showAIChat, setShowAIChat] = useState(false);
   const [wedding, setWedding] = useState<Wedding | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any | null>(null);
   // Fetch wedding data from Supabase
   useEffect(() => {
     if (!user) {
@@ -60,6 +68,52 @@ export const MyWeddingPage = () => {
     fetchWedding();
   }, [user, supabase]);
 
+  useEffect(() => {
+    if (wedding) {
+      setDaysLeft(getDaysUntilWedding(wedding.wedding_date));
+    }
+  }, [wedding]);
+
+  // Fetch bookings, conversations, and expenses
+  useEffect(() => {
+    if (!user || !wedding) {
+      setLoadingBookings(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setLoadingBookings(true);
+        const [bookingsRes, conversationsRes, expensesRes] = await Promise.all([
+          fetch("/api/bookings"),
+          fetch("/api/conversations"),
+          fetch("/api/budget-expenses"),
+        ]);
+
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData.bookings || []);
+        }
+
+        if (conversationsRes.ok) {
+          const conversationsData = await conversationsRes.json();
+          setConversations(conversationsData.conversations || []);
+        }
+
+        if (expensesRes.ok) {
+          const expensesData = await expensesRes.json();
+          setExpenses(expensesData.expenses || []);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    fetchData();
+  }, [user, wedding]);
+
   // Use wedding data from database if available, otherwise fall back to context
   const displayData = wedding
     ? {
@@ -76,7 +130,7 @@ export const MyWeddingPage = () => {
     : formData;
 
   // Calculate days until wedding
-  const getDaysUntilWedding = () => {
+  const getDaysUntilWedding = (date: string) => {
     const weddingDate = wedding?.wedding_date || displayData.weddingDate;
     if (!weddingDate) return null;
     const weddingDay = new Date(weddingDate);
@@ -87,7 +141,343 @@ export const MyWeddingPage = () => {
     return diff > 0 ? diff : 0;
   };
 
-  const daysLeft = getDaysUntilWedding();
+  // Expense Form Component
+  const ExpenseForm = ({
+    expense,
+    onSave,
+    onCancel,
+  }: {
+    expense: any | null;
+    onSave: (data: any) => void;
+    onCancel: () => void;
+  }) => {
+    // Check if existing expense has a custom category (not in predefined list)
+    const predefinedCategories = [
+      "venue",
+      "photo_video",
+      "music_dj",
+      "sweets",
+      "decorations",
+      "invitations",
+      "other",
+    ];
+    const isExistingCustom =
+      expense?.category && !predefinedCategories.includes(expense.category);
+
+    const [useCustomCategory, setUseCustomCategory] = useState(
+      isExistingCustom || false
+    );
+    const [formData, setFormData] = useState({
+      name: expense?.name || "",
+      category: expense?.category || "other",
+      customCategory: isExistingCustom ? expense.category : "",
+      amount: expense?.amount || "",
+      description: expense?.description || "",
+      expense_date: expense?.expense_date || "",
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const finalCategory = useCustomCategory
+        ? formData.customCategory.trim().toLowerCase().replace(/\s+/g, "_")
+        : formData.category;
+
+      if (!formData.name || !finalCategory || !formData.amount) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      onSave({
+        ...formData,
+        category: finalCategory,
+      });
+    };
+
+    const categories = [
+      { value: "venue", label: "Venue" },
+      { value: "photo_video", label: "Photo & Video" },
+      { value: "music_dj", label: "Music/DJ" },
+      { value: "sweets", label: "Sweets" },
+      { value: "decorations", label: "Decorations" },
+      { value: "invitations", label: "Invitations" },
+      { value: "other", label: "Other" },
+      { value: "custom", label: "Custom Category..." },
+    ];
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Expense Name *
+          </label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="e.g., Custom decorations"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Category *
+          </label>
+          <select
+            value={useCustomCategory ? "custom" : formData.category}
+            onChange={(e) => {
+              const isCustom = e.target.value === "custom";
+              setUseCustomCategory(isCustom);
+              if (!isCustom) {
+                setFormData({ ...formData, category: e.target.value });
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            required
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+
+          {useCustomCategory && (
+            <div className="mt-2">
+              <input
+                type="text"
+                value={formData.customCategory}
+                onChange={(e) =>
+                  setFormData({ ...formData, customCategory: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter custom category name (e.g., Transportation, Hair & Makeup)"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Create a custom category for expenses made outside the app
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Amount ($) *
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={formData.amount}
+            onChange={(e) =>
+              setFormData({ ...formData, amount: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="0.00"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Description
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            rows={2}
+            placeholder="Optional description..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Date
+          </label>
+          <input
+            type="date"
+            value={formData.expense_date}
+            onChange={(e) =>
+              setFormData({ ...formData, expense_date: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {expense ? "Update" : "Add"} Expense
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Handle expense operations
+  const handleSaveExpense = async (expenseData: any) => {
+    try {
+      const method = editingExpense ? "PUT" : "POST";
+      const url = "/api/budget-expenses";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editingExpense
+            ? { ...expenseData, id: editingExpense.id }
+            : expenseData
+        ),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save expense");
+      }
+
+      // Refresh expenses
+      const expensesRes = await fetch("/api/budget-expenses");
+      if (expensesRes.ok) {
+        const expensesData = await expensesRes.json();
+        setExpenses(expensesData.expenses || []);
+      }
+
+      setShowAddExpense(false);
+      setEditingExpense(null);
+    } catch (error) {
+      console.error("Error saving expense:", error);
+      alert("Failed to save expense. Please try again.");
+    }
+  };
+
+  const handleEditExpense = (expense: any) => {
+    setEditingExpense(expense);
+    setShowAddExpense(true);
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!confirm("Are you sure you want to delete this expense?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/budget-expenses?id=${expenseId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete expense");
+      }
+
+      // Refresh expenses
+      const expensesRes = await fetch("/api/budget-expenses");
+      if (expensesRes.ok) {
+        const expensesData = await expensesRes.json();
+        setExpenses(expensesData.expenses || []);
+      }
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      alert("Failed to delete expense. Please try again.");
+    }
+  };
+
+  // Export budget function
+  const handleExportBudget = () => {
+    // Create comprehensive budget report
+    const reportDate = new Date().toISOString().split("T")[0];
+    const weddingDate =
+      wedding?.wedding_date || displayData.weddingDate || "N/A";
+    const partnerNames =
+      displayData.partner1Name && displayData.partner2Name
+        ? `${displayData.partner1Name} & ${displayData.partner2Name}`
+        : displayData.partner1Name || "N/A";
+
+    // Build CSV content
+    const csvRows: string[] = [];
+
+    // Header Section
+    csvRows.push("WEDDING BUDGET REPORT");
+    csvRows.push(`Generated: ${new Date().toLocaleString()}`);
+    csvRows.push(`Wedding Date: ${weddingDate}`);
+    csvRows.push(`Couple: ${partnerNames}`);
+    csvRows.push(`Location: ${displayData.location || "N/A"}`);
+    csvRows.push("");
+
+    // Summary Section
+    csvRows.push("BUDGET SUMMARY");
+    csvRows.push(`Total Budget,$${budgetTotal.toLocaleString()}`);
+    csvRows.push(`Total Allocated,$${budgetAllocated.toLocaleString()}`);
+    csvRows.push(
+      `Budget Remaining,$${(budgetTotal - budgetAllocated).toLocaleString()}`
+    );
+    csvRows.push(`Budget Used,${budgetPercent}%`);
+    csvRows.push("");
+
+    // Category Breakdown
+    if (budgetBreakdown.length > 0) {
+      csvRows.push("CATEGORY BREAKDOWN");
+      csvRows.push("Category,Amount");
+      budgetBreakdown.forEach((item) => {
+        csvRows.push(
+          `"${item.label}",$${item.amount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        );
+      });
+      csvRows.push("");
+    }
+
+    // Bookings Section
+    if (bookings.length > 0) {
+      csvRows.push("BOOKINGS");
+      csvRows.push("Vendor Name,Category,Status,Date,Price");
+      bookings
+        .filter((b) => b.status === "confirmed" || b.status === "pending")
+        .forEach((booking) => {
+          csvRows.push(
+            `"${booking.vendorName}","${booking.vendorCategory}","${booking.status}","${booking.date}","${booking.price}"`
+          );
+        });
+      csvRows.push("");
+    }
+
+    // Expenses Section
+    if (expenses.length > 0) {
+      csvRows.push("EXTRA EXPENSES");
+      csvRows.push("Name,Category,Amount,Date,Description");
+      expenses.forEach((expense) => {
+        const categoryLabel = getCategoryLabel(expense.category || "other");
+        csvRows.push(
+          `"${expense.name}","${categoryLabel}",$${parseFloat(String(expense.amount || 0)).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })},"${expense.expense_date || "N/A"}","${expense.description || ""}"`
+        );
+      });
+      csvRows.push("");
+    }
+
+    // Convert to CSV format - rows are already properly formatted with quotes where needed
+    const csvContent = csvRows.join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `wedding-budget-${reportDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Function to load wedding data into planning form and navigate to edit
   const handleEditWedding = () => {
@@ -223,27 +613,32 @@ export const MyWeddingPage = () => {
   const completedTasks = tasks.filter((t) => t.completed).length;
   const progressPercent = Math.round((completedTasks / tasks.length) * 100);
 
-  // Booked vendors
-  const bookedVendors = [
-    {
-      id: 1,
-      name: "Grand Ballroom Venue",
-      category: "Venue",
-      status: "Confirmed",
-      image:
-        "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=200&q=80",
-      contact: "info@grandballroom.com",
-    },
-    {
-      id: 2,
-      name: "Captured Moments Photo",
-      category: "Photo & Video",
-      status: "Pending",
-      image:
-        "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=200&q=80",
-      contact: "hello@capturedmoments.com",
-    },
-  ];
+  // Booked vendors - from actual bookings
+  const bookedVendors = bookings.map((booking) => {
+    // Find conversation for this booking by matching serviceId
+    const conversation = booking.serviceId
+      ? conversations.find((c) => c.serviceId === booking.serviceId)
+      : null;
+
+    return {
+      id: booking.id,
+      bookingId: booking.id,
+      serviceId: booking.serviceId,
+      vendorId: booking.vendorId,
+      name: booking.vendorName,
+      category: booking.vendorCategory,
+      status:
+        booking.status === "confirmed"
+          ? "Confirmed"
+          : booking.status === "pending"
+            ? "Pending"
+            : booking.status === "completed"
+              ? "Completed"
+              : "Cancelled",
+      image: booking.vendorImage,
+      conversationId: conversation?.id || null,
+    };
+  });
 
   // Suggested vendors
   const suggestedVendors = [
@@ -273,10 +668,105 @@ export const MyWeddingPage = () => {
     },
   ];
 
-  // Budget breakdown
-  const budgetAllocated = 28500;
-  const budgetTotal = displayData.budgetMax ? parseInt(displayData.budgetMax) : 35000;
-  const budgetPercent = Math.round((budgetAllocated / budgetTotal) * 100);
+  // Calculate budget from bookings and expenses
+  const bookingsTotal = bookings.reduce((sum, booking) => {
+    // Only count confirmed or pending bookings (not cancelled)
+    if (booking.status === "confirmed" || booking.status === "pending") {
+      const price = parseFloat(String(booking.totalPrice || 0));
+      return sum + (isNaN(price) ? 0 : price);
+    }
+    return sum;
+  }, 0);
+
+  const expensesTotal = expenses.reduce((sum, expense) => {
+    const amount = parseFloat(String(expense.amount || 0));
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
+  const budgetAllocated = bookingsTotal + expensesTotal;
+  const budgetTotal = displayData.budgetMax
+    ? parseFloat(displayData.budgetMax)
+    : 35000;
+  const budgetPercent =
+    budgetTotal > 0 ? Math.round((budgetAllocated / budgetTotal) * 100) : 0;
+
+  // Calculate breakdown by category
+  const categoryMap: Record<string, { amount: number; color: string }> = {
+    venue: { amount: 0, color: "bg-rose-500" },
+    photo_video: { amount: 0, color: "bg-blue-500" },
+    music_dj: { amount: 0, color: "bg-purple-500" },
+    sweets: { amount: 0, color: "bg-pink-500" },
+    decorations: { amount: 0, color: "bg-green-500" },
+    invitations: { amount: 0, color: "bg-yellow-500" },
+    other: { amount: 0, color: "bg-gray-500" },
+  };
+
+  // Add booking amounts by category
+  bookings.forEach((booking) => {
+    if (booking.status === "confirmed" || booking.status === "pending") {
+      const category =
+        booking.vendorCategory?.toLowerCase().replace(/\s+/g, "_") || "other";
+      const normalizedCategory =
+        category === "photo_&_video" || category === "photo&video"
+          ? "photo_video"
+          : category === "music/dj" || category === "music_/dj"
+            ? "music_dj"
+            : category;
+
+      const key = categoryMap[normalizedCategory]
+        ? normalizedCategory
+        : "other";
+      const price = parseFloat(String(booking.totalPrice || 0));
+      if (!isNaN(price)) {
+        categoryMap[key].amount += price;
+      }
+    }
+  });
+
+  // Add expense amounts by category
+  expenses.forEach((expense) => {
+    const category = expense.category || "other";
+    const key = categoryMap[category] ? category : "other";
+    const amount = parseFloat(String(expense.amount || 0));
+    if (!isNaN(amount)) {
+      categoryMap[key].amount += amount;
+    }
+  });
+
+  // Get category label
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      venue: "Venue",
+      photo_video: "Photo & Video",
+      music_dj: "Music/DJ",
+      sweets: "Sweets",
+      decorations: "Decorations",
+      invitations: "Invitations",
+      other: "Other",
+    };
+
+    // If not in predefined labels, format the custom category name
+    if (!labels[category]) {
+      // Convert snake_case or lowercase to Title Case
+      return category
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    return labels[category] || category;
+  };
+
+  // Filter out categories with 0 amount and sort by amount
+  const budgetBreakdown = Object.entries(categoryMap)
+    .filter(([_, data]) => data.amount > 0)
+    .map(([category, data]) => ({
+      category,
+      label: getCategoryLabel(category),
+      amount: data.amount,
+      color: data.color,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
   return (
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 lg:pb-8">
@@ -367,14 +857,13 @@ export const MyWeddingPage = () => {
                       <Calendar className="w-4 h-4 text-rose-600" />
                       <p className="text-sm font-semibold text-gray-900">
                         {displayData.weddingDate
-                          ? new Date(displayData.weddingDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              }
-                            )
+                          ? new Date(
+                              displayData.weddingDate
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
                           : "Not set"}
                       </p>
                     </div>
@@ -561,12 +1050,8 @@ export const MyWeddingPage = () => {
                       decorations: 4,
                       sweets: 3,
                     };
-                    const priorityA =
-                      defaultPriorities[a] ||
-                      3;
-                    const priorityB =
-                      defaultPriorities[b] ||
-                      3;
+                    const priorityA = defaultPriorities[a] || 3;
+                    const priorityB = defaultPriorities[b] || 3;
                     return priorityB - priorityA;
                   })
                   .map((category: string) => {
@@ -577,9 +1062,7 @@ export const MyWeddingPage = () => {
                       decorations: 4,
                       sweets: 3,
                     };
-                    const priority =
-                      defaultPriorities[category] ||
-                      3;
+                    const priority = defaultPriorities[category] || 3;
 
                     const getPriorityLabel = (p: number) => {
                       if (p === 5)
@@ -747,35 +1230,59 @@ export const MyWeddingPage = () => {
                 </h2>
               </div>
               <div className="p-4 lg:p-5 space-y-3">
-                {bookedVendors.map((vendor) => (
-                  <div
-                    key={vendor.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                  >
+                {bookedVendors.length === 0 && !loadingBookings ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No booked vendors yet. Start booking vendors to see them
+                    here.
+                  </p>
+                ) : (
+                  bookedVendors.map((vendor) => (
                     <div
-                      className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
-                      style={{ backgroundImage: `url(${vendor.image})` }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {vendor.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{vendor.category}</p>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          vendor.status === "Confirmed"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
+                      key={vendor.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div
+                        className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
+                        style={{ backgroundImage: `url(${vendor.image})` }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {vendor.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {vendor.category}
+                        </p>
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            vendor.status === "Confirmed"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {vendor.status}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (vendor.conversationId) {
+                            navigate(`/chat/${vendor.conversationId}`);
+                          } else if (vendor.serviceId) {
+                            // Try to find conversation by serviceId
+                            const conv = conversations.find(
+                              (c) => c.serviceId === vendor.serviceId
+                            );
+                            if (conv?.id) {
+                              navigate(`/chat/${conv.id}`);
+                            }
+                          }
+                        }}
+                        className="p-2 hover:bg-gray-200 rounded-full"
                       >
-                        {vendor.status}
-                      </span>
+                        <MessageCircle className="w-5 h-5 text-gray-600" />
+                      </button>
                     </div>
-                    <button className="p-2 hover:bg-gray-200 rounded-full">
-                      <MessageCircle className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
-                ))}
+                  ))
+                )}
 
                 <button
                   onClick={() => navigate("/vendors")}
@@ -870,62 +1377,59 @@ export const MyWeddingPage = () => {
               <div className="p-4 lg:p-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Recent Messages */}
-                  {[
-                    {
-                      id: 1,
-                      vendor: "The Grand Ballroom",
-                      category: "Venue",
-                      message: "We have availability for your date!",
-                      time: "2h ago",
-                      unread: true,
-                      avatar:
-                        "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80",
-                    },
-                    {
-                      id: 2,
-                      vendor: "Elegant Moments Photography",
-                      category: "Photo & Video",
-                      message: "Thank you for your inquiry!",
-                      time: "1d ago",
-                      unread: false,
-                      avatar:
-                        "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80",
-                    },
-                  ].map((msg) => (
-                    <button
-                      key={msg.id}
-                      onClick={() => navigate(`/chat/${msg.id}`)}
-                      className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                    >
-                      <div
-                        className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
-                        style={{ backgroundImage: `url(${msg.avatar})` }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {msg.vendor}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {msg.category}
-                            </p>
+                  {conversations.length === 0 && !loadingBookings ? (
+                    <p className="text-sm text-gray-500 text-center py-4 col-span-2">
+                      No messages yet. Contact vendors to start conversations.
+                    </p>
+                  ) : (
+                    conversations.slice(0, 4).map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => navigate(`/chat/${conv.id}`)}
+                        className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                          style={{
+                            backgroundImage: `url(${conv.vendorAvatar})`,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {conv.vendorName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {conv.vendorCategory || "Service"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <p className="text-xs text-gray-500">
+                                {conv.timestamp}
+                              </p>
+                              {conv.unread && (
+                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                              )}
+                              {conv.hasPendingOffer && (
+                                <div
+                                  className="w-2 h-2 bg-yellow-500 rounded-full"
+                                  title="Pending Offer"
+                                />
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
-                            <p className="text-xs text-gray-500">{msg.time}</p>
-                            {msg.unread && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                            )}
-                          </div>
+                          <p
+                            className={`text-xs ${conv.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
+                          >
+                            {conv.hasPendingOffer
+                              ? `💰 Offer: ${conv.pendingOffer?.price || "View offer"}`
+                              : conv.lastMessage || "No messages yet"}
+                          </p>
                         </div>
-                        <p
-                          className={`text-xs ${msg.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
-                        >
-                          {msg.message}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  )}
 
                   {/* View All Button */}
                   <button
@@ -957,70 +1461,67 @@ export const MyWeddingPage = () => {
               </div>
               <div className="p-4 lg:p-5 space-y-3">
                 {/* Confirmed Bookings */}
-                {[
-                  {
-                    id: 1,
-                    vendor: "The Grand Ballroom",
-                    category: "Venue",
-                    status: "Confirmed",
-                    date: "July 12, 2026",
-                    price: "$15,000",
-                    image:
-                      "https://images.unsplash.com/photo-1519167758481-83f29da8fd36?w=100&q=80",
-                  },
-                  {
-                    id: 2,
-                    vendor: "Elegant Moments Photography",
-                    category: "Photo & Video",
-                    status: "Pending",
-                    date: "July 12, 2026",
-                    price: "$3,500",
-                    image:
-                      "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&q=80",
-                  },
-                ].map((booking) => (
-                  <button
-                    key={booking.id}
-                    onClick={() => navigate("/my-bookings")}
-                    className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
-                  >
-                    <div
-                      className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
-                      style={{ backgroundImage: `url(${booking.image})` }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 truncate">
-                            {booking.vendor}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {booking.category}
-                          </p>
+                {bookings.length === 0 && !loadingBookings ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No bookings yet. Start booking vendors to see them here.
+                  </p>
+                ) : (
+                  bookings.slice(0, 2).map((booking) => (
+                    <button
+                      key={booking.id}
+                      onClick={() => navigate("/my-bookings")}
+                      className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
+                    >
+                      <div
+                        className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
+                        style={{
+                          backgroundImage: `url(${booking.vendorImage})`,
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">
+                              {booking.vendorName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {booking.vendorCategory}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
+                              booking.status === "confirmed"
+                                ? "bg-green-100 text-green-700"
+                                : booking.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : booking.status === "completed"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {booking.status === "confirmed"
+                              ? "Confirmed"
+                              : booking.status === "pending"
+                                ? "Pending"
+                                : booking.status === "completed"
+                                  ? "Completed"
+                                  : "Cancelled"}
+                          </span>
                         </div>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
-                            booking.status === "Confirmed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {booking.status}
-                        </span>
+                        <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {booking.date}
+                          </span>
+                          <span className="flex items-center gap-1 font-semibold text-purple-600">
+                            <DollarSign className="w-3 h-3" />
+                            {booking.price}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {booking.date}
-                        </span>
-                        <span className="flex items-center gap-1 font-semibold text-purple-600">
-                          <DollarSign className="w-3 h-3" />
-                          {booking.price}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                )}
 
                 {/* View All Button */}
                 <button
@@ -1068,44 +1569,105 @@ export const MyWeddingPage = () => {
 
                 {/* Expense Breakdown */}
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Breakdown
-                  </p>
-                  {[
-                    { category: "Venue", amount: 12000, color: "bg-rose-500" },
-                    {
-                      category: "Photo & Video",
-                      amount: 5000,
-                      color: "bg-blue-500",
-                    },
-                    {
-                      category: "Catering",
-                      amount: 8000,
-                      color: "bg-green-500",
-                    },
-                    {
-                      category: "Music/DJ",
-                      amount: 2000,
-                      color: "bg-purple-500",
-                    },
-                    { category: "Other", amount: 1500, color: "bg-yellow-500" },
-                  ].map((item) => (
-                    <div
-                      key={item.category}
-                      className="flex items-center justify-between text-sm"
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Breakdown
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEditingExpense(null);
+                        setShowAddExpense(true);
+                      }}
+                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                        <span className="text-gray-600">{item.category}</span>
+                      <Plus className="w-3 h-3 inline mr-1" />
+                      Add Expense
+                    </button>
+                  </div>
+                  {budgetBreakdown.length === 0 ? (
+                    <p className="text-xs text-gray-500 py-2">
+                      No expenses yet. Add bookings or expenses to see
+                      breakdown.
+                    </p>
+                  ) : (
+                    budgetBreakdown.map((item) => (
+                      <div
+                        key={item.category}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-3 h-3 rounded-full ${item.color}`}
+                          />
+                          <span className="text-gray-600">{item.label}</span>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          $
+                          {item.amount.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
                       </div>
-                      <span className="font-semibold text-gray-900">
-                        ${item.amount.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
-                <button className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3">
+                {/* Extra Expenses List */}
+                {expenses.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-900">
+                      Extra Expenses
+                    </p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {expenses.map((expense) => (
+                        <div
+                          key={expense.id}
+                          className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
+                              {expense.name}
+                            </p>
+                            {expense.category && (
+                              <p className="text-gray-500 text-[10px]">
+                                {getCategoryLabel(expense.category)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                              $
+                              {parseFloat(
+                                String(expense.amount)
+                              ).toLocaleString("en-US", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              })}
+                            </span>
+                            <button
+                              onClick={() => handleEditExpense(expense)}
+                              className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleExportBudget}
+                  className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3"
+                >
                   <FileText className="w-4 h-4" />
                   Export Budget Report
                 </button>
@@ -1307,6 +1869,36 @@ export const MyWeddingPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Add/Edit Expense Modal */}
+      {showAddExpense && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingExpense ? "Edit Expense" : "Add Extra Expense"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddExpense(false);
+                  setEditingExpense(null);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <ExpenseForm
+              expense={editingExpense}
+              onSave={handleSaveExpense}
+              onCancel={() => {
+                setShowAddExpense(false);
+                setEditingExpense(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* AI Chat Bubble (Floating) */}
       {showAIChat && (

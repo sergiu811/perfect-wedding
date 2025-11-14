@@ -290,49 +290,6 @@ export const GuestListPage = () => {
               className="w-full bg-white border border-gray-200 rounded-lg h-12 pl-10 pr-4"
             />
           </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => setFilterRSVP("all")}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterRSVP === "all"
-                  ? "bg-rose-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200"
-              }`}
-            >
-              All ({stats.total})
-            </button>
-            <button
-              onClick={() => setFilterRSVP("yes")}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterRSVP === "yes"
-                  ? "bg-green-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200"
-              }`}
-            >
-              Confirmed ({stats.confirmed})
-            </button>
-            <button
-              onClick={() => setFilterRSVP("pending")}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterRSVP === "pending"
-                  ? "bg-amber-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200"
-              }`}
-            >
-              Pending ({stats.pending})
-            </button>
-            <button
-              onClick={() => setFilterRSVP("no")}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterRSVP === "no"
-                  ? "bg-red-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200"
-              }`}
-            >
-              Declined ({stats.declined})
-            </button>
-          </div>
         </div>
 
         {/* Analytics Panel */}
@@ -455,6 +412,49 @@ export const GuestListPage = () => {
           </div>
         </div>
 
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setFilterRSVP("all")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              filterRSVP === "all"
+                ? "bg-rose-600 text-white"
+                : "bg-white text-gray-600 border border-gray-200"
+            }`}
+          >
+            All ({stats.total})
+          </button>
+          <button
+            onClick={() => setFilterRSVP("yes")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              filterRSVP === "yes"
+                ? "bg-green-600 text-white"
+                : "bg-white text-gray-600 border border-gray-200"
+            }`}
+          >
+            Confirmed ({stats.confirmed})
+          </button>
+          <button
+            onClick={() => setFilterRSVP("pending")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              filterRSVP === "pending"
+                ? "bg-amber-600 text-white"
+                : "bg-white text-gray-600 border border-gray-200"
+            }`}
+          >
+            Pending ({stats.pending})
+          </button>
+          <button
+            onClick={() => setFilterRSVP("no")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              filterRSVP === "no"
+                ? "bg-red-600 text-white"
+                : "bg-white text-gray-600 border border-gray-200"
+            }`}
+          >
+            Declined ({stats.declined})
+          </button>
+        </div>
+
         {/* Guest Cards */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base lg:text-lg font-bold text-gray-900">
@@ -462,7 +462,7 @@ export const GuestListPage = () => {
           </h3>
         </div>
 
-        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4">
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 max-h-[500px] overflow-y-auto">
           {filteredGuests.map((guest) => (
             <div
               key={guest.id}

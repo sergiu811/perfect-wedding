@@ -80,6 +80,39 @@ export async function loader({ request }: LoaderFunctionArgs) {
       (coupleWeddings.data || []).map((w: any) => [w.user_id, w])
     );
 
+    // Fetch pending offers from messages for couples
+    let pendingOffersMap = new Map();
+    if (!isVendor && conversationIds.length > 0) {
+      const { data: pendingOffers } = await (supabase as any)
+        .from("messages")
+        .select("id, conversation_id, offer_data, sender_id, created_at")
+        .in("conversation_id", conversationIds)
+        .eq("message_type", "offer")
+        .order("created_at", { ascending: false });
+
+      if (pendingOffers) {
+        // Get the most recent pending offer for each conversation
+        const offersByConversation = new Map<string, any>();
+        for (const offer of pendingOffers) {
+          const offerData = offer.offer_data || {};
+          // Only include offers sent by vendors that are still pending
+          if (
+            offerData.status === "pending" &&
+            !offersByConversation.has(offer.conversation_id)
+          ) {
+            // Check if sender is the vendor (not the couple)
+            const conv = (conversations || []).find(
+              (c: any) => c.id === offer.conversation_id
+            );
+            if (conv && conv.vendor_id === offer.sender_id) {
+              offersByConversation.set(offer.conversation_id, offer);
+            }
+          }
+        }
+        pendingOffersMap = offersByConversation;
+      }
+    }
+
     // Format conversations for the frontend
     const formattedConversations = (conversations || []).map((conv: any) => {
       const vendor = vendorMap.get(conv.vendor_id);
@@ -106,6 +139,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
       }
 
+      const pendingOffer = !isVendor
+        ? pendingOffersMap.get(conv.id)
+        : null;
+
       return {
         id: conv.id,
         conversationId: conv.id, // Add explicit conversationId for messages page
@@ -122,9 +159,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
         lastMessage: conv.last_message_text || "",
         timestamp: formatTimestamp(conv.last_message_at),
         unread: unreadCount > 0,
-        status: getConversationStatus(conv, isVendor),
+        status: getConversationStatus(conv, isVendor, pendingOffer),
         serviceId: conv.service_id,
         serviceTitle: conv.service?.title,
+        hasPendingOffer: !!pendingOffer,
+        pendingOffer: pendingOffer
+          ? {
+              id: pendingOffer.id,
+              price: pendingOffer.offer_data?.price,
+              date: pendingOffer.offer_data?.date,
+              services: pendingOffer.offer_data?.services || [],
+              createdAt: pendingOffer.created_at,
+            }
+          : null,
       };
     });
 
@@ -267,9 +314,15 @@ function formatTimestamp(timestamp: string | null): string {
   return date.toLocaleDateString();
 }
 
-function getConversationStatus(conv: any, isVendor: boolean): string {
+function getConversationStatus(
+  conv: any,
+  isVendor: boolean,
+  pendingOffer?: any
+): string {
   // Check for pending offers
-  // This would need to query messages, but for now we'll use a simple status
+  if (pendingOffer && !isVendor) {
+    return "pending"; // Pending offer from vendor
+  }
   if (conv.status === "closed") return "booked";
   return "responded"; // Default status
 }

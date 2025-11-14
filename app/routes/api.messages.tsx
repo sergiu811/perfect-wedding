@@ -138,7 +138,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
 
       // If accepted, create a booking
-      if (status === "accepted" && bookingData) {
+      if (status === "accepted") {
         // Get user's wedding
         const { data: wedding } = await supabase
           .from("weddings")
@@ -146,18 +146,36 @@ export async function action({ request }: ActionFunctionArgs) {
           .eq("user_id", user.id)
           .single();
 
-        if (wedding) {
-          await supabase.from("bookings").insert({
-            wedding_id: wedding.id,
-            service_id: conversation.service_id,
-            status: "confirmed",
-            event_date: bookingData.date,
-            total_price: parseFloat(bookingData.price.replace(/[^0-9.]/g, "")),
-            deposit_paid: bookingData.deposit
-              ? parseFloat(bookingData.deposit.replace(/[^0-9.]/g, ""))
-              : null,
-            notes: bookingData.notes || null,
-          });
+        if (wedding && conversation.service_id) {
+          // Use bookingData if provided, otherwise use offer_data from message
+          const offerData = message.offer_data || {};
+          const finalDate = bookingData?.date || offerData.date;
+          const finalPrice = bookingData?.price || offerData.price;
+          
+          if (finalDate && finalPrice) {
+            const { error: bookingError } = await supabase
+              .from("bookings")
+              .insert({
+                wedding_id: wedding.id,
+                service_id: conversation.service_id,
+                status: "confirmed",
+                event_date: finalDate,
+                total_price: parseFloat(
+                  String(finalPrice).replace(/[^0-9.]/g, "")
+                ),
+                deposit_paid: bookingData?.deposit
+                  ? parseFloat(
+                      String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                    )
+                  : null,
+                notes: bookingData?.notes || null,
+              });
+
+            if (bookingError) {
+              console.error("Error creating booking:", bookingError);
+              // Don't fail the request if booking creation fails, but log it
+            }
+          }
         }
       }
 
