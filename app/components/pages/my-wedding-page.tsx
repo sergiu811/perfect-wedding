@@ -3,7 +3,6 @@ import {
   Camera,
   CheckCircle,
   ChevronRight,
-  Circle,
   Clock,
   DollarSign,
   Download,
@@ -52,6 +51,8 @@ export const MyWeddingPage = () => {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [guests, setGuests] = useState<any[]>([]);
+  const [loadingGuests, setLoadingGuests] = useState(true);
   // Fetch wedding data from Supabase
   useEffect(() => {
     if (!user) {
@@ -78,11 +79,12 @@ export const MyWeddingPage = () => {
     }
   }, [wedding]);
 
-  // Fetch bookings, conversations, expenses, and tasks
+  // Fetch bookings, conversations, expenses, tasks, and guests
   useEffect(() => {
     if (!user || !wedding) {
       setLoadingBookings(false);
       setLoadingTasks(false);
+      setLoadingGuests(false);
       return;
     }
 
@@ -90,13 +92,20 @@ export const MyWeddingPage = () => {
       try {
         setLoadingBookings(true);
         setLoadingTasks(true);
-        const [bookingsRes, conversationsRes, expensesRes, tasksRes] =
-          await Promise.all([
-            fetch("/api/bookings"),
-            fetch("/api/conversations"),
-            fetch("/api/budget-expenses"),
-            fetch("/api/planning-tasks"),
-          ]);
+        setLoadingGuests(true);
+        const [
+          bookingsRes,
+          conversationsRes,
+          expensesRes,
+          tasksRes,
+          guestsRes,
+        ] = await Promise.all([
+          fetch("/api/bookings"),
+          fetch("/api/conversations"),
+          fetch("/api/budget-expenses"),
+          fetch("/api/planning-tasks"),
+          fetch("/api/guests"),
+        ]);
 
         if (bookingsRes.ok) {
           const bookingsData = await bookingsRes.json();
@@ -117,11 +126,17 @@ export const MyWeddingPage = () => {
           const tasksData = await tasksRes.json();
           setTasks(tasksData.tasks || []);
         }
+
+        if (guestsRes.ok) {
+          const guestsData = await guestsRes.json();
+          setGuests(guestsData.guests || []);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoadingBookings(false);
         setLoadingTasks(false);
+        setLoadingGuests(false);
       }
     };
 
@@ -875,6 +890,19 @@ export const MyWeddingPage = () => {
   const progressPercent =
     tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
+  // Calculate guest stats
+  const guestStats = {
+    total: guests.length,
+    confirmed: guests.filter((g) => g.rsvp_status === "yes").length,
+    declined: guests.filter((g) => g.rsvp_status === "no").length,
+    pending: guests.filter((g) => g.rsvp_status === "pending" || !g.rsvp_status)
+      .length,
+  };
+  const rsvpPercent =
+    guestStats.total > 0
+      ? Math.round((guestStats.confirmed / guestStats.total) * 100)
+      : 0;
+
   // Booked vendors - from actual bookings
   const bookedVendors = bookings.map((booking) => {
     // Find conversation for this booking by matching serviceId
@@ -1225,6 +1253,755 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
+            {/* Planning Progress & Tasks */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
+                    Planning Tasks
+                  </h2>
+                  <span className="text-sm font-medium text-blue-600">
+                    {completedTasks}/{tasks.length}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {/* AI Suggestion */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-900 font-medium">
+                        AI Suggestion
+                      </p>
+                      <p className="text-sm text-blue-800 mt-1">
+                        Book your DJ/Band this month to secure your date!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Task List */}
+                {loadingTasks ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-xs text-gray-500">Loading tasks...</p>
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No tasks yet. Add your first task to get started!
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={task.completed || false}
+                          onChange={() => handleToggleTask(task)}
+                          className="w-5 h-5 rounded text-rose-600 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-sm font-medium ${
+                              task.completed
+                                ? "line-through text-gray-400"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-gray-500">
+                              {task.category}
+                            </p>
+                            {task.due_date && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-gray-400" />
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(task.due_date).toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                      }
+                                    )}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEditTask(task)}
+                            className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                            title="Edit task"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1 hover:bg-red-100 rounded text-red-600"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowAddTask(true);
+                  }}
+                  className="flex items-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 mt-3"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Custom Task
+                </button>
+              </div>
+            </div>
+
+            {/* Budget Overview */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    Budget Tracker
+                  </h2>
+                  <button
+                    onClick={() => navigate("/budget-details")}
+                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                  >
+                    Details
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Allocated</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      ${budgetAllocated.toLocaleString()} of $
+                      {budgetTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all"
+                      style={{ width: `${budgetPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Expense Breakdown */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Breakdown
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEditingExpense(null);
+                        setShowAddExpense(true);
+                      }}
+                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                    >
+                      <Plus className="w-3 h-3 inline mr-1" />
+                      Add Expense
+                    </button>
+                  </div>
+                  {budgetBreakdown.length === 0 ? (
+                    <p className="text-xs text-gray-500 py-2">
+                      No expenses yet. Add bookings or expenses to see
+                      breakdown.
+                    </p>
+                  ) : (
+                    budgetBreakdown.map((item) => (
+                      <div
+                        key={item.category}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-3 h-3 rounded-full ${item.color}`}
+                          />
+                          <span className="text-gray-600">{item.label}</span>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          $
+                          {item.amount.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Extra Expenses List */}
+                {expenses.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-900">
+                      Extra Expenses
+                    </p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {expenses.map((expense) => (
+                        <div
+                          key={expense.id}
+                          className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
+                              {expense.name}
+                            </p>
+                            {expense.category && (
+                              <p className="text-gray-500 text-[10px]">
+                                {getCategoryLabel(expense.category)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                              $
+                              {parseFloat(
+                                String(expense.amount)
+                              ).toLocaleString("en-US", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              })}
+                            </span>
+                            <button
+                              onClick={() => handleEditExpense(expense)}
+                              className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleExportBudget}
+                  className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3"
+                >
+                  <FileText className="w-4 h-4" />
+                  Export Budget Report
+                </button>
+              </div>
+            </div>
+
+            {/* Guest List */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-indigo-600" />
+                    Guest List
+                  </h2>
+                  <button
+                    onClick={() => navigate("/guest-list")}
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-4">
+                {loadingGuests ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                    <p className="text-xs text-gray-500">Loading guests...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">
+                          Total Guests
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {guestStats.total}
+                        </span>
+                      </div>
+                      {guestStats.total > 0 && (
+                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                            style={{ width: `${rsvpPercent}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RSVP Breakdown */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-gray-900">
+                        RSVP Status
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-green-50 rounded-lg p-2 text-center">
+                          <p className="text-lg font-bold text-green-700">
+                            {guestStats.confirmed}
+                          </p>
+                          <p className="text-xs text-green-600">Confirmed</p>
+                        </div>
+                        <div className="bg-yellow-50 rounded-lg p-2 text-center">
+                          <p className="text-lg font-bold text-yellow-700">
+                            {guestStats.pending}
+                          </p>
+                          <p className="text-xs text-yellow-600">Pending</p>
+                        </div>
+                        <div className="bg-red-50 rounded-lg p-2 text-center">
+                          <p className="text-lg font-bold text-red-700">
+                            {guestStats.declined}
+                          </p>
+                          <p className="text-xs text-red-600">Declined</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Guests Preview */}
+                    {guests.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs font-semibold text-gray-900">
+                          Recent Guests
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {guests.slice(0, 3).map((guest) => (
+                            <div
+                              key={guest.id}
+                              className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 truncate">
+                                  {guest.name}
+                                </p>
+                                {guest.relationship && (
+                                  <p className="text-gray-500 text-[10px]">
+                                    {guest.relationship}
+                                  </p>
+                                )}
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  guest.rsvp_status === "yes"
+                                    ? "bg-green-100 text-green-700"
+                                    : guest.rsvp_status === "no"
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-yellow-100 text-yellow-700"
+                                }`}
+                              >
+                                {guest.rsvp_status === "yes"
+                                  ? "Yes"
+                                  : guest.rsvp_status === "no"
+                                    ? "No"
+                                    : "Pending"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {guests.length === 0 && (
+                      <p className="text-xs text-gray-500 text-center py-4">
+                        No guests yet. Start building your guest list!
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => navigate("/guest-list")}
+                      className="flex items-center justify-center gap-2 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg h-10 text-sm font-medium mt-3"
+                    >
+                      <Users className="w-4 h-4" />
+                      Manage Guest List
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Booked Vendors */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-green-600" />
+                  Booked Vendors
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3 max-h-[300px] overflow-y-auto">
+                {bookedVendors.length === 0 && !loadingBookings ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No booked vendors yet. Start booking vendors to see them
+                    here.
+                  </p>
+                ) : (
+                  bookedVendors.map((vendor) => (
+                    <div
+                      key={vendor.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div
+                        className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
+                        style={{ backgroundImage: `url(${vendor.image})` }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {vendor.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {vendor.category}
+                        </p>
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            vendor.status === "Confirmed"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {vendor.status}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (vendor.conversationId) {
+                            navigate(`/chat/${vendor.conversationId}`);
+                          } else if (vendor.serviceId) {
+                            // Try to find conversation by serviceId
+                            const conv = conversations.find(
+                              (c) => c.serviceId === vendor.serviceId
+                            );
+                            if (conv?.id) {
+                              navigate(`/chat/${conv.id}`);
+                            }
+                          }
+                        }}
+                        className="p-2 hover:bg-gray-200 rounded-full"
+                      >
+                        <MessageCircle className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
+                  ))
+                )}
+
+                <button
+                  onClick={() => navigate("/vendors")}
+                  className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-600 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Add Vendor</span>
+                </button>
+              </div>
+            </div>
+
+            {/* My Bookings */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                    My Bookings
+                  </h2>
+                  <button
+                    onClick={() => navigate("/my-bookings")}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {/* Confirmed Bookings */}
+                {bookings.length === 0 && !loadingBookings ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No bookings yet. Start booking vendors to see them here.
+                  </p>
+                ) : (
+                  bookings.slice(0, 2).map((booking) => (
+                    <button
+                      key={booking.id}
+                      onClick={() => navigate("/my-bookings")}
+                      className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
+                    >
+                      <div
+                        className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
+                        style={{
+                          backgroundImage: `url(${booking.vendorImage})`,
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">
+                              {booking.vendorName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {booking.vendorCategory}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
+                              booking.status === "confirmed"
+                                ? "bg-green-100 text-green-700"
+                                : booking.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : booking.status === "completed"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {booking.status === "confirmed"
+                              ? "Confirmed"
+                              : booking.status === "pending"
+                                ? "Pending"
+                                : booking.status === "completed"
+                                  ? "Completed"
+                                  : "Cancelled"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {booking.date}
+                          </span>
+                          <span className="flex items-center gap-1 font-semibold text-purple-600">
+                            <DollarSign className="w-3 h-3" />
+                            {booking.price}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+
+                {/* View All Button */}
+                <button
+                  onClick={() => navigate("/my-bookings")}
+                  className="w-full flex items-center justify-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 mt-2 py-2"
+                >
+                  View All Bookings
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Suggested Vendors */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    Recommended For You
+                  </h2>
+                  <button
+                    onClick={() => navigate("/vendors")}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                {suggestedVendors.map((vendor) => (
+                  <div
+                    key={vendor.id}
+                    className="p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-rose-300 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {vendor.name}
+                          </p>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                            {vendor.match}% match
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {vendor.category}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-500">★</span>
+                            <span className="font-medium">{vendor.rating}</span>
+                          </div>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-600">{vendor.price}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (vendor.category === "Music & DJ")
+                          navigate("/music-dj");
+                        else if (vendor.category === "Sweets")
+                          navigate("/sweets");
+                        else if (vendor.category === "Decorations")
+                          navigate("/decorations");
+                      }}
+                      className="flex items-center justify-center gap-1 w-full bg-rose-600 hover:bg-rose-700 text-white rounded-full h-9 text-sm font-medium mt-2"
+                    >
+                      View Profile
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Messages & Inquiries */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1 xl:col-span-2">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-blue-600" />
+                    Messages
+                  </h2>
+                  <button
+                    onClick={() => navigate("/messages")}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 lg:p-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Recent Messages */}
+                  {conversations.length === 0 && !loadingBookings ? (
+                    <p className="text-sm text-gray-500 text-center py-4 col-span-2">
+                      No messages yet. Contact vendors to start conversations.
+                    </p>
+                  ) : (
+                    conversations.slice(0, 4).map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => navigate(`/chat/${conv.id}`)}
+                        className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                          style={{
+                            backgroundImage: `url(${conv.vendorAvatar})`,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {conv.vendorName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {conv.vendorCategory || "Service"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <p className="text-xs text-gray-500">
+                                {conv.timestamp}
+                              </p>
+                              {conv.unread && (
+                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                              )}
+                              {conv.hasPendingOffer && (
+                                <div
+                                  className="w-2 h-2 bg-yellow-500 rounded-full"
+                                  title="Pending Offer"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <p
+                            className={`text-xs ${conv.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
+                          >
+                            {conv.hasPendingOffer
+                              ? `💰 Offer: ${conv.pendingOffer?.price || "View offer"}`
+                              : conv.lastMessage || "No messages yet"}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+
+                  {/* View All Button */}
+                  <button
+                    onClick={() => navigate("/messages")}
+                    className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-2 py-2"
+                  >
+                    View All Messages
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Guest QR & Gallery */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
+              <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-pink-600" />
+                  Guest Gallery
+                </h2>
+              </div>
+              <div className="p-4 lg:p-5 space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                      <QrCode className="w-7 h-7 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        Guest Upload QR
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Let guests share photos
+                      </p>
+                    </div>
+                  </div>
+                  <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 py-2 text-sm font-medium">
+                    Generate
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center"
+                    >
+                      <Camera className="w-6 h-6 text-gray-400" />
+                    </div>
+                  ))}
+                </div>
+
+                <button className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg h-10 text-sm font-medium">
+                  <Download className="w-4 h-4" />
+                  Download All Photos
+                </button>
+              </div>
+            </div>
+
             {/* Style & Preferences */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
@@ -1382,157 +2159,6 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
-            {/* What We're Helping With */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 lg:p-5 border-b border-gray-100">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-600" />
-                  We're Helping You With
-                </h2>
-              </div>
-              <div className="p-4 lg:p-5">
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    wedding?.help_tasks || [
-                      "Budget Management",
-                      "Vendor Booking",
-                      "Guest List Management",
-                      "Timeline Creation",
-                    ]
-                  ).map((task: string) => (
-                    <div
-                      key={task}
-                      className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"
-                    >
-                      <CheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <span className="text-xs font-medium text-gray-900">
-                        {task}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Planning Progress & Tasks */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-blue-600" />
-                    Planning Tasks
-                  </h2>
-                  <span className="text-sm font-medium text-blue-600">
-                    {completedTasks}/{tasks.length}
-                  </span>
-                </div>
-              </div>
-              <div className="p-4 lg:p-5 space-y-3">
-                {/* AI Suggestion */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-blue-900 font-medium">
-                        AI Suggestion
-                      </p>
-                      <p className="text-sm text-blue-800 mt-1">
-                        Book your DJ/Band this month to secure your date!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Task List */}
-                {loadingTasks ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-xs text-gray-500">Loading tasks...</p>
-                  </div>
-                ) : tasks.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No tasks yet. Add your first task to get started!
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={task.completed || false}
-                          onChange={() => handleToggleTask(task)}
-                          className="w-5 h-5 rounded text-rose-600 cursor-pointer"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium ${
-                              task.completed
-                                ? "line-through text-gray-400"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {task.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-xs text-gray-500">
-                              {task.category}
-                            </p>
-                            {task.due_date && (
-                              <>
-                                <span className="text-gray-300">•</span>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-gray-400" />
-                                  <p className="text-xs text-gray-500">
-                                    {new Date(task.due_date).toLocaleDateString(
-                                      "en-US",
-                                      {
-                                        month: "short",
-                                        day: "numeric",
-                                      }
-                                    )}
-                                  </p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEditTask(task)}
-                            className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                            title="Edit task"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="p-1 hover:bg-red-100 rounded text-red-600"
-                            title="Delete task"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <button
-                  onClick={() => {
-                    setEditingTask(null);
-                    setShowAddTask(true);
-                  }}
-                  className="flex items-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 mt-3"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Custom Task
-                </button>
-              </div>
-            </div>
-
             {/* Booked Vendors */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
@@ -1541,7 +2167,7 @@ export const MyWeddingPage = () => {
                   Booked Vendors
                 </h2>
               </div>
-              <div className="p-4 lg:p-5 space-y-3">
+              <div className="p-4 lg:p-5 space-y-3 max-h-[300px] overflow-y-auto">
                 {bookedVendors.length === 0 && !loadingBookings ? (
                   <p className="text-sm text-gray-500 text-center py-4">
                     No booked vendors yet. Start booking vendors to see them
@@ -1670,384 +2296,6 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
-            {/* Messages & Inquiries */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1 xl:col-span-2">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-blue-600" />
-                    Messages
-                  </h2>
-                  <button
-                    onClick={() => navigate("/messages")}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    View All
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 lg:p-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Recent Messages */}
-                  {conversations.length === 0 && !loadingBookings ? (
-                    <p className="text-sm text-gray-500 text-center py-4 col-span-2">
-                      No messages yet. Contact vendors to start conversations.
-                    </p>
-                  ) : (
-                    conversations.slice(0, 4).map((conv) => (
-                      <button
-                        key={conv.id}
-                        onClick={() => navigate(`/chat/${conv.id}`)}
-                        className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                      >
-                        <div
-                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
-                          style={{
-                            backgroundImage: `url(${conv.vendorAvatar})`,
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">
-                                {conv.vendorName}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {conv.vendorCategory || "Service"}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 ml-2">
-                              <p className="text-xs text-gray-500">
-                                {conv.timestamp}
-                              </p>
-                              {conv.unread && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                              )}
-                              {conv.hasPendingOffer && (
-                                <div
-                                  className="w-2 h-2 bg-yellow-500 rounded-full"
-                                  title="Pending Offer"
-                                />
-                              )}
-                            </div>
-                          </div>
-                          <p
-                            className={`text-xs ${conv.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
-                          >
-                            {conv.hasPendingOffer
-                              ? `💰 Offer: ${conv.pendingOffer?.price || "View offer"}`
-                              : conv.lastMessage || "No messages yet"}
-                          </p>
-                        </div>
-                      </button>
-                    ))
-                  )}
-
-                  {/* View All Button */}
-                  <button
-                    onClick={() => navigate("/messages")}
-                    className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-2 py-2"
-                  >
-                    View All Messages
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* My Bookings */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-purple-600" />
-                    My Bookings
-                  </h2>
-                  <button
-                    onClick={() => navigate("/my-bookings")}
-                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
-                  >
-                    View All
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 lg:p-5 space-y-3">
-                {/* Confirmed Bookings */}
-                {bookings.length === 0 && !loadingBookings ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No bookings yet. Start booking vendors to see them here.
-                  </p>
-                ) : (
-                  bookings.slice(0, 2).map((booking) => (
-                    <button
-                      key={booking.id}
-                      onClick={() => navigate("/my-bookings")}
-                      className="w-full flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors text-left border border-purple-100"
-                    >
-                      <div
-                        className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
-                        style={{
-                          backgroundImage: `url(${booking.vendorImage})`,
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate">
-                              {booking.vendorName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {booking.vendorCategory}
-                            </p>
-                          </div>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
-                              booking.status === "confirmed"
-                                ? "bg-green-100 text-green-700"
-                                : booking.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : booking.status === "completed"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {booking.status === "confirmed"
-                              ? "Confirmed"
-                              : booking.status === "pending"
-                                ? "Pending"
-                                : booking.status === "completed"
-                                  ? "Completed"
-                                  : "Cancelled"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {booking.date}
-                          </span>
-                          <span className="flex items-center gap-1 font-semibold text-purple-600">
-                            <DollarSign className="w-3 h-3" />
-                            {booking.price}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-
-                {/* View All Button */}
-                <button
-                  onClick={() => navigate("/my-bookings")}
-                  className="w-full flex items-center justify-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 mt-2 py-2"
-                >
-                  View All Bookings
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Budget Overview */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-emerald-600" />
-                    Budget Tracker
-                  </h2>
-                  <button
-                    onClick={() => navigate("/budget-details")}
-                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-                  >
-                    Details
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 lg:p-5 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Allocated</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      ${budgetAllocated.toLocaleString()} of $
-                      {budgetTotal.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all"
-                      style={{ width: `${budgetPercent}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Expense Breakdown */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-gray-900">
-                      Breakdown
-                    </p>
-                    <button
-                      onClick={() => {
-                        setEditingExpense(null);
-                        setShowAddExpense(true);
-                      }}
-                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                    >
-                      <Plus className="w-3 h-3 inline mr-1" />
-                      Add Expense
-                    </button>
-                  </div>
-                  {budgetBreakdown.length === 0 ? (
-                    <p className="text-xs text-gray-500 py-2">
-                      No expenses yet. Add bookings or expenses to see
-                      breakdown.
-                    </p>
-                  ) : (
-                    budgetBreakdown.map((item) => (
-                      <div
-                        key={item.category}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-3 h-3 rounded-full ${item.color}`}
-                          />
-                          <span className="text-gray-600">{item.label}</span>
-                        </div>
-                        <span className="font-semibold text-gray-900">
-                          $
-                          {item.amount.toLocaleString("en-US", {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                          })}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Extra Expenses List */}
-                {expenses.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-gray-100">
-                    <p className="text-xs font-semibold text-gray-900">
-                      Extra Expenses
-                    </p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {expenses.map((expense) => (
-                        <div
-                          key={expense.id}
-                          className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">
-                              {expense.name}
-                            </p>
-                            {expense.category && (
-                              <p className="text-gray-500 text-[10px]">
-                                {getCategoryLabel(expense.category)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">
-                              $
-                              {parseFloat(
-                                String(expense.amount)
-                              ).toLocaleString("en-US", {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0,
-                              })}
-                            </span>
-                            <button
-                              onClick={() => handleEditExpense(expense)}
-                              className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="p-1 hover:bg-red-100 rounded text-red-600"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleExportBudget}
-                  className="flex items-center justify-center gap-2 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg h-10 text-sm font-medium mt-3"
-                >
-                  <FileText className="w-4 h-4" />
-                  Export Budget Report
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Milestones */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 lg:p-5 border-b border-gray-100">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                  Timeline Milestones
-                </h2>
-              </div>
-              <div className="p-4 lg:p-5">
-                <div className="relative space-y-4">
-                  {[
-                    { month: "Dec 2024", task: "Book Venue", done: true },
-                    {
-                      month: "Jan 2025",
-                      task: "Book Photographer",
-                      done: true,
-                    },
-                    { month: "Feb 2025", task: "Book DJ/Band", done: false },
-                    {
-                      month: "Mar 2025",
-                      task: "Send Invitations",
-                      done: false,
-                    },
-                    {
-                      month: "May 2025",
-                      task: "Final Vendor Meetings",
-                      done: false,
-                    },
-                  ].map((milestone, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            milestone.done
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-200 text-gray-400"
-                          }`}
-                        >
-                          {milestone.done ? (
-                            <CheckCircle className="w-5 h-5" />
-                          ) : (
-                            <Circle className="w-5 h-5" />
-                          )}
-                        </div>
-                        {idx < 4 && (
-                          <div className="w-0.5 h-8 bg-gray-200 my-1" />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-2">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {milestone.task}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {milestone.month}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {/* Guest QR & Gallery */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
@@ -2160,19 +2408,7 @@ export const MyWeddingPage = () => {
                   Find Vendors
                 </p>
               </button>
-              <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
-                <Calendar className="w-8 h-8 text-blue-600 mb-2" />
-                <p className="text-sm font-semibold text-gray-900">Timeline</p>
-              </button>
-              <button
-                onClick={() => navigate("/guest-list")}
-                className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all"
-              >
-                <Users className="w-8 h-8 text-green-600 mb-2" />
-                <p className="text-sm font-semibold text-gray-900">
-                  Guest List
-                </p>
-              </button>
+
               <button className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all">
                 <TrendingUp className="w-8 h-8 text-purple-600 mb-2" />
                 <p className="text-sm font-semibold text-gray-900">Analytics</p>
