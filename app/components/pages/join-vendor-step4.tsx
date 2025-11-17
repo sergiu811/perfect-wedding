@@ -8,7 +8,7 @@ import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
 export const JoinVendorStep4 = () => {
   const { navigate } = useRouter();
   const { data, updateStep4 } = useVendorOnboarding();
-  
+
   const [instagram, setInstagram] = useState(data.instagram);
   const [facebook, setFacebook] = useState(data.facebook);
   const [pinterest, setPinterest] = useState(data.pinterest);
@@ -17,7 +17,10 @@ export const JoinVendorStep4 = () => {
   const [currentSpecialty, setCurrentSpecialty] = useState("");
 
   const addSpecialty = () => {
-    if (currentSpecialty.trim() && !specialties.includes(currentSpecialty.trim())) {
+    if (
+      currentSpecialty.trim() &&
+      !specialties.includes(currentSpecialty.trim())
+    ) {
       setSpecialties([...specialties, currentSpecialty.trim()]);
       setCurrentSpecialty("");
     }
@@ -29,15 +32,7 @@ export const JoinVendorStep4 = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log("Step 4 - Submitting data:", {
-      instagram,
-      facebook,
-      pinterest,
-      businessHours,
-      specialties,
-    });
-    
+
     updateStep4({
       instagram,
       facebook,
@@ -45,7 +40,7 @@ export const JoinVendorStep4 = () => {
       businessHours,
       specialties,
     });
-    
+
     setTimeout(() => {
       navigate("/join-vendor/success");
     }, 100);

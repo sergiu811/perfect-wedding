@@ -50,20 +50,15 @@ export const HomePage = () => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Search submitted:", searchQuery);
     if (searchQuery.trim()) {
       const url = `/vendors?q=${encodeURIComponent(searchQuery.trim())}`;
-      console.log("Navigating to:", url);
       navigate(url);
     } else {
-      console.log("Navigating to: /vendors");
       navigate("/vendors");
     }
   };
 
   const handleCategoryClick = (category: Category) => {
-    console.log("Category clicked:", category.name);
-
     if (category.id === "venue") {
       navigate("/venues");
     } else if (category.id === "photo-video") {

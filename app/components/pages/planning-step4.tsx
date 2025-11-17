@@ -5,7 +5,11 @@ import { useAuth } from "~/contexts/auth-context";
 import { usePlanning } from "~/contexts/planning-context";
 import { useRouter } from "~/contexts/router-context";
 import { useSupabase } from "~/lib/supabase.client";
-import { createWedding, getWeddingByUserId, updateWedding } from "~/lib/wedding";
+import {
+  createWedding,
+  getWeddingByUserId,
+  updateWedding,
+} from "~/lib/wedding";
 
 const HELP_TASKS = [
   "Budget Management",
@@ -37,18 +41,22 @@ export const PlanningStep4 = () => {
 
   const handleGenerate = async () => {
     const form = document.querySelector("form");
-    
+
     // Validation checks with specific error messages
     if (!acceptedTerms) {
-      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      setError(
+        "Please accept the Terms of Service and Privacy Policy to continue."
+      );
       return;
     }
-    
+
     if (!user) {
-      setError("You must be logged in to save your wedding plan. Please log in and try again.");
+      setError(
+        "You must be logged in to save your wedding plan. Please log in and try again."
+      );
       return;
     }
-    
+
     if (!form) {
       setError("Form not found. Please refresh the page and try again.");
       return;
@@ -71,19 +79,18 @@ export const PlanningStep4 = () => {
     // Save to Supabase
     try {
       // Check if wedding already exists
-      const { data: existingWedding } = await getWeddingByUserId(supabase, user.id);
+      const { data: existingWedding } = await getWeddingByUserId(
+        supabase,
+        user.id
+      );
 
       const weddingData = {
         partner1_name: formData.partner1Name || "",
         partner2_name: formData.partner2Name || "",
         wedding_date: formData.weddingDate || "",
         guest_count: parseInt(formData.guestCount || "0"),
-        budget_min: formData.budgetMin
-          ? parseFloat(formData.budgetMin)
-          : null,
-        budget_max: formData.budgetMax
-          ? parseFloat(formData.budgetMax)
-          : null,
+        budget_min: formData.budgetMin ? parseFloat(formData.budgetMin) : null,
+        budget_max: formData.budgetMax ? parseFloat(formData.budgetMax) : null,
         location: formData.location || "",
         wedding_type: formData.weddingType || null,
         venue_types: formData.venueTypes || [],
@@ -105,7 +112,11 @@ export const PlanningStep4 = () => {
 
       if (existingWedding) {
         // Update existing wedding
-        const result = await updateWedding(supabase, existingWedding.id, weddingData);
+        const result = await updateWedding(
+          supabase,
+          existingWedding.id,
+          weddingData
+        );
         data = result.data;
         saveError = result.error;
       } else {
@@ -122,7 +133,6 @@ export const PlanningStep4 = () => {
         return;
       }
 
-      console.log("Wedding saved successfully:", data);
       navigate("/planning/success");
     } catch (err) {
       console.error("Error:", err);

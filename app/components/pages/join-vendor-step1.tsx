@@ -8,29 +8,24 @@ import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
 export const JoinVendorStep1 = () => {
   const { navigate } = useRouter();
   const { data, updateStep1 } = useVendorOnboarding();
-  
+
   const [vendorName, setVendorName] = useState(data.vendorName);
   const [contactPerson, setContactPerson] = useState(data.contactPerson);
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber);
-  const [businessDescription, setBusinessDescription] = useState(data.businessDescription);
+  const [businessDescription, setBusinessDescription] = useState(
+    data.businessDescription
+  );
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log("Step 1 - Submitting data:", {
-      vendorName,
-      contactPerson,
-      phoneNumber,
-      businessDescription,
-    });
-    
+
     updateStep1({
       vendorName,
       contactPerson,
       phoneNumber,
       businessDescription,
     });
-    
+
     setTimeout(() => {
       navigate("/join-vendor/step-2");
     }, 100);

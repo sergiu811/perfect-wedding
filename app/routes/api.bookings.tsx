@@ -85,8 +85,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       console.error("Error fetching bookings:", error);
       return Response.json({ error: error.message }, { status: 500, headers });
     }
-    
-    console.log("Raw bookings from database:", bookings);
 
     // Fetch vendor profiles for couples
     let vendorMap = new Map();
@@ -137,7 +135,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Format bookings for frontend
     const formattedBookings = (bookings || []).map((booking: any) => {
-      console.log("Processing booking:", booking.id, "Status:", booking.status);
       const service = booking.service;
       let vendor;
       if (isVendor) {

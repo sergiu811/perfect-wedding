@@ -53,13 +53,7 @@ export const MyBookingsPage = () => {
         }
 
         const data = await response.json();
-        console.log("Bookings API Response:", data);
-        console.log("Number of bookings:", data.bookings?.length);
-        
-        if (data.bookings && data.bookings.length > 0) {
-          console.log("First booking structure:", data.bookings[0]);
-        }
-        
+
         setBookings(data.bookings || []);
         setSummary(data.summary || null);
       } catch (err: any) {

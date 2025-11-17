@@ -92,28 +92,26 @@ export const VendorDashboard = () => {
       const recent = (conversationsData.conversations || []).slice(0, 3);
       setRecentInquiries(recent);
 
-      console.log("All bookings from API:", bookingsData.bookings);
-      
       // Get upcoming bookings - show all bookings, sorted by event date
       const allBookings = bookingsData.bookings || [];
-      console.log("Total bookings:", allBookings.length);
-      
+
       // Filter and sort bookings
       const upcoming = allBookings
         .filter((b: any) => {
-          console.log("Booking:", b.id, "Status:", b.status, "Date:", b.eventDate);
           // Show confirmed, pending, or if date is in the future
-          const isFutureDate = b.eventDate && new Date(b.eventDate) > new Date();
+          const isFutureDate =
+            b.eventDate && new Date(b.eventDate) > new Date();
           const isRelevantStatus = ["confirmed", "pending"].includes(b.status);
           return isFutureDate || isRelevantStatus;
         })
         .sort((a: any, b: any) => {
           if (!a.eventDate || !b.eventDate) return 0;
-          return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+          return (
+            new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+          );
         })
         .slice(0, 3);
-        
-      console.log("Filtered upcoming bookings:", upcoming);
+
       setUpcomingBookings(upcoming);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);

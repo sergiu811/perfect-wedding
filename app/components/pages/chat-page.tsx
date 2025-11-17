@@ -82,10 +82,6 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
         const messagesData = await messagesRes.json();
         const conversationsData = await conversationsRes.json();
 
-        console.log("Messages:", messagesData);
-        console.log("Conversations:", conversationsData);
-        console.log("Looking for conversation ID:", conversationId);
-
         setMessages(messagesData.messages || []);
 
         // Find conversation info
@@ -93,18 +89,21 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
           (c: any) => c.id === conversationId
         );
 
-        console.log("Found conversation:", conv);
-
         if (conv) {
           // Determine what to show based on user role
           const isVendorView = profile?.role === "vendor";
-          
+
           setConversationInfo({
-            vendorName: isVendorView ? (conv.coupleName || "Couple") : conv.vendorName,
-            vendorAvatar: isVendorView 
-              ? (conv.coupleAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.coupleName || "Couple")}`)
+            vendorName: isVendorView
+              ? conv.coupleName || "Couple"
+              : conv.vendorName,
+            vendorAvatar: isVendorView
+              ? conv.coupleAvatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.coupleName || "Couple")}`
               : conv.vendorAvatar,
-            vendorCategory: isVendorView ? "Wedding Couple" : conv.vendorCategory,
+            vendorCategory: isVendorView
+              ? "Wedding Couple"
+              : conv.vendorCategory,
           });
         } else {
           console.warn("Conversation not found in list");
@@ -351,7 +350,9 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             <div
               key={msg.id}
               className={`flex ${
-                msg.sender === (isVendor ? "vendor" : "couple") ? "justify-end" : "justify-start"
+                msg.sender === (isVendor ? "vendor" : "couple")
+                  ? "justify-end"
+                  : "justify-start"
               }`}
             >
               {msg.type === "offer" ? (

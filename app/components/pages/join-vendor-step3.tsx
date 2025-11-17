@@ -8,20 +8,30 @@ import { useVendorOnboarding } from "~/contexts/vendor-onboarding-context";
 export const JoinVendorStep3 = () => {
   const { navigate } = useRouter();
   const { data, updateStep3 } = useVendorOnboarding();
-  
+
   const [serviceLocation, setServiceLocation] = useState(data.serviceLocation);
   const [serviceAreas, setServiceAreas] = useState(data.serviceAreas);
   const [priceMin, setPriceMin] = useState(data.priceMin);
   const [priceMax, setPriceMax] = useState(data.priceMax);
   const [leadTime, setLeadTime] = useState(data.leadTime);
-  const [selectedDays, setSelectedDays] = useState<string[]>(data.availableDays);
+  const [selectedDays, setSelectedDays] = useState<string[]>(
+    data.availableDays
+  );
   const [allWeek, setAllWeek] = useState(data.availableDays.length === 7);
 
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
   const toggleDay = (day: string) => {
-    setSelectedDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     );
     // Uncheck "All Week" if manually deselecting a day
     if (allWeek && selectedDays.includes(day)) {
@@ -41,16 +51,7 @@ export const JoinVendorStep3 = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log("Step 3 - Submitting data:", {
-      serviceLocation,
-      serviceAreas,
-      priceMin,
-      priceMax,
-      availableDays: selectedDays,
-      leadTime,
-    });
-    
+
     updateStep3({
       serviceLocation,
       serviceAreas,
@@ -59,7 +60,7 @@ export const JoinVendorStep3 = () => {
       availableDays: selectedDays,
       leadTime,
     });
-    
+
     // Small delay to ensure context update completes
     setTimeout(() => {
       navigate("/join-vendor/step-4");
@@ -178,7 +179,7 @@ export const JoinVendorStep3 = () => {
             <p className="text-sm text-gray-600 mb-3">
               Select the days you typically work
             </p>
-            
+
             {/* All Week Checkbox */}
             <button
               type="button"
@@ -191,7 +192,7 @@ export const JoinVendorStep3 = () => {
             >
               All Week
             </button>
-            
+
             <div className="grid grid-cols-2 gap-3">
               {days.map((day) => (
                 <button

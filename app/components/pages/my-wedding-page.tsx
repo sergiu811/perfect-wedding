@@ -48,6 +48,10 @@ export const MyWeddingPage = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
   // Fetch wedding data from Supabase
   useEffect(() => {
     if (!user) {
@@ -74,21 +78,25 @@ export const MyWeddingPage = () => {
     }
   }, [wedding]);
 
-  // Fetch bookings, conversations, and expenses
+  // Fetch bookings, conversations, expenses, and tasks
   useEffect(() => {
     if (!user || !wedding) {
       setLoadingBookings(false);
+      setLoadingTasks(false);
       return;
     }
 
     const fetchData = async () => {
       try {
         setLoadingBookings(true);
-        const [bookingsRes, conversationsRes, expensesRes] = await Promise.all([
-          fetch("/api/bookings"),
-          fetch("/api/conversations"),
-          fetch("/api/budget-expenses"),
-        ]);
+        setLoadingTasks(true);
+        const [bookingsRes, conversationsRes, expensesRes, tasksRes] =
+          await Promise.all([
+            fetch("/api/bookings"),
+            fetch("/api/conversations"),
+            fetch("/api/budget-expenses"),
+            fetch("/api/planning-tasks"),
+          ]);
 
         if (bookingsRes.ok) {
           const bookingsData = await bookingsRes.json();
@@ -104,10 +112,16 @@ export const MyWeddingPage = () => {
           const expensesData = await expensesRes.json();
           setExpenses(expensesData.expenses || []);
         }
+
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          setTasks(tasksData.tasks || []);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoadingBookings(false);
+        setLoadingTasks(false);
       }
     };
 
@@ -394,6 +408,298 @@ export const MyWeddingPage = () => {
     }
   };
 
+  // Task Form Component
+  const TaskForm = ({
+    task,
+    onSave,
+    onCancel,
+  }: {
+    task: any | null;
+    onSave: (data: any) => void;
+    onCancel: () => void;
+  }) => {
+    // Check if existing task has a custom category (not in predefined list)
+    const predefinedCategories = [
+      "Venue",
+      "Photo & Video",
+      "Music",
+      "Guests",
+      "Sweets",
+      "Decorations",
+      "Invitations",
+      "Other",
+    ];
+    const isExistingCustom =
+      task?.category && !predefinedCategories.includes(task.category);
+
+    const [useCustomCategory, setUseCustomCategory] = useState(
+      isExistingCustom || false
+    );
+    const [formData, setFormData] = useState({
+      title: task?.title || "",
+      category: task?.category || "Other",
+      customCategory: isExistingCustom ? task.category : "",
+      due_date: task?.due_date || "",
+      priority: task?.priority || "medium",
+      notes: task?.notes || "",
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const finalCategory = useCustomCategory
+        ? formData.customCategory.trim()
+        : formData.category;
+
+      if (!formData.title || !finalCategory) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      onSave({
+        ...formData,
+        category: finalCategory,
+      });
+    };
+
+    const categories = [
+      "Venue",
+      "Photo & Video",
+      "Music",
+      "Guests",
+      "Sweets",
+      "Decorations",
+      "Invitations",
+      "Other",
+      "Custom Category...",
+    ];
+
+    const priorities = [
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "urgent", label: "Urgent" },
+    ];
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Task Title *
+          </label>
+          <input
+            type="text"
+            value={formData.title}
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="e.g., Book Venue"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Category *
+          </label>
+          <select
+            value={useCustomCategory ? "Custom Category..." : formData.category}
+            onChange={(e) => {
+              const isCustom = e.target.value === "Custom Category...";
+              setUseCustomCategory(isCustom);
+              if (!isCustom) {
+                setFormData({ ...formData, category: e.target.value });
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            required
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+
+          {useCustomCategory && (
+            <div className="mt-2">
+              <input
+                type="text"
+                value={formData.customCategory}
+                onChange={(e) =>
+                  setFormData({ ...formData, customCategory: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter custom category name (e.g., Transportation, Hair & Makeup)"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Create a custom category for your task
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={formData.due_date}
+              onChange={(e) =>
+                setFormData({ ...formData, due_date: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              Priority
+            </label>
+            <select
+              value={formData.priority}
+              onChange={(e) =>
+                setFormData({ ...formData, priority: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              {priorities.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            Notes
+          </label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) =>
+              setFormData({ ...formData, notes: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            rows={2}
+            placeholder="Optional notes..."
+          />
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {task ? "Update" : "Add"} Task
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Handle task operations
+  const handleSaveTask = async (taskData: any) => {
+    try {
+      const method = editingTask ? "PUT" : "POST";
+      const url = "/api/planning-tasks";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editingTask ? { ...taskData, id: editingTask.id } : taskData
+        ),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save task");
+      }
+
+      // Refresh tasks
+      const tasksRes = await fetch("/api/planning-tasks");
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        setTasks(tasksData.tasks || []);
+      }
+
+      setShowAddTask(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error("Error saving task:", error);
+      alert("Failed to save task. Please try again.");
+    }
+  };
+
+  const handleToggleTask = async (task: any) => {
+    try {
+      const response = await fetch("/api/planning-tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          completed: !task.completed,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      // Refresh tasks
+      const tasksRes = await fetch("/api/planning-tasks");
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        setTasks(tasksData.tasks || []);
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+      alert("Failed to update task. Please try again.");
+    }
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setShowAddTask(true);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/planning-tasks?id=${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete task");
+      }
+
+      // Refresh tasks
+      const tasksRes = await fetch("/api/planning-tasks");
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        setTasks(tasksData.tasks || []);
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      alert("Failed to delete task. Please try again.");
+    }
+  };
+
   // Export budget function
   const handleExportBudget = () => {
     // Create comprehensive budget report
@@ -564,54 +870,10 @@ export const MyWeddingPage = () => {
     );
   }
 
-  // Sample tasks data
-  const tasks = [
-    {
-      id: 1,
-      title: "Book Venue",
-      category: "Venue",
-      completed: true,
-      dueDate: "2024-12-15",
-    },
-    {
-      id: 2,
-      title: "Book Photographer",
-      category: "Photo & Video",
-      completed: true,
-      dueDate: "2025-01-10",
-    },
-    {
-      id: 3,
-      title: "Book DJ/Band",
-      category: "Music",
-      completed: false,
-      dueDate: "2025-02-01",
-    },
-    {
-      id: 4,
-      title: "Send Save-the-Dates",
-      category: "Guests",
-      completed: false,
-      dueDate: "2025-03-01",
-    },
-    {
-      id: 5,
-      title: "Order Wedding Cake",
-      category: "Sweets",
-      completed: false,
-      dueDate: "2025-04-15",
-    },
-    {
-      id: 6,
-      title: "Book Florist",
-      category: "Decorations",
-      completed: false,
-      dueDate: "2025-04-20",
-    },
-  ];
-
+  // Calculate task progress
   const completedTasks = tasks.filter((t) => t.completed).length;
-  const progressPercent = Math.round((completedTasks / tasks.length) * 100);
+  const progressPercent =
+    tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   // Booked vendors - from actual bookings
   const bookedVendors = bookings.map((booking) => {
@@ -1182,37 +1444,87 @@ export const MyWeddingPage = () => {
                 </div>
 
                 {/* Task List */}
-                <div className="space-y-2">
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        className="w-5 h-5 rounded text-rose-600"
-                        readOnly
-                      />
-                      <div className="flex-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            task.completed
-                              ? "line-through text-gray-400"
-                              : "text-gray-900"
-                          }`}
-                        >
-                          {task.title}
-                        </p>
-                        <p className="text-xs text-gray-500">{task.category}</p>
+                {loadingTasks ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-xs text-gray-500">Loading tasks...</p>
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No tasks yet. Add your first task to get started!
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={task.completed || false}
+                          onChange={() => handleToggleTask(task)}
+                          className="w-5 h-5 rounded text-rose-600 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-sm font-medium ${
+                              task.completed
+                                ? "line-through text-gray-400"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-gray-500">
+                              {task.category}
+                            </p>
+                            {task.due_date && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-gray-400" />
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(task.due_date).toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                      }
+                                    )}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEditTask(task)}
+                            className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                            title="Edit task"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1 hover:bg-red-100 rounded text-red-600"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
-                      <Clock className="w-4 h-4 text-gray-400" />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowAddTask(true);
+                  }}
                   className="flex items-center gap-2 text-sm font-medium text-rose-600 hover:text-rose-700 mt-3"
                 >
                   <Plus className="w-4 h-4" />
@@ -1894,6 +2206,36 @@ export const MyWeddingPage = () => {
               onCancel={() => {
                 setShowAddExpense(false);
                 setEditingExpense(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Task Modal */}
+      {showAddTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingTask ? "Edit Task" : "Add New Task"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddTask(false);
+                  setEditingTask(null);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <TaskForm
+              task={editingTask}
+              onSave={handleSaveTask}
+              onCancel={() => {
+                setShowAddTask(false);
+                setEditingTask(null);
               }}
             />
           </div>

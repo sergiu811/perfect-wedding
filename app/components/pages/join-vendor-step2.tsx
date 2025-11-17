@@ -17,16 +17,20 @@ const BUSINESS_TYPES = [
 export const JoinVendorStep2 = () => {
   const { navigate } = useRouter();
   const { data, updateStep2 } = useVendorOnboarding();
-  
-  const [selectedMembership, setSelectedMembership] = useState(data.membershipLevel);
-  const [selectedBusinessTypes, setSelectedBusinessTypes] = useState<string[]>(data.businessTypes);
+
+  const [selectedMembership, setSelectedMembership] = useState(
+    data.membershipLevel
+  );
+  const [selectedBusinessTypes, setSelectedBusinessTypes] = useState<string[]>(
+    data.businessTypes
+  );
   const [website, setWebsite] = useState(data.website);
   const [yearsExperience, setYearsExperience] = useState(data.yearsExperience);
 
   const toggleBusinessType = (value: string) => {
-    setSelectedBusinessTypes(prev =>
+    setSelectedBusinessTypes((prev) =>
       prev.includes(value)
-        ? prev.filter(type => type !== value)
+        ? prev.filter((type) => type !== value)
         : [...prev, value]
     );
   };
@@ -37,21 +41,14 @@ export const JoinVendorStep2 = () => {
       alert("Please select at least one business type");
       return;
     }
-    
-    console.log("Step 2 - Submitting data:", {
-      businessTypes: selectedBusinessTypes,
-      membershipLevel: selectedMembership,
-      website,
-      yearsExperience,
-    });
-    
+
     updateStep2({
       businessTypes: selectedBusinessTypes,
       membershipLevel: selectedMembership,
       website,
       yearsExperience,
     });
-    
+
     setTimeout(() => {
       navigate("/join-vendor/step-3");
     }, 100);
@@ -221,7 +218,6 @@ export const JoinVendorStep2 = () => {
               required
             />
           </div>
-
         </form>
       </main>
 
