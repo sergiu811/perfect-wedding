@@ -21,6 +21,8 @@ import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
 import { useServiceForm } from "~/contexts/service-context";
+import { getSupabaseBrowserClient } from "~/lib/supabase.client";
+import { decryptMessage, isEncrypted } from "~/lib/encryption";
 
 export const VendorDashboard = () => {
   const { navigate } = useRouter();
@@ -47,6 +49,125 @@ export const VendorDashboard = () => {
     if (activeTab === "dashboard" && user?.id) {
       fetchDashboardData();
     }
+  }, [activeTab, user?.id]);
+
+  // Set up realtime subscription for conversation updates
+  useEffect(() => {
+    if (activeTab !== "dashboard" || !user?.id) return;
+
+    const supabase = getSupabaseBrowserClient();
+    let subscription: any = null;
+
+    subscription = supabase
+      .channel("vendor-dashboard-conversations")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+        },
+        async (payload) => {
+          console.log("[VendorDashboard] Conversation updated");
+          const updatedConversation = payload.new as any;
+
+          // Update the inquiry in state
+          setRecentInquiries((prev) => {
+            const index = prev.findIndex(
+              (c) => c.id === updatedConversation.id || c.conversationId === updatedConversation.id
+            );
+
+            if (index === -1) {
+              // New conversation, fetch fresh data
+              fetchDashboardData();
+              return prev;
+            }
+
+            // Update existing conversation
+            const updated = prev[index];
+            const lastMessageText =
+              updatedConversation.last_message_text || updated.lastMessage;
+            const updatedConv = {
+              ...updated,
+              lastMessage: lastMessageText,
+              timestamp: updatedConversation.last_message_at
+                ? new Date(updatedConversation.last_message_at).toLocaleString()
+                : updated.timestamp,
+              unread:
+                updatedConversation.vendor_unread_count > 0 ||
+                updated.unread,
+            };
+
+            // Decrypt lastMessage if encrypted (skip for offer messages)
+            const isOfferMessage =
+              lastMessageText && lastMessageText.startsWith("Booking Offer:");
+            if (
+              lastMessageText &&
+              !isOfferMessage &&
+              isEncrypted(lastMessageText) &&
+              updatedConv.conversationId
+            ) {
+              decryptMessage(lastMessageText, updatedConv.conversationId)
+                .then((decrypted) => {
+                  setRecentInquiries((current) => {
+                    const newInquiries = [...current];
+                    const currentIndex = newInquiries.findIndex(
+                      (c) =>
+                        c.id === updatedConversation.id ||
+                        c.conversationId === updatedConversation.id
+                    );
+                    if (currentIndex !== -1) {
+                      newInquiries[currentIndex] = {
+                        ...updatedConv,
+                        lastMessage: decrypted,
+                      };
+                      // Sort by timestamp to keep most recent first
+                      return newInquiries.sort((a, b) => {
+                        const timeA = new Date(a.timestamp || 0).getTime();
+                        const timeB = new Date(b.timestamp || 0).getTime();
+                        return timeB - timeA;
+                      });
+                    }
+                    return current;
+                  });
+                })
+                .catch((error) => {
+                  console.error("Failed to decrypt last message:", error);
+                  // Still update without decryption
+                  const newInquiries = [...prev];
+                  newInquiries[index] = updatedConv;
+                  return newInquiries.sort((a, b) => {
+                    const timeA = new Date(a.timestamp || 0).getTime();
+                    const timeB = new Date(b.timestamp || 0).getTime();
+                    return timeB - timeA;
+                  });
+                });
+              return prev; // Return prev while decrypting
+            }
+
+            // No encryption, update directly
+            const newInquiries = [...prev];
+            newInquiries[index] = updatedConv;
+            // Sort by timestamp to keep most recent first
+            return newInquiries.sort((a, b) => {
+              const timeA = new Date(a.timestamp || 0).getTime();
+              const timeB = new Date(b.timestamp || 0).getTime();
+              return timeB - timeA;
+            });
+          });
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[VendorDashboard] Realtime subscription active");
+        }
+      });
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
   }, [activeTab, user?.id]);
 
   const fetchServices = async () => {
@@ -90,7 +211,36 @@ export const VendorDashboard = () => {
 
       // Get the 3 most recent conversations
       const recent = (conversationsData.conversations || []).slice(0, 3);
-      setRecentInquiries(recent);
+      
+      // Decrypt lastMessage for each conversation (skip if it's an offer message)
+      const decryptedInquiries = await Promise.all(
+        recent.map(async (conv: any) => {
+          // Skip decryption for offer messages or if hasPendingOffer
+          if (
+            conv.hasPendingOffer ||
+            conv.status === "offer-sent" ||
+            (conv.lastMessage && conv.lastMessage.startsWith("Booking Offer:"))
+          ) {
+            return conv;
+          }
+
+          if (conv.lastMessage && isEncrypted(conv.lastMessage) && conv.conversationId) {
+            try {
+              const decrypted = await decryptMessage(
+                conv.lastMessage,
+                conv.conversationId
+              );
+              return { ...conv, lastMessage: decrypted };
+            } catch (error) {
+              console.error("Failed to decrypt last message:", error);
+              return conv;
+            }
+          }
+          return conv;
+        })
+      );
+
+      setRecentInquiries(decryptedInquiries);
 
       // Get upcoming bookings - show all bookings, sorted by event date
       const allBookings = bookingsData.bookings || [];

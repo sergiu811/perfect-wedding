@@ -80,36 +80,67 @@ export async function loader({ request }: LoaderFunctionArgs) {
       (coupleWeddings.data || []).map((w: any) => [w.user_id, w])
     );
 
-    // Fetch pending offers from messages for couples
+    // Fetch offers and vendor responses for all conversations
     let pendingOffersMap = new Map();
-    if (!isVendor && conversationIds.length > 0) {
-      const { data: pendingOffers } = await (supabase as any)
+    let vendorResponsesMap = new Map();
+    let allOffersMap = new Map();
+    
+    if (conversationIds.length > 0) {
+      // Fetch all offers
+      const { data: allOffers } = await (supabase as any)
         .from("messages")
-        .select("id, conversation_id, offer_data, sender_id, created_at")
+        .select("id, conversation_id, offer_data, sender_id, created_at, message_type")
         .in("conversation_id", conversationIds)
         .eq("message_type", "offer")
         .order("created_at", { ascending: false });
 
-      if (pendingOffers) {
-        // Get the most recent pending offer for each conversation
-        const offersByConversation = new Map<string, any>();
-        for (const offer of pendingOffers) {
+      if (allOffers) {
+        // Get the most recent offer for each conversation
+        for (const offer of allOffers) {
           const offerData = offer.offer_data || {};
-          // Only include offers sent by vendors that are still pending
-          if (
-            offerData.status === "pending" &&
-            !offersByConversation.has(offer.conversation_id)
-          ) {
-            // Check if sender is the vendor (not the couple)
-            const conv = (conversations || []).find(
-              (c: any) => c.id === offer.conversation_id
-            );
-            if (conv && conv.vendor_id === offer.sender_id) {
-              offersByConversation.set(offer.conversation_id, offer);
+          const conv = (conversations || []).find(
+            (c: any) => c.id === offer.conversation_id
+          );
+          
+          if (conv) {
+            const isVendorOffer = conv.vendor_id === offer.sender_id;
+            
+            // Store all offers
+            if (!allOffersMap.has(offer.conversation_id)) {
+              allOffersMap.set(offer.conversation_id, {
+                ...offer,
+                isVendorOffer,
+              });
+            }
+            
+            // Store pending offers from vendors (for couples)
+            if (
+              !isVendor &&
+              isVendorOffer &&
+              offerData.status === "pending" &&
+              !pendingOffersMap.has(offer.conversation_id)
+            ) {
+              pendingOffersMap.set(offer.conversation_id, offer);
             }
           }
         }
-        pendingOffersMap = offersByConversation;
+      }
+
+      // Check if vendor has responded (any message from vendor, not just offers)
+      const { data: vendorMessages } = await (supabase as any)
+        .from("messages")
+        .select("conversation_id, sender_id")
+        .in("conversation_id", conversationIds);
+
+      if (vendorMessages) {
+        for (const msg of vendorMessages) {
+          const conv = (conversations || []).find(
+            (c: any) => c.id === msg.conversation_id
+          );
+          if (conv && conv.vendor_id === msg.sender_id) {
+            vendorResponsesMap.set(msg.conversation_id, true);
+          }
+        }
       }
     }
 
@@ -142,6 +173,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const pendingOffer = !isVendor
         ? pendingOffersMap.get(conv.id)
         : null;
+      
+      const hasVendorResponded = vendorResponsesMap.get(conv.id) || false;
+      const latestOffer = allOffersMap.get(conv.id);
 
       return {
         id: conv.id,
@@ -159,7 +193,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
         lastMessage: conv.last_message_text || "",
         timestamp: formatTimestamp(conv.last_message_at),
         unread: unreadCount > 0,
-        status: getConversationStatus(conv, isVendor, pendingOffer),
+        status: getConversationStatus(
+          conv,
+          isVendor,
+          pendingOffer,
+          hasVendorResponded,
+          latestOffer
+        ),
         serviceId: conv.service_id,
         serviceTitle: conv.service?.title,
         hasPendingOffer: !!pendingOffer,
@@ -309,12 +349,47 @@ function formatTimestamp(timestamp: string | null): string {
 function getConversationStatus(
   conv: any,
   isVendor: boolean,
-  pendingOffer?: any
+  pendingOffer?: any,
+  hasVendorResponded?: boolean,
+  latestOffer?: any
 ): string {
-  // Check for pending offers
-  if (pendingOffer && !isVendor) {
-    return "pending"; // Pending offer from vendor
+  // 1. Check if conversation is closed/booked
+  if (conv.status === "closed") {
+    return "booked";
   }
-  if (conv.status === "closed") return "booked";
-  return "responded"; // Default status
+
+  // 2. Check for offers
+  if (latestOffer) {
+    const offerData = latestOffer.offer_data || {};
+    
+    // If there's a pending offer from vendor (for couples)
+    if (pendingOffer && !isVendor && offerData.status === "pending") {
+      return "pending"; // Couple sees pending offer
+    }
+    
+    // If vendor sent an offer (for vendor view)
+    if (isVendor && latestOffer.isVendorOffer) {
+      if (offerData.status === "pending") {
+        return "offer-sent"; // Vendor sees they sent an offer
+      }
+      // If offer was accepted, it should be booked (handled by closed status above)
+    }
+  }
+
+  // 3. Check if vendor has responded
+  if (!isVendor) {
+    // For couples: if vendor hasn't responded, it's pending
+    if (!hasVendorResponded) {
+      return "pending";
+    }
+    // If vendor responded, it's responded
+    return "responded";
+  } else {
+    // For vendors: if they've responded, it's responded
+    if (hasVendorResponded) {
+      return "responded";
+    }
+    // If vendor hasn't responded yet (shouldn't happen, but handle it)
+    return "pending";
+  }
 }

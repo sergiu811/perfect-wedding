@@ -178,37 +178,109 @@ export async function action({ request }: ActionFunctionArgs) {
           .eq("user_id", user.id)
           .single();
 
-        if (wedding && conversation.service_id) {
-          // Use bookingData if provided, otherwise use offer_data from message
-          const offerData = message.offer_data || {};
-          const finalDate = bookingData?.date || offerData.date;
-          const finalPrice = bookingData?.price || offerData.price;
-          
-          if (finalDate && finalPrice) {
-            const { error: bookingError } = await supabase
-              .from("bookings")
-              .insert({
-                wedding_id: wedding.id,
-                service_id: conversation.service_id,
-                status: "confirmed",
-                event_date: finalDate,
-                total_price: parseFloat(
-                  String(finalPrice).replace(/[^0-9.]/g, "")
-                ),
-                deposit_paid: bookingData?.deposit
-                  ? parseFloat(
-                      String(bookingData.deposit).replace(/[^0-9.]/g, "")
-                    )
-                  : null,
-                notes: bookingData?.notes || null,
-              });
+        if (!wedding) {
+          console.error("Error creating booking: Wedding not found for user");
+          return Response.json(
+            { error: "Wedding not found. Please create a wedding profile first." },
+            { status: 400, headers }
+          );
+        }
 
-            if (bookingError) {
-              console.error("Error creating booking:", bookingError);
-              // Don't fail the request if booking creation fails, but log it
-            }
+        // Use bookingData if provided, otherwise use offer_data from message
+        const offerData = message.offer_data || {};
+        const serviceId = offerData.serviceId;
+        const finalDate = bookingData?.date || offerData.date;
+        const finalPrice = bookingData?.price || offerData.price;
+
+        if (!serviceId) {
+          console.error("Error creating booking: Service ID not found in offer data");
+          return Response.json(
+            { error: "Service ID is required to create booking" },
+            { status: 400, headers }
+          );
+        }
+
+        if (!finalDate || !finalPrice) {
+          console.error("Error creating booking: Missing date or price", {
+            date: finalDate,
+            price: finalPrice,
+          });
+          return Response.json(
+            { error: "Date and price are required to create booking" },
+            { status: 400, headers }
+          );
+        }
+
+        // Check if booking already exists for this service and wedding
+        const { data: existingBooking } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("wedding_id", wedding.id)
+          .eq("service_id", serviceId)
+          .maybeSingle();
+
+        if (existingBooking) {
+          console.log("Booking already exists, updating instead");
+          // Update existing booking
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              status: "confirmed",
+              event_date: finalDate,
+              total_price: parseFloat(
+                String(finalPrice).replace(/[^0-9.]/g, "")
+              ),
+              deposit_paid: bookingData?.deposit
+                ? parseFloat(
+                    String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                  )
+                : null,
+              notes: bookingData?.notes || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingBooking.id);
+
+          if (updateError) {
+            console.error("Error updating booking:", updateError);
+            return Response.json(
+              { error: "Failed to update booking: " + updateError.message },
+              { status: 500, headers }
+            );
+          }
+        } else {
+          // Create new booking
+          const { error: bookingError } = await supabase
+            .from("bookings")
+            .insert({
+              wedding_id: wedding.id,
+              service_id: serviceId,
+              status: "confirmed",
+              event_date: finalDate,
+              total_price: parseFloat(
+                String(finalPrice).replace(/[^0-9.]/g, "")
+              ),
+              deposit_paid: bookingData?.deposit
+                ? parseFloat(
+                    String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                  )
+                : null,
+              notes: bookingData?.notes || null,
+            });
+
+          if (bookingError) {
+            console.error("Error creating booking:", bookingError);
+            return Response.json(
+              { error: "Failed to create booking: " + bookingError.message },
+              { status: 500, headers }
+            );
           }
         }
+
+        // Also update conversation status to closed
+        await supabase
+          .from("conversations")
+          .update({ status: "closed" })
+          .eq("id", conversation.id);
       }
 
       return Response.json({ success: true }, { headers });
