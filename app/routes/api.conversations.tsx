@@ -222,33 +222,25 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // Check if conversation already exists
-    let existingQuery = (supabase as any)
+    // Check if conversation already exists (one per vendor, not per service)
+    const { data: existing } = await (supabase as any)
       .from("conversations")
       .select("id")
       .eq("couple_id", user.id)
-      .eq("vendor_id", vendorId);
-
-    if (serviceId) {
-      existingQuery = existingQuery.eq("service_id", serviceId);
-    }
-
-    const { data: existing } = await existingQuery.maybeSingle();
+      .eq("vendor_id", vendorId)
+      .maybeSingle();
 
     let conversationId: string;
 
     if (existing) {
       conversationId = existing.id;
     } else {
-      // Create new conversation
+      // Create new conversation (service_id is now optional/nullable)
       const conversationData: any = {
         couple_id: user.id,
         vendor_id: vendorId,
+        service_id: null, // One conversation per vendor, not tied to specific service
       };
-
-      if (serviceId) {
-        conversationData.service_id = serviceId;
-      }
 
       const { data: conversation, error: convError } = await (supabase as any)
         .from("conversations")

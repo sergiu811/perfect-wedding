@@ -3,6 +3,7 @@ import { Router, Route } from "~/contexts/router-context";
 import { ServiceProvider } from "~/contexts/service-context";
 import { PlanningProvider } from "~/contexts/planning-context";
 import { VendorOnboardingProvider } from "~/contexts/vendor-onboarding-context";
+import { NotificationProvider } from "~/contexts/notification-context";
 import { Navigation } from "~/components/layout";
 import { ProtectedRoute } from "~/components/common/protected-route";
 import { AuthPage } from "~/components/pages/auth-page";
@@ -54,11 +55,13 @@ import {
 export default function App() {
   return (
     <Router>
-      <VendorOnboardingProvider>
-        <PlanningProvider>
-          <ServiceProvider>
-            <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
-              <main className="flex-1 lg:ml-64 xl:ml-72">
+      <NotificationProvider>
+        <VendorOnboardingProvider>
+          <PlanningProvider>
+            <ServiceProvider>
+              <div className="relative flex min-h-screen w-full flex-col bg-pink-50 font-sans antialiased">
+                <Navigation />
+                <main className="flex-1 lg:ml-64 xl:ml-72 pb-16 lg:pb-0">
                 {/* Public Routes */}
                 <Route path="/auth" element={<AuthPage />} />
 
@@ -400,11 +403,11 @@ export default function App() {
                   }
                 />
               </main>
-              <Navigation />
             </div>
           </ServiceProvider>
         </PlanningProvider>
       </VendorOnboardingProvider>
+      </NotificationProvider>
     </Router>
   );
 }

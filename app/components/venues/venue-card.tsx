@@ -31,7 +31,9 @@ export const VenueCard = ({ venue, onClick }: VenueCardProps) => (
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
       <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-        <span className="text-xs font-semibold text-gray-900">{venue.style}</span>
+        <span className="text-xs font-semibold text-gray-900">
+          {venue.style}
+        </span>
       </div>
     </div>
 
@@ -64,7 +66,9 @@ export const VenueCard = ({ venue, onClick }: VenueCardProps) => (
             </span>
           ))}
           {venue.tags.length > 3 && (
-            <span className="text-xs text-gray-500">+{venue.tags.length - 3} more</span>
+            <span className="text-xs text-gray-500">
+              +{venue.tags.length - 3} more
+            </span>
           )}
         </div>
       )}
@@ -73,20 +77,24 @@ export const VenueCard = ({ venue, onClick }: VenueCardProps) => (
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="flex items-center gap-4">
           {/* Rating */}
-          {venue.rating !== undefined && (
+          {venue.rating && venue.rating !== 0.0 && (
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 text-rose-600 fill-rose-600" />
               <span className="text-sm font-semibold text-gray-900">
                 {venue.rating.toFixed(1)}
               </span>
               {venue.reviewCount !== undefined && (
-                <span className="text-xs text-gray-500">({venue.reviewCount})</span>
+                <span className="text-xs text-gray-500">
+                  ({venue.reviewCount})
+                </span>
               )}
             </div>
           )}
 
           {/* Pricing */}
-          <span className="text-sm font-semibold text-rose-600">{venue.priceRange}</span>
+          <span className="text-sm font-semibold text-rose-600">
+            {venue.priceRange}
+          </span>
         </div>
       </div>
     </div>

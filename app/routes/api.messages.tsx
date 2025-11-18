@@ -1,12 +1,14 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { createSupabaseServerClient, requireAuth } from "~/lib/supabase.server";
 
-// GET /api/messages?conversationId=xxx - Get messages for a conversation
+// GET /api/messages?conversationId=xxx&messageId=yyy - Get messages for a conversation
+// If messageId is provided, returns only that single formatted message
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireAuth(request);
   const { supabase, headers } = createSupabaseServerClient(request);
   const url = new URL(request.url);
   const conversationId = url.searchParams.get("conversationId");
+  const messageId = url.searchParams.get("messageId");
 
   if (!conversationId) {
     return Response.json(
@@ -37,7 +39,37 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return Response.json({ error: "Unauthorized" }, { status: 403, headers });
     }
 
-    // Fetch messages
+    // If messageId is provided, return only that single message (for realtime updates)
+    if (messageId) {
+      const { data: message, error: msgError } = await (supabase as any)
+        .from("messages")
+        .select("*")
+        .eq("id", messageId)
+        .eq("conversation_id", conversationId)
+        .single();
+
+      if (msgError || !message) {
+        return Response.json(
+          { error: "Message not found" },
+          { status: 404, headers }
+        );
+      }
+
+      // Format single message for frontend
+      const formattedMessage = {
+        id: message.id,
+        sender: message.sender_id === conversation.couple_id ? "couple" : "vendor",
+        message: message.content,
+        timestamp: formatMessageTime(message.created_at),
+        type: message.message_type,
+        offerDetails: message.offer_data || undefined,
+        read: !!message.read_at,
+      };
+
+      return Response.json({ message: formattedMessage }, { headers });
+    }
+
+    // Fetch all messages
     const { data: messages, error } = await (supabase as any)
       .from("messages")
       .select("*")
@@ -240,20 +272,24 @@ export async function action({ request }: ActionFunctionArgs) {
       }
 
       // Validate offer data
-      if (!offerData.price || !offerData.date || !offerData.services) {
+      if (!offerData.price || !offerData.date || !offerData.services || !offerData.serviceId) {
         return Response.json(
-          { error: "Offer must include price, date, and services" },
+          { error: "Offer must include serviceId, price, date, and services" },
           { status: 400, headers }
         );
       }
 
       offerDataToStore = {
+        serviceId: offerData.serviceId,
+        serviceName: offerData.serviceName || "Service",
+        serviceCategory: offerData.serviceCategory || "",
         price: offerData.price,
         date: offerData.date,
         services: offerData.services,
         status: "pending",
       };
-      content = "Booking Offer";
+      const categoryLabel = offerData.serviceCategory ? ` (${offerData.serviceCategory})` : "";
+      content = `Booking Offer: ${offerData.serviceName || "Service"}${categoryLabel}`;
     }
 
     // Create message

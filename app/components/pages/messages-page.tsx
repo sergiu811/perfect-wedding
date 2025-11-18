@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, MessageCircle, Clock, ChevronRight } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
 import { Input } from "~/components/ui/input";
+import { getSupabaseBrowserClient } from "~/lib/supabase.client";
+import { decryptMessage, isEncrypted } from "~/lib/encryption";
 
 interface Message {
   id: string;
@@ -29,6 +31,9 @@ export const MessagesPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let subscription: any = null;
+
     const fetchConversations = async () => {
       try {
         setLoading(true);
@@ -39,7 +44,33 @@ export const MessagesPage = () => {
         }
 
         const data = await response.json();
-        setConversations(data.conversations || []);
+        const conversations = data.conversations || [];
+        
+          // Decrypt lastMessage for each conversation (skip if it's an offer message)
+          const decryptedConversations = await Promise.all(
+            conversations.map(async (conv: Message) => {
+              // Skip decryption for offer messages or if hasPendingOffer
+              if (conv.hasPendingOffer || conv.status === "offer-sent" || (conv.lastMessage && conv.lastMessage.startsWith("Booking Offer:"))) {
+                return conv;
+              }
+              
+              if (conv.lastMessage && isEncrypted(conv.lastMessage)) {
+                try {
+                  const decrypted = await decryptMessage(
+                    conv.lastMessage,
+                    conv.conversationId
+                  );
+                  return { ...conv, lastMessage: decrypted };
+                } catch (error) {
+                  console.error("Failed to decrypt last message:", error);
+                  return conv;
+                }
+              }
+              return conv;
+            })
+          );
+        
+        setConversations(decryptedConversations);
       } catch (err: any) {
         console.error("Error fetching conversations:", err);
         setError(err.message || "Failed to load conversations");
@@ -49,6 +80,109 @@ export const MessagesPage = () => {
     };
 
     fetchConversations();
+
+    // Set up realtime subscription for conversation updates
+    subscription = supabase
+      .channel("messages-page-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+        },
+        async (payload) => {
+          console.log("[MessagesPage] Conversation updated");
+          const updatedConversation = payload.new as any;
+          
+          // Update the conversation in state without full refresh
+          setConversations((prev) => {
+            const index = prev.findIndex((c) => c.id === updatedConversation.id);
+            if (index === -1) {
+              // New conversation, fetch it individually
+              fetch("/api/conversations")
+                .then((res) => res.json())
+                .then(async (data) => {
+                  const freshConv = data.conversations?.find(
+                    (c: any) => c.id === updatedConversation.id
+                  );
+                  if (freshConv) {
+                    // Decrypt lastMessage if encrypted
+                    let decryptedConv = freshConv;
+                    // Skip decryption for offer messages
+                    if (!freshConv.hasPendingOffer && 
+                        freshConv.status !== "offer-sent" && 
+                        freshConv.lastMessage && 
+                        !freshConv.lastMessage.startsWith("Booking Offer:") &&
+                        isEncrypted(freshConv.lastMessage)) {
+                      try {
+                        const decrypted = await decryptMessage(
+                          freshConv.lastMessage,
+                          freshConv.conversationId
+                        );
+                        decryptedConv = { ...freshConv, lastMessage: decrypted };
+                      } catch (error) {
+                        console.error("Failed to decrypt last message:", error);
+                      }
+                    }
+                    setConversations((current) => [decryptedConv, ...current]);
+                  }
+                });
+              return prev;
+            }
+            
+            // Update existing conversation directly from payload
+            const updated = prev[index];
+            const lastMessageText = updatedConversation.last_message_text || updated.lastMessage;
+            const updatedConv = {
+              ...updated,
+              lastMessage: lastMessageText,
+              timestamp: updatedConversation.last_message_at ? new Date(updatedConversation.last_message_at).toLocaleString() : updated.timestamp,
+              unread: updatedConversation.couple_unread_count > 0 || updatedConversation.vendor_unread_count > 0,
+            };
+            
+            // Decrypt lastMessage if encrypted (skip for offer messages)
+            const isOfferMessage = lastMessageText && lastMessageText.startsWith("Booking Offer:");
+            if (lastMessageText && !isOfferMessage && isEncrypted(lastMessageText)) {
+              decryptMessage(lastMessageText, updatedConv.conversationId)
+                .then((decrypted) => {
+                  setConversations((current) => {
+                    const filtered = current.filter(
+                      (c) => c.id !== updatedConversation.id
+                    );
+                    return [{ ...updatedConv, lastMessage: decrypted }, ...filtered];
+                  });
+                })
+                .catch((error) => {
+                  console.error("Failed to decrypt last message:", error);
+                  // Still update without decryption
+                  const newConversations = [...prev];
+                  newConversations[index] = updatedConv;
+                  const [updatedItem] = newConversations.splice(index, 1);
+                  setConversations([updatedItem, ...newConversations]);
+                });
+              return prev; // Return prev while decrypting
+            }
+            
+            // No encryption, update directly
+            const newConversations = [...prev];
+            newConversations[index] = updatedConv;
+            const [updatedItem] = newConversations.splice(index, 1);
+            return [updatedItem, ...newConversations];
+          });
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[MessagesPage] Realtime subscription active");
+        }
+      });
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
   }, []);
 
   const filteredMessages = conversations.filter((msg) => {

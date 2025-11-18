@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   ArrowLeft,
   Send,
@@ -14,6 +14,8 @@ import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { getSupabaseBrowserClient } from "~/lib/supabase.client";
+import { encryptMessage, decryptMessage, isEncrypted } from "~/lib/encryption";
 
 interface ChatPageProps {
   conversationId: string;
@@ -26,6 +28,9 @@ interface ChatMessage {
   timestamp: string;
   type: "text" | "offer" | "booking";
   offerDetails?: {
+    serviceId?: string;
+    serviceName?: string;
+    serviceCategory?: string;
     price: string;
     services: string[];
     date: string;
@@ -35,62 +40,197 @@ interface ChatMessage {
 
 export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const { navigate } = useRouter();
-  const { user, profile } = useAuth();
+  const { profile, user } = useAuth();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermission>("default");
+
   const [conversationInfo, setConversationInfo] = useState<{
     vendorName: string;
     vendorAvatar: string;
     vendorCategory: string;
   } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic layout refs
+  const headerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [bottomHeight, setBottomHeight] = useState(0);
+
+  // Measure header and bottom heights immediately and on resize
+  const measureHeights = useCallback(() => {
+    if (headerRef.current && bottomRef.current) {
+      // Use getBoundingClientRect for accurate measurements including safe areas
+      const headerRect = headerRef.current.getBoundingClientRect();
+      const bottomRect = bottomRef.current.getBoundingClientRect();
+
+      setHeaderHeight(headerRect.height);
+      setBottomHeight(bottomRect.height);
+    }
+  }, []);
+
+  // Request notification permission on mount (local fallback, but global provider handles it)
+  useEffect(() => {
+    if ("Notification" in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  // Initial measurement and setup ResizeObserver
+  useEffect(() => {
+    // Measure immediately on mount
+    measureHeights();
+
+    // Also measure after a small delay to catch any layout shifts
+    const timeoutId = setTimeout(measureHeights, 0);
+
+    // Setup ResizeObserver for dynamic changes
+    const headerEl = headerRef.current;
+    const bottomEl = bottomRef.current;
+
+    if (!headerEl || !bottomEl) return;
+
+    const observer = new ResizeObserver(() => {
+      measureHeights();
+    });
+
+    observer.observe(headerEl);
+    observer.observe(bottomEl);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [measureHeights]);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback((smooth = false) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest",
+      });
+    } else {
+      // Fallback: scroll the main container directly
+      const mainEl = document.querySelector(
+        "[data-chat-messages]"
+      ) as HTMLElement;
+      if (mainEl) {
+        mainEl.scrollTop = mainEl.scrollHeight;
+      }
+    }
+  }, []);
+
+  // Scroll to bottom only on initial load
+  const hasScrolledRef = useRef(false);
+  useEffect(() => {
+    if (
+      headerHeight > 0 &&
+      bottomHeight > 0 &&
+      messages.length > 0 &&
+      !hasScrolledRef.current
+    ) {
+      // Initial scroll
+      const timeoutId = setTimeout(() => {
+        scrollToBottom(false);
+        hasScrolledRef.current = true;
+      }, 150);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length, headerHeight, bottomHeight, scrollToBottom]);
+
+  const isVendor = profile?.role === "vendor";
 
   // Offer form state
   const [offerData, setOfferData] = useState({
+    serviceId: "",
+    serviceName: "",
+    serviceCategory: "",
     price: "",
     date: "",
     services: [""],
   });
 
-  const isVendor = profile?.role === "vendor";
+  // Vendor's services (for offer form)
+  const [vendorServices, setVendorServices] = useState<any[]>([]);
 
-  // Fetch messages and conversation info
+  // Fetch messages + conversation info and setup realtime
   useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let subscription: any = null;
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [messagesRes, conversationsRes] = await Promise.all([
+
+        const fetchPromises = [
           fetch(`/api/messages?conversationId=${conversationId}`),
           fetch("/api/conversations"),
-        ]);
+        ];
 
-        if (!messagesRes.ok) {
-          const error = await messagesRes.json();
-          console.error("Messages API error:", error);
-          throw new Error(error.error || "Failed to load messages");
+        // If vendor, also fetch their services for the offer form
+        if (isVendor && user?.id) {
+          fetchPromises.push(fetch(`/api/services?vendorId=${user.id}`));
         }
 
-        if (!conversationsRes.ok) {
-          const error = await conversationsRes.json();
-          console.error("Conversations API error:", error);
-          throw new Error(error.error || "Failed to load conversations");
-        }
+        const responses = await Promise.all(fetchPromises);
+        const messagesRes = responses[0];
+        const conversationsRes = responses[1];
+        const servicesRes = isVendor ? responses[2] : null;
 
         const messagesData = await messagesRes.json();
         const conversationsData = await conversationsRes.json();
+        const servicesData = servicesRes ? await servicesRes.json() : null;
 
-        setMessages(messagesData.messages || []);
+        if (!isMounted) return;
 
-        // Find conversation info
+        const fetchedMessages = messagesData.messages || [];
+
+        // Decrypt messages
+        const decryptedMessages = await Promise.all(
+          fetchedMessages.map(async (msg: any) => {
+            if (
+              msg.type === "text" &&
+              msg.message &&
+              isEncrypted(msg.message)
+            ) {
+              try {
+                const decrypted = await decryptMessage(
+                  msg.message,
+                  conversationId
+                );
+                return { ...msg, message: decrypted };
+              } catch (error) {
+                console.error("Failed to decrypt message:", error);
+                return msg;
+              }
+            }
+            return msg;
+          })
+        );
+
+        setMessages(decryptedMessages);
+
+        // Set vendor services if available
+        if (servicesData) {
+          setVendorServices(servicesData.services || []);
+        }
+
         const conv = conversationsData.conversations?.find(
           (c: any) => c.id === conversationId
         );
 
         if (conv) {
-          // Determine what to show based on user role
           const isVendorView = profile?.role === "vendor";
 
           setConversationInfo({
@@ -105,12 +245,161 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
               ? "Wedding Couple"
               : conv.vendorCategory,
           });
-        } else {
-          console.warn("Conversation not found in list");
         }
-      } catch (error: any) {
-        console.error("Error fetching chat data:", error);
-        alert(`Error loading chat: ${error.message}`);
+
+        // Scroll to bottom after loading messages
+        if (fetchedMessages.length > 0 && isMounted) {
+          setTimeout(() => {
+            if (isMounted) scrollToBottom(false);
+          }, 200);
+        }
+
+        // Setup realtime subscription for new messages
+        subscription = supabase
+          .channel(`messages:${conversationId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            async (payload) => {
+              if (!isMounted) return;
+
+              const newMessageId = (payload.new as any).id;
+              const senderId = (payload.new as any).sender_id;
+
+              // Fetch formatted message from server-side API
+              try {
+                const response = await fetch(
+                  `/api/messages?conversationId=${conversationId}&messageId=${newMessageId}`
+                );
+                if (response.ok && isMounted) {
+                  const data = await response.json();
+                  let formattedMessage = data.message as ChatMessage;
+
+                  // Decrypt message if it's encrypted text
+                  if (
+                    formattedMessage.type === "text" &&
+                    formattedMessage.message &&
+                    isEncrypted(formattedMessage.message)
+                  ) {
+                    try {
+                      const decrypted = await decryptMessage(
+                        formattedMessage.message,
+                        conversationId
+                      );
+                      formattedMessage = {
+                        ...formattedMessage,
+                        message: decrypted,
+                      };
+                    } catch (error) {
+                      console.error(
+                        "Failed to decrypt realtime message:",
+                        error
+                      );
+                    }
+                  }
+
+                  // Note: Notifications are now handled globally by NotificationProvider
+                  // This local check is kept for backward compatibility but global provider takes precedence
+
+                  // Add new message to state (avoid duplicates)
+                  setMessages((prev) => {
+                    // Check if message already exists
+                    if (prev.some((msg) => msg.id === formattedMessage.id)) {
+                      // Update existing message with decrypted content
+                      return prev.map((msg) =>
+                        msg.id === formattedMessage.id ? formattedMessage : msg
+                      );
+                    }
+                    return [...prev, formattedMessage];
+                  });
+
+                  // Scroll to bottom when new message arrives
+                  if (isMounted) {
+                    const isOnChatPage =
+                      typeof window !== "undefined" &&
+                      window.location.pathname === `/chat/${conversationId}`;
+
+                    if (isOnChatPage) {
+                      setTimeout(() => {
+                        if (isMounted) scrollToBottom(true);
+                      }, 100);
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error("Error fetching formatted message:", err);
+                if (!isMounted) return;
+
+                // Fallback: refetch all messages from server
+                const response = await fetch(
+                  `/api/messages?conversationId=${conversationId}`
+                );
+                if (response.ok && isMounted) {
+                  const data = await response.json();
+                  setMessages(data.messages || []);
+                }
+              }
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "messages",
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            async (payload) => {
+              if (!isMounted) return;
+
+              const updatedMessageId = (payload.new as any).id;
+
+              // Fetch updated formatted message from server-side API
+              try {
+                const response = await fetch(
+                  `/api/messages?conversationId=${conversationId}&messageId=${updatedMessageId}`
+                );
+                if (response.ok && isMounted) {
+                  const data = await response.json();
+                  const formattedMessage = data.message as ChatMessage;
+
+                  // Update message in state (for offer status changes)
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === formattedMessage.id ? formattedMessage : msg
+                    )
+                  );
+                }
+              } catch (err) {
+                console.error("Error fetching updated message:", err);
+                if (!isMounted) return;
+
+                // Fallback: refetch all messages from server
+                const response = await fetch(
+                  `/api/messages?conversationId=${conversationId}`
+                );
+                if (response.ok && isMounted) {
+                  const data = await response.json();
+                  setMessages(data.messages || []);
+                }
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              console.log(
+                "Realtime subscription active for conversation:",
+                conversationId
+              );
+            }
+          });
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -119,37 +408,75 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
     if (conversationId) {
       fetchData();
     }
-  }, [conversationId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Cleanup subscription on unmount or conversation change
+    return () => {
+      isMounted = false;
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [conversationId]); // Only re-subscribe when conversation changes
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
 
     try {
       setSending(true);
+
+      // Encrypt the message before sending
+      const encryptedMessage = await encryptMessage(
+        newMessage.trim(),
+        conversationId
+      );
+
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
-          message: newMessage.trim(),
+          message: encryptedMessage,
           messageType: "text",
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to send message");
+      const data = await response.json();
+
+      // Decrypt the message if it's encrypted text
+      let formattedMessage = data.message;
+      if (
+        formattedMessage.type === "text" &&
+        formattedMessage.message &&
+        isEncrypted(formattedMessage.message)
+      ) {
+        try {
+          const decrypted = await decryptMessage(
+            formattedMessage.message,
+            conversationId
+          );
+          formattedMessage = { ...formattedMessage, message: decrypted };
+          console.log("✅ Message decrypted successfully:", decrypted);
+        } catch (error) {
+          console.error("❌ Failed to decrypt sent message:", error);
+          // Still add the message, but it will show encrypted
+        }
+      } else {
+        console.log(
+          "ℹ️ Message is not encrypted or not text type:",
+          formattedMessage
+        );
       }
 
-      const data = await response.json();
-      setMessages([...messages, data.message]);
+      console.log("📤 Adding message to state:", formattedMessage);
+      setMessages([...messages, formattedMessage]);
       setNewMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-      alert("Failed to send message. Please try again.");
+
+      // Scroll to bottom after sending message
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 100);
+    } catch (err) {
+      console.error(err);
     } finally {
       setSending(false);
     }
@@ -253,11 +580,14 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
 
   const handleSendOffer = async () => {
     if (
+      !offerData.serviceId ||
       !offerData.price ||
       !offerData.date ||
       !offerData.services.some((s) => s.trim())
     ) {
-      alert("Please fill in all required fields");
+      alert(
+        "Please fill in all required fields (service, price, date, and details)"
+      );
       return;
     }
 
@@ -270,6 +600,9 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
           conversationId,
           messageType: "offer",
           offerData: {
+            serviceId: offerData.serviceId,
+            serviceName: offerData.serviceName,
+            serviceCategory: offerData.serviceCategory,
             price: offerData.price,
             date: offerData.date,
             services: offerData.services.filter((s) => s.trim() !== ""),
@@ -282,9 +615,18 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
       }
 
       const data = await response.json();
-      setMessages([...messages, data.message]);
+      // Don't add message here - realtime will handle it
       setShowOfferForm(false);
-      setOfferData({ price: "", date: "", services: [""] });
+      setOfferData({
+        serviceId: "",
+        serviceName: "",
+        serviceCategory: "",
+        price: "",
+        date: "",
+        services: [""],
+      });
+
+      // Scroll will happen via realtime subscription
     } catch (error) {
       console.error("Error sending offer:", error);
       alert("Failed to send offer. Please try again.");
@@ -295,13 +637,8 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-pink-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Send className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-gray-600 font-medium">Loading conversation...</p>
-        </div>
+      <div className="w-full h-screen flex items-center justify-center bg-pink-50">
+        <p>Loading...</p>
       </div>
     );
   }
@@ -311,155 +648,212 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const vendorCategory = conversationInfo?.vendorCategory || "Service";
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-pink-50">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 lg:p-6 bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center gap-3 flex-1">
-          <button
-            onClick={() => navigate("/messages")}
-            className="text-gray-900"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div
-            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-cover bg-center flex-shrink-0"
-            style={{ backgroundImage: `url(${vendorAvatar})` }}
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base lg:text-lg font-bold text-gray-900 truncate">
-              {vendorName}
-            </h1>
-            <p className="text-xs lg:text-sm text-gray-500">{vendorCategory}</p>
-          </div>
-        </div>
-        <button className="text-gray-600 hover:text-gray-900">
-          <MoreVertical className="w-5 h-5" />
+    <div className="w-full h-screen bg-pink-50 relative overflow-hidden">
+      {/* FIXED HEADER */}
+      <header
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-30 p-4 flex items-center gap-3"
+        style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}
+      >
+        <button onClick={() => navigate("/messages")}>
+          <ArrowLeft className="w-6 h-6" />
         </button>
+
+        <div
+          className="w-10 h-10 rounded-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${vendorAvatar})` }}
+        />
+
+        <div>
+          <h1 className="font-bold">{vendorName}</h1>
+          <p className="text-xs text-gray-500">{vendorCategory}</p>
+        </div>
+
+        <div className="ml-auto">
+          <MoreVertical className="w-5 h-5 text-gray-600" />
+        </div>
       </header>
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
-        {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              No messages yet. Start the conversation!
-            </p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${
-                msg.sender === (isVendor ? "vendor" : "couple")
-                  ? "justify-end"
-                  : "justify-start"
-              }`}
-            >
-              {msg.type === "offer" ? (
-                // Offer Card
-                <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900">Booking Offer</p>
-                      <p className="text-xs text-gray-500">{msg.timestamp}</p>
-                    </div>
+      {/* SCROLLABLE MESSAGES */}
+      <main
+        data-chat-messages
+        className="absolute inset-x-0 overflow-y-auto space-y-4"
+        style={{
+          top:
+            headerHeight > 0
+              ? `${headerHeight}px`
+              : `calc(64px + env(safe-area-inset-top, 0px))`,
+          bottom:
+            bottomHeight > 0
+              ? `${bottomHeight}px`
+              : `calc(120px + env(safe-area-inset-bottom, 0px))`,
+          padding: "1rem",
+          paddingBottom: "1rem",
+        }}
+      >
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${
+              msg.sender === (isVendor ? "vendor" : "couple")
+                ? "justify-end"
+                : "justify-start"
+            }`}
+          >
+            {msg.type === "offer" ? (
+              // Offer Card
+              <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-white" />
                   </div>
+                  <div>
+                    <p className="font-bold text-gray-900">Booking Offer</p>
+                    <p className="text-xs text-gray-500">{msg.timestamp}</p>
+                  </div>
+                </div>
 
-                  <div className="space-y-3">
+                <div className="space-y-3">
+                  {/* Service Info */}
+                  {msg.offerDetails?.serviceName && (
                     <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Total Price</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {msg.offerDetails?.price}
-                      </p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-2">Event Date</p>
+                      <p className="text-xs text-gray-500 mb-1">Service</p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {msg.offerDetails?.date}
+                        {msg.offerDetails.serviceName}
+                        {msg.offerDetails.serviceCategory && (
+                          <span className="ml-2 text-xs font-normal text-gray-500">
+                            ({msg.offerDetails.serviceCategory})
+                          </span>
+                        )}
                       </p>
                     </div>
+                  )}
 
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-2">
-                        Included Services
-                      </p>
-                      <ul className="space-y-1.5">
-                        {msg.offerDetails?.services.map((service, idx) => (
-                          <li
-                            key={idx}
-                            className="text-xs text-gray-700 flex items-start gap-2"
-                          >
-                            <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span>{service}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {msg.offerDetails?.status === "accepted" ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-green-700">
-                          ✓ Offer Accepted
-                        </p>
-                      </div>
-                    ) : msg.offerDetails?.status === "rejected" ? (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-red-700">
-                          Offer Rejected
-                        </p>
-                      </div>
-                    ) : !isVendor && msg.offerDetails?.status === "pending" ? (
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() =>
-                            handleAcceptOffer(msg.id, msg.offerDetails)
-                          }
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
-                        >
-                          Accept Offer
-                        </Button>
-                        <Button
-                          onClick={() => handleRejectOffer(msg.id)}
-                          className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    ) : null}
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1">Total Price</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {msg.offerDetails?.price}
+                    </p>
                   </div>
+
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-2">Event Date</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {msg.offerDetails?.date}
+                    </p>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-2">
+                      Included Services
+                    </p>
+                    <ul className="space-y-1.5">
+                      {msg.offerDetails?.services.map((service, idx) => (
+                        <li
+                          key={idx}
+                          className="text-xs text-gray-700 flex items-start gap-2"
+                        >
+                          <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span>{service}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {msg.offerDetails?.status === "accepted" ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm font-semibold text-green-700">
+                        ✓ Offer Accepted
+                      </p>
+                    </div>
+                  ) : msg.offerDetails?.status === "rejected" ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-sm font-semibold text-red-700">
+                        Offer Rejected
+                      </p>
+                    </div>
+                  ) : !isVendor && msg.offerDetails?.status === "pending" ? (
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={() =>
+                          handleAcceptOffer(msg.id, msg.offerDetails)
+                        }
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
+                      >
+                        Accept Offer
+                      </Button>
+                      <Button
+                        onClick={() => handleRejectOffer(msg.id)}
+                        className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : (
-                // Regular Message
-                <div
-                  className={`max-w-[75%] lg:max-w-[60%] ${
-                    msg.sender === (isVendor ? "vendor" : "couple")
-                      ? "bg-rose-600 text-white"
-                      : "bg-white text-gray-900"
-                  } rounded-2xl px-4 py-3 shadow-sm`}
-                >
-                  <p className="text-sm lg:text-base leading-relaxed">
-                    {msg.message}
-                  </p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      msg.sender === (isVendor ? "vendor" : "couple")
-                        ? "text-white/70"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {msg.timestamp}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))
-        )}
+              </div>
+            ) : (
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
+                  msg.sender === (isVendor ? "vendor" : "couple")
+                    ? "bg-rose-600 text-white"
+                    : "bg-white text-gray-900"
+                }`}
+              >
+                <p>{msg.message}</p>
+                <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
+              </div>
+            )}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </main>
+
+      {/* FIXED BOTTOM AREA */}
+      <div
+        ref={bottomRef}
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-30"
+        style={{
+          paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+        }}
+      >
+        {isVendor && (
+          <div className="mb-3">
+            <button
+              onClick={() => setShowOfferForm(true)}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl h-11 font-semibold"
+            >
+              <DollarSign className="w-5 h-5 mr-1 inline-block" />
+              Send Booking Offer
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button className="p-2 text-gray-600">
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <button className="p-2 text-gray-600">
+            <ImageIcon className="w-5 h-5" />
+          </button>
+
+          <Input
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            placeholder="Type a message..."
+            className="flex-1 bg-gray-100 border-0 rounded-xl h-11 px-4"
+          />
+
+          <button
+            onClick={handleSend}
+            disabled={!newMessage.trim()}
+            className="p-3 bg-rose-600 text-white rounded-xl"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
       {/* Offer Form Modal */}
       {showOfferForm && (
@@ -478,6 +872,35 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             </div>
 
             <div className="p-4 space-y-4">
+              {/* Service Selection */}
+              <div>
+                <label className="text-sm font-bold text-gray-900 mb-2 block">
+                  Select Service *
+                </label>
+                <select
+                  value={offerData.serviceId}
+                  onChange={(e) => {
+                    const selectedService = vendorServices.find(
+                      (s) => s.id === e.target.value
+                    );
+                    setOfferData({
+                      ...offerData,
+                      serviceId: e.target.value,
+                      serviceName: selectedService?.title || "",
+                      serviceCategory: selectedService?.category || "",
+                    });
+                  }}
+                  className="w-full h-12 border border-gray-300 rounded-lg px-3 bg-white text-gray-900"
+                >
+                  <option value="">Choose a service...</option>
+                  {vendorServices.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.title} - {service.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Price */}
               <div>
                 <label className="text-sm font-bold text-gray-900 mb-2 block">
@@ -512,11 +935,14 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                 />
               </div>
 
-              {/* Services */}
+              {/* Package Details */}
               <div>
                 <label className="text-sm font-bold text-gray-900 mb-2 block">
-                  Included Services *
+                  Package Details / What's Included *
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Specify what's included in this package
+                </p>
                 <div className="space-y-2">
                   {offerData.services.map((service, index) => (
                     <div key={index} className="flex gap-2">
@@ -566,48 +992,6 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
           </div>
         </div>
       )}
-
-      {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4 lg:p-6">
-        {isVendor && (
-          <div className="mb-3">
-            <button
-              onClick={() => setShowOfferForm(true)}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl h-11 font-semibold flex items-center justify-center gap-2"
-            >
-              <DollarSign className="w-5 h-5" />
-              Send Booking Offer
-            </button>
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
-            <Paperclip className="w-5 h-5" />
-          </button>
-          <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
-            <ImageIcon className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === "Enter" && !e.shiftKey && handleSend()
-              }
-              placeholder="Type a message..."
-              className="w-full bg-gray-100 border-0 rounded-xl h-11 px-4"
-              disabled={sending}
-            />
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={sending || !newMessage.trim()}
-            className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

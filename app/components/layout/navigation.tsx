@@ -9,15 +9,26 @@ import { Briefcase, LayoutDashboard, MessageSquare } from "lucide-react";
 export const Navigation = () => {
   const { currentPath } = useRouter();
   const { profile } = useAuth();
-  
-  // Hide navigation if vendor hasn't completed profile
-  if (profile?.role === 'vendor' && !profile?.profile_completed) {
+
+  // Hide navigation on auth/login/signup pages
+  const hideOnRoutes = ["/auth", "/login", "/signup"];
+  if (hideOnRoutes.some((route) => currentPath.startsWith(route))) {
     return null;
   }
-  
+
+  // Hide navigation if vendor hasn't completed profile
+  if (profile?.role === "vendor" && !profile?.profile_completed) {
+    return null;
+  }
+
+  // Hide navigation on chat page (it has its own header/footer)
+  if (currentPath.startsWith("/chat/")) {
+    return null;
+  }
+
   // Customize navigation items based on user role
   const navItems = useMemo(() => {
-    if (profile?.role === 'vendor') {
+    if (profile?.role === "vendor") {
       return [
         { path: "/vendor-dashboard", icon: Briefcase, label: "My Business" },
         { path: "/vendors", icon: NAV_ITEMS[1].icon, label: "Vendors" },
@@ -31,8 +42,11 @@ export const Navigation = () => {
 
   return (
     <>
-      {/* Mobile Navigation - Bottom Bar */}
-      <nav className="lg:hidden sticky bottom-0 border-t border-rose-600/20 bg-pink-50/95 backdrop-blur-md pt-2 pb-4 shadow-lg z-50">
+      {/* Mobile Navigation - Fixed Bottom Bar */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-rose-600/20 bg-pink-50/95 backdrop-blur-md pt-2 pb-4 shadow-lg z-50"
+        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+      >
         <div className="flex justify-around px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -64,13 +78,13 @@ export const Navigation = () => {
         </div>
       </nav>
 
-      {/* Desktop Navigation - Sidebar */}
+      {/* Desktop Navigation - Fixed Sidebar */}
       <nav className="hidden lg:flex fixed left-0 top-0 h-screen w-64 xl:w-72 border-r border-rose-600/20 bg-pink-50/95 backdrop-blur-md shadow-lg flex-col py-8 px-4 z-50">
         <div className="mb-8 px-4">
           <h1 className="text-2xl font-bold text-rose-600">Perfect Wedding</h1>
           <p className="text-sm text-gray-600 mt-1">Plan your dream day</p>
         </div>
-        
+
         <div className="flex-1 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
