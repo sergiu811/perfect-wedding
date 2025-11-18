@@ -10,6 +10,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
 import { Button } from "~/components/ui/button";
 
 interface Booking {
@@ -29,13 +30,16 @@ interface Booking {
 
 interface BookingsSummary {
   totalBookings: number;
-  totalSpent: string;
+  totalSpent?: string;
+  totalRevenue?: string;
   confirmed: number;
   pending: number;
 }
 
 export const MyBookingsPage = () => {
   const { navigate } = useRouter();
+  const { profile } = useAuth();
+  const isVendor = profile?.role === "vendor";
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [summary, setSummary] = useState<BookingsSummary | null>(null);
@@ -113,7 +117,9 @@ export const MyBookingsPage = () => {
       <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 lg:p-8 rounded-b-3xl shadow-lg">
         <h1 className="text-3xl lg:text-4xl font-bold mb-2">My Bookings</h1>
         <p className="text-white/90 text-sm lg:text-base">
-          Manage your confirmed vendors
+          {isVendor
+            ? "Manage your bookings and clients"
+            : "Manage your confirmed vendors"}
         </p>
 
         {/* Filter Tabs */}
@@ -151,14 +157,25 @@ export const MyBookingsPage = () => {
                 {summary.totalBookings}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
-              <p className="text-xs lg:text-sm text-gray-500 mb-1">
-                Total Spent
-              </p>
-              <p className="text-2xl lg:text-3xl font-bold text-green-600">
-                {summary.totalSpent}
-              </p>
-            </div>
+            {isVendor ? (
+              <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+                <p className="text-xs lg:text-sm text-gray-500 mb-1">
+                  Total Revenue
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold text-green-600">
+                  {summary.totalRevenue || "$0"}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
+                <p className="text-xs lg:text-sm text-gray-500 mb-1">
+                  Total Spent
+                </p>
+                <p className="text-2xl lg:text-3xl font-bold text-green-600">
+                  {summary.totalSpent || "$0"}
+                </p>
+              </div>
+            )}
             <div className="bg-white rounded-xl p-4 lg:p-5 shadow-sm">
               <p className="text-xs lg:text-sm text-gray-500 mb-1">Confirmed</p>
               <p className="text-2xl lg:text-3xl font-bold text-blue-600">
@@ -202,14 +219,18 @@ export const MyBookingsPage = () => {
             </div>
             <p className="text-gray-600 font-medium">No bookings yet</p>
             <p className="text-sm text-gray-500 mt-1">
-              Start browsing vendors to book your services
+              {isVendor
+                ? "Your bookings will appear here when couples accept your offers"
+                : "Start browsing vendors to book your services"}
             </p>
-            <Button
-              onClick={() => navigate("/vendors")}
-              className="mt-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-11 px-6"
-            >
-              Browse Vendors
-            </Button>
+            {!isVendor && (
+              <Button
+                onClick={() => navigate("/vendors")}
+                className="mt-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-11 px-6"
+              >
+                Browse Vendors
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5">

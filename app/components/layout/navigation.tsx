@@ -4,7 +4,7 @@ import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
 import { Link } from "~/components/common";
 import { NAV_ITEMS } from "~/constants";
-import { Briefcase, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Briefcase, LayoutDashboard, MessageSquare, BookOpen } from "lucide-react";
 
 export const Navigation = () => {
   const { currentPath } = useRouter();
@@ -33,7 +33,8 @@ export const Navigation = () => {
         { path: "/vendor-dashboard", icon: Briefcase, label: "My Business" },
         { path: "/vendors", icon: NAV_ITEMS[1].icon, label: "Vendors" },
         { path: "/messages", icon: MessageSquare, label: "Messages" },
-        { path: "/more", icon: NAV_ITEMS[3].icon, label: "More" },
+        { path: "/my-bookings", icon: BookOpen, label: "My Bookings" },
+        { path: "/more", icon: NAV_ITEMS[5].icon, label: "More" },
       ];
     }
     // Default for couples
@@ -44,34 +45,56 @@ export const Navigation = () => {
     <>
       {/* Mobile Navigation - Fixed Bottom Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-rose-600/20 bg-pink-50/95 backdrop-blur-md pt-2 pb-4 shadow-lg z-50"
-        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+        className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-rose-600/20 bg-pink-50/95 backdrop-blur-md pt-2 pb-3 shadow-lg z-50"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="flex justify-around px-2">
+        <div className="flex justify-around items-center px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.path;
+            
+            // Short labels for mobile to prevent text overflow
+            const getShortLabel = (label: string) => {
+              const shortLabels: Record<string, string> = {
+                "Home": "Home",
+                "Vendors": "Vendors",
+                "My Wedding": "Wedding",
+                "Messages": "Messages",
+                "My Bookings": "Bookings",
+                "More": "More",
+                "My Business": "Business",
+              };
+              return shortLabels[label] || label;
+            };
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 min-w-[64px]",
+                  "flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg transition-all duration-200 flex-1 min-w-0",
                   isActive
-                    ? "text-rose-600"
-                    : "text-rose-600/70 hover:text-rose-600 hover:bg-rose-50"
+                    ? "text-rose-600 bg-rose-50"
+                    : "text-rose-600/70 active:text-rose-600 active:bg-rose-50"
                 )}
               >
-                <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
-                <p
+                <Icon 
+                  className="h-5 w-5 flex-shrink-0" 
+                  strokeWidth={isActive ? 2.5 : 2} 
+                />
+                <span
                   className={cn(
-                    "text-xs font-medium",
+                    "text-[11px] font-medium leading-tight text-center",
                     isActive && "font-semibold"
                   )}
+                  style={{ 
+                    lineHeight: "1.1",
+                    wordBreak: "break-word",
+                    hyphens: "auto"
+                  }}
                 >
-                  {item.label}
-                </p>
+                  {getShortLabel(item.label)}
+                </span>
               </Link>
             );
           })}

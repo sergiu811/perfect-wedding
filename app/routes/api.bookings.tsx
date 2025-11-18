@@ -157,6 +157,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         };
       }
 
+      // Normalize status to lowercase string to handle enum types
+      const normalizedStatus = booking.status
+        ? String(booking.status).toLowerCase().trim()
+        : "pending";
+
       return {
         id: booking.id,
         vendorId: isVendor ? user.id : service?.vendor_id,
@@ -166,7 +171,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           service?.images?.[0] ||
           vendor.avatar ||
           `https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.name)}`,
-        status: booking.status || "pending",
+        status: normalizedStatus,
         date: formatDate(booking.event_date),
         eventDate: booking.event_date, // Raw date for filtering
         price: formatPrice(booking.total_price),
@@ -184,7 +189,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Calculate summary stats
     const totalBookings = formattedBookings.length;
-    const totalSpent = formattedBookings.reduce(
+    const totalAmount = formattedBookings.reduce(
       (sum, b) => sum + parseFloat(b.price.replace(/[^0-9.]/g, "") || "0"),
       0
     );
@@ -200,7 +205,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         bookings: formattedBookings,
         summary: {
           totalBookings,
-          totalSpent: formatPrice(totalSpent),
+          totalSpent: isVendor ? undefined : formatPrice(totalAmount),
+          totalRevenue: isVendor ? formatPrice(totalAmount) : undefined,
           confirmed: confirmedCount,
           pending: pendingCount,
         },

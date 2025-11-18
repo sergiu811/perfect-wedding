@@ -58,7 +58,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       // Format single message for frontend
       const formattedMessage = {
         id: message.id,
-        sender: message.sender_id === conversation.couple_id ? "couple" : "vendor",
+        sender:
+          message.sender_id === conversation.couple_id ? "couple" : "vendor",
         message: message.content,
         timestamp: formatMessageTime(message.created_at),
         type: message.message_type,
@@ -169,7 +170,8 @@ export async function action({ request }: ActionFunctionArgs) {
         );
       }
 
-      // If accepted, create a booking
+      // If accepted, update the booking status to confirmed
+      // (Booking should already exist from when the offer was sent)
       if (status === "accepted") {
         // Get user's wedding
         const { data: wedding } = await supabase
@@ -179,9 +181,12 @@ export async function action({ request }: ActionFunctionArgs) {
           .single();
 
         if (!wedding) {
-          console.error("Error creating booking: Wedding not found for user");
+          console.error("Error updating booking: Wedding not found for user");
           return Response.json(
-            { error: "Wedding not found. Please create a wedding profile first." },
+            {
+              error:
+                "Wedding not found. Please create a wedding profile first.",
+            },
             { status: 400, headers }
           );
         }
@@ -193,25 +198,16 @@ export async function action({ request }: ActionFunctionArgs) {
         const finalPrice = bookingData?.price || offerData.price;
 
         if (!serviceId) {
-          console.error("Error creating booking: Service ID not found in offer data");
+          console.error(
+            "Error updating booking: Service ID not found in offer data"
+          );
           return Response.json(
-            { error: "Service ID is required to create booking" },
+            { error: "Service ID is required to update booking" },
             { status: 400, headers }
           );
         }
 
-        if (!finalDate || !finalPrice) {
-          console.error("Error creating booking: Missing date or price", {
-            date: finalDate,
-            price: finalPrice,
-          });
-          return Response.json(
-            { error: "Date and price are required to create booking" },
-            { status: 400, headers }
-          );
-        }
-
-        // Check if booking already exists for this service and wedding
+        // Find the booking (should exist from when offer was sent)
         const { data: existingBooking } = await supabase
           .from("bookings")
           .select("id")
@@ -220,22 +216,21 @@ export async function action({ request }: ActionFunctionArgs) {
           .maybeSingle();
 
         if (existingBooking) {
-          console.log("Booking already exists, updating instead");
-          // Update existing booking
+          // Update booking to confirmed status when offer is accepted
           const { error: updateError } = await supabase
             .from("bookings")
             .update({
               status: "confirmed",
-              event_date: finalDate,
-              total_price: parseFloat(
-                String(finalPrice).replace(/[^0-9.]/g, "")
-              ),
+              event_date: finalDate || undefined,
+              total_price: finalPrice
+                ? parseFloat(String(finalPrice).replace(/[^0-9.]/g, ""))
+                : undefined,
               deposit_paid: bookingData?.deposit
                 ? parseFloat(
                     String(bookingData.deposit).replace(/[^0-9.]/g, "")
                   )
-                : null,
-              notes: bookingData?.notes || null,
+                : undefined,
+              notes: bookingData?.notes || undefined,
               updated_at: new Date().toISOString(),
             })
             .eq("id", existingBooking.id);
@@ -248,36 +243,35 @@ export async function action({ request }: ActionFunctionArgs) {
             );
           }
         } else {
-          // Create new booking
-          const { error: bookingError } = await supabase
-            .from("bookings")
-            .insert({
-              wedding_id: wedding.id,
-              service_id: serviceId,
-              status: "confirmed",
-              event_date: finalDate,
-              total_price: parseFloat(
-                String(finalPrice).replace(/[^0-9.]/g, "")
-              ),
-              deposit_paid: bookingData?.deposit
-                ? parseFloat(
-                    String(bookingData.deposit).replace(/[^0-9.]/g, "")
-                  )
-                : null,
-              notes: bookingData?.notes || null,
-            });
+          // Fallback: Create booking if it doesn't exist (for old offers)
+          if (finalDate && finalPrice) {
+            const { error: bookingError } = await supabase
+              .from("bookings")
+              .insert({
+                wedding_id: wedding.id,
+                service_id: serviceId,
+                status: "confirmed",
+                event_date: finalDate,
+                total_price: parseFloat(
+                  String(finalPrice).replace(/[^0-9.]/g, "")
+                ),
+                deposit_paid: bookingData?.deposit
+                  ? parseFloat(
+                      String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                    )
+                  : null,
+                notes: bookingData?.notes || null,
+              });
 
-          if (bookingError) {
-            console.error("Error creating booking:", bookingError);
-            return Response.json(
-              { error: "Failed to create booking: " + bookingError.message },
-              { status: 500, headers }
-            );
+            if (bookingError) {
+              console.error("Error creating booking:", bookingError);
+              // Don't fail the request, just log the error
+            }
           }
         }
 
         // Also update conversation status to closed
-        await supabase
+        await (supabase as any)
           .from("conversations")
           .update({ status: "closed" })
           .eq("id", conversation.id);
@@ -330,6 +324,15 @@ export async function action({ request }: ActionFunctionArgs) {
       return Response.json({ error: "Unauthorized" }, { status: 403, headers });
     }
 
+    // Check if user is a vendor (only vendors can send offers)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isVendor = profile?.role === "vendor";
+
     // Determine message type
     const msgType = messageType || "text";
     let content = message || "Booking Offer";
@@ -344,11 +347,41 @@ export async function action({ request }: ActionFunctionArgs) {
       }
 
       // Validate offer data
-      if (!offerData.price || !offerData.date || !offerData.services || !offerData.serviceId) {
+      if (
+        !offerData.price ||
+        !offerData.date ||
+        !offerData.services ||
+        !offerData.serviceId
+      ) {
         return Response.json(
           { error: "Offer must include serviceId, price, date, and services" },
           { status: 400, headers }
         );
+      }
+
+      // Only vendors can send offers
+      if (!isVendor) {
+        return Response.json(
+          { error: "Only vendors can send offers" },
+          { status: 403, headers }
+        );
+      }
+
+      // Fetch the service to get package details
+      let packageDetails: any[] = [];
+      if (offerData.serviceId && offerData.selectedPackages?.length > 0) {
+        const { data: service } = await supabase
+          .from("services")
+          .select("packages")
+          .eq("id", offerData.serviceId)
+          .single();
+
+        if (service?.packages && Array.isArray(service.packages)) {
+          // Get full details for selected packages
+          packageDetails = service.packages.filter((pkg: any) =>
+            offerData.selectedPackages?.includes(pkg.id || pkg.name)
+          );
+        }
       }
 
       offerDataToStore = {
@@ -358,9 +391,13 @@ export async function action({ request }: ActionFunctionArgs) {
         price: offerData.price,
         date: offerData.date,
         services: offerData.services,
+        selectedPackages: offerData.selectedPackages || [],
+        packageDetails: packageDetails, // Include full package details
         status: "pending",
       };
-      const categoryLabel = offerData.serviceCategory ? ` (${offerData.serviceCategory})` : "";
+      const categoryLabel = offerData.serviceCategory
+        ? ` (${offerData.serviceCategory})`
+        : "";
       content = `Booking Offer: ${offerData.serviceName || "Service"}${categoryLabel}`;
     }
 
@@ -383,6 +420,61 @@ export async function action({ request }: ActionFunctionArgs) {
         { error: msgError.message },
         { status: 500, headers }
       );
+    }
+
+    // If an offer was sent, create a booking with pending status
+    if (msgType === "offer" && offerDataToStore && isVendor) {
+      // Get the couple's wedding
+      const { data: wedding } = await supabase
+        .from("weddings")
+        .select("id")
+        .eq("user_id", conversation.couple_id)
+        .single();
+
+      if (wedding) {
+        const serviceId = offerDataToStore.serviceId;
+        const eventDate = offerDataToStore.date;
+        const totalPrice = parseFloat(
+          String(offerDataToStore.price).replace(/[^0-9.]/g, "")
+        );
+
+        // Check if booking already exists for this service and wedding
+        const { data: existingBooking } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("wedding_id", wedding.id)
+          .eq("service_id", serviceId)
+          .maybeSingle();
+
+        if (existingBooking) {
+          // Update existing booking to pending status
+          await supabase
+            .from("bookings")
+            .update({
+              status: "pending",
+              event_date: eventDate,
+              total_price: totalPrice,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingBooking.id);
+        } else {
+          // Create new booking with pending status
+          const { error: bookingError } = await supabase
+            .from("bookings")
+            .insert({
+              wedding_id: wedding.id,
+              service_id: serviceId,
+              status: "pending",
+              event_date: eventDate,
+              total_price: totalPrice,
+            });
+
+          if (bookingError) {
+            console.error("Error creating booking from offer:", bookingError);
+            // Don't fail the message creation if booking creation fails
+          }
+        }
+      }
     }
 
     return Response.json(

@@ -34,6 +34,13 @@ interface ChatMessage {
     price: string;
     services: string[];
     date: string;
+    selectedPackages?: string[];
+    packageDetails?: Array<{
+      id?: string;
+      name: string;
+      price?: string | number;
+      description?: string;
+    }>;
     status?: "pending" | "accepted" | "rejected" | "negotiated";
   };
 }
@@ -158,6 +165,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
     price: "",
     date: "",
     services: [""],
+    selectedPackages: [] as string[], // Array of package IDs
   });
 
   // Vendor's services (for offer form)
@@ -606,6 +614,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             price: offerData.price,
             date: offerData.date,
             services: offerData.services.filter((s) => s.trim() !== ""),
+            selectedPackages: offerData.selectedPackages,
           },
         }),
       });
@@ -624,6 +633,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
         price: "",
         date: "",
         services: [""],
+        selectedPackages: [],
       });
 
       // Scroll will happen via realtime subscription
@@ -743,22 +753,65 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                     </p>
                   </div>
 
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-2">
-                      Included Services
-                    </p>
-                    <ul className="space-y-1.5">
-                      {msg.offerDetails?.services.map((service, idx) => (
-                        <li
-                          key={idx}
-                          className="text-xs text-gray-700 flex items-start gap-2"
-                        >
-                          <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span>{service}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* Selected Packages */}
+                  {msg.offerDetails?.packageDetails &&
+                    msg.offerDetails.packageDetails.length > 0 && (
+                      <div className="bg-white rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Selected Packages
+                        </p>
+                        <ul className="space-y-1.5">
+                          {msg.offerDetails.packageDetails.map((pkg, idx) => (
+                            <li
+                              key={pkg.id || idx}
+                              className="text-xs text-gray-700 flex items-start gap-2"
+                            >
+                              <CheckCheck className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <span className="font-semibold">
+                                  {pkg.name}
+                                </span>
+                                {pkg.price && (
+                                  <span className="ml-2 text-purple-600">
+                                    ($
+                                    {parseFloat(
+                                      String(pkg.price)
+                                    ).toLocaleString()}
+                                    )
+                                  </span>
+                                )}
+                                {pkg.description && (
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {pkg.description}
+                                  </p>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Included Services (custom details) */}
+                  {msg.offerDetails?.services &&
+                    msg.offerDetails.services.length > 0 && (
+                      <div className="bg-white rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Included Services
+                        </p>
+                        <ul className="space-y-1.5">
+                          {msg.offerDetails.services.map((service, idx) => (
+                            <li
+                              key={idx}
+                              className="text-xs text-gray-700 flex items-start gap-2"
+                            >
+                              <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span>{service}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                   {msg.offerDetails?.status === "accepted" ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
@@ -888,6 +941,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                       serviceId: e.target.value,
                       serviceName: selectedService?.title || "",
                       serviceCategory: selectedService?.category || "",
+                      selectedPackages: [], // Reset packages when service changes
                     });
                   }}
                   className="w-full h-12 border border-gray-300 rounded-lg px-3 bg-white text-gray-900"
@@ -900,6 +954,94 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                   ))}
                 </select>
               </div>
+
+              {/* Package Selection */}
+              {offerData.serviceId &&
+                (() => {
+                  const selectedService = vendorServices.find(
+                    (s) => s.id === offerData.serviceId
+                  );
+                  const servicePackages = selectedService?.packages || [];
+
+                  if (servicePackages.length > 0) {
+                    return (
+                      <div>
+                        <label className="text-sm font-bold text-gray-900 mb-2 block">
+                          Select Packages (Optional)
+                        </label>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Choose packages from this service to include in the
+                          offer
+                        </p>
+                        <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                          {servicePackages.map((pkg: any) => {
+                            const isSelected =
+                              offerData.selectedPackages.includes(
+                                pkg.id || pkg.name
+                              );
+                            return (
+                              <label
+                                key={pkg.id || pkg.name}
+                                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? "border-purple-600 bg-purple-50"
+                                    : "border-gray-200 hover:border-gray-300"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const packageId = pkg.id || pkg.name;
+                                    if (e.target.checked) {
+                                      setOfferData({
+                                        ...offerData,
+                                        selectedPackages: [
+                                          ...offerData.selectedPackages,
+                                          packageId,
+                                        ],
+                                      });
+                                    } else {
+                                      setOfferData({
+                                        ...offerData,
+                                        selectedPackages:
+                                          offerData.selectedPackages.filter(
+                                            (id) => id !== packageId
+                                          ),
+                                      });
+                                    }
+                                  }}
+                                  className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="font-semibold text-gray-900 text-sm">
+                                      {pkg.name || "Unnamed Package"}
+                                    </p>
+                                    {pkg.price && (
+                                      <p className="text-sm font-bold text-purple-600">
+                                        $
+                                        {parseFloat(
+                                          String(pkg.price)
+                                        ).toLocaleString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {pkg.description && (
+                                    <p className="text-xs text-gray-600 line-clamp-2">
+                                      {pkg.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
               {/* Price */}
               <div>
