@@ -4,11 +4,12 @@ import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
 import { Link } from "~/components/common";
 import { NAV_ITEMS } from "~/constants";
+import { getSupabaseBrowserClient } from "~/lib/supabase.client";
 import { Briefcase, LayoutDashboard, MessageSquare, BookOpen } from "lucide-react";
 
 export const Navigation = () => {
   const { currentPath } = useRouter();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
 
   // Hide navigation on auth/login/signup pages
   const hideOnRoutes = ["/auth", "/login", "/signup"];
@@ -41,6 +42,53 @@ export const Navigation = () => {
     return NAV_ITEMS;
   }, [profile?.role]);
 
+  // Unread messages count
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const supabase = getSupabaseBrowserClient();
+    let subscription: any = null;
+
+    const fetchUnreadCount = async () => {
+      const { count, error } = await (supabase as any)
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .is("read_at", null)
+        .neq("sender_id", user.id);
+
+      if (!error && count !== null) {
+        setUnreadCount(count);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Subscribe to message changes
+    subscription = supabase
+      .channel("global-messages-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          // Refetch on any message change (insert, update, delete)
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [user]);
+
   return (
     <>
       {/* Mobile Navigation - Fixed Bottom Bar */}
@@ -52,7 +100,7 @@ export const Navigation = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.path;
-            
+
             // Short labels for mobile to prevent text overflow
             const getShortLabel = (label: string) => {
               const shortLabels: Record<string, string> = {
@@ -72,22 +120,29 @@ export const Navigation = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg transition-all duration-200 flex-1 min-w-0",
+                  "flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg transition-all duration-200 flex-1 min-w-0 relative",
                   isActive
                     ? "text-rose-600 bg-rose-50"
                     : "text-rose-600/70 active:text-rose-600 active:bg-rose-50"
                 )}
               >
-                <Icon 
-                  className="h-5 w-5 flex-shrink-0" 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                />
+                <div className="relative">
+                  <Icon
+                    className="h-5 w-5 flex-shrink-0"
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {item.path === "/messages" && unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <span
                   className={cn(
                     "text-[11px] font-medium leading-tight text-center",
                     isActive && "font-semibold"
                   )}
-                  style={{ 
+                  style={{
                     lineHeight: "1.1",
                     wordBreak: "break-word",
                     hyphens: "auto"
@@ -118,13 +173,20 @@ export const Navigation = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200",
+                  "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 relative",
                   isActive
                     ? "bg-rose-600 text-white shadow-lg"
                     : "text-rose-600/70 hover:text-rose-600 hover:bg-rose-50"
                 )}
               >
-                <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
+                <div className="relative">
+                  <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
+                  {item.path === "/messages" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <p
                   className={cn(
                     "text-base font-medium",
@@ -133,6 +195,11 @@ export const Navigation = () => {
                 >
                   {item.label}
                 </p>
+                {item.path === "/messages" && unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

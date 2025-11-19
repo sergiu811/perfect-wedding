@@ -247,7 +247,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
               : conv.vendorName,
             vendorAvatar: isVendorView
               ? conv.coupleAvatar ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.coupleName || "Couple")}`
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.coupleName || "Couple")}`
               : conv.vendorAvatar,
             vendorCategory: isVendorView
               ? "Wedding Couple"
@@ -374,7 +374,30 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                 );
                 if (response.ok && isMounted) {
                   const data = await response.json();
-                  const formattedMessage = data.message as ChatMessage;
+                  let formattedMessage = data.message as ChatMessage;
+
+                  // Decrypt message if it's encrypted text
+                  if (
+                    formattedMessage.type === "text" &&
+                    formattedMessage.message &&
+                    isEncrypted(formattedMessage.message)
+                  ) {
+                    try {
+                      const decrypted = await decryptMessage(
+                        formattedMessage.message,
+                        conversationId
+                      );
+                      formattedMessage = {
+                        ...formattedMessage,
+                        message: decrypted,
+                      };
+                    } catch (error) {
+                      console.error(
+                        "Failed to decrypt realtime update message:",
+                        error
+                      );
+                    }
+                  }
 
                   // Update message in state (for offer status changes)
                   setMessages((prev) =>
@@ -516,12 +539,12 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
         messages.map((msg) =>
           msg.id === messageId
             ? {
-                ...msg,
-                offerDetails: {
-                  ...msg.offerDetails!,
-                  status: "accepted",
-                },
-              }
+              ...msg,
+              offerDetails: {
+                ...msg.offerDetails!,
+                status: "accepted",
+              },
+            }
             : msg
         )
       );
@@ -553,12 +576,12 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
         messages.map((msg) =>
           msg.id === messageId
             ? {
-                ...msg,
-                offerDetails: {
-                  ...msg.offerDetails!,
-                  status: "rejected",
-                },
-              }
+              ...msg,
+              offerDetails: {
+                ...msg.offerDetails!,
+                status: "rejected",
+              },
+            }
             : msg
         )
       );
@@ -693,22 +716,21 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             headerHeight > 0
               ? `${headerHeight}px`
               : `calc(64px + env(safe-area-inset-top, 0px))`,
-          bottom:
-            bottomHeight > 0
-              ? `${bottomHeight}px`
-              : `calc(120px + env(safe-area-inset-bottom, 0px))`,
+          bottom: 0,
           padding: "1rem",
-          paddingBottom: "1rem",
+          paddingBottom:
+            bottomHeight > 0
+              ? `${bottomHeight + 16}px`
+              : `calc(120px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${
-              msg.sender === (isVendor ? "vendor" : "couple")
-                ? "justify-end"
-                : "justify-start"
-            }`}
+            className={`flex ${msg.sender === (isVendor ? "vendor" : "couple")
+              ? "justify-end"
+              : "justify-start"
+              }`}
           >
             {msg.type === "offer" ? (
               // Offer Card
@@ -847,11 +869,10 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
               </div>
             ) : (
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
-                  msg.sender === (isVendor ? "vendor" : "couple")
-                    ? "bg-rose-600 text-white"
-                    : "bg-white text-gray-900"
-                }`}
+                className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")
+                  ? "bg-rose-600 text-white"
+                  : "bg-white text-gray-900"
+                  }`}
               >
                 <p>{msg.message}</p>
                 <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
@@ -982,11 +1003,10 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                             return (
                               <label
                                 key={pkg.id || pkg.name}
-                                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? "border-purple-600 bg-purple-50"
-                                    : "border-gray-200 hover:border-gray-300"
-                                }`}
+                                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${isSelected
+                                  ? "border-purple-600 bg-purple-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                                  }`}
                               >
                                 <input
                                   type="checkbox"

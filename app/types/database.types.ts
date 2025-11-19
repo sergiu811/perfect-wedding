@@ -21,6 +21,7 @@ export type Database = {
           event_date: string
           id: string
           notes: string | null
+          selected_packages: Json | null
           service_id: string
           status: Database["public"]["Enums"]["booking_status"] | null
           total_price: number | null
@@ -33,6 +34,7 @@ export type Database = {
           event_date: string
           id?: string
           notes?: string | null
+          selected_packages?: Json | null
           service_id: string
           status?: Database["public"]["Enums"]["booking_status"] | null
           total_price?: number | null
@@ -45,6 +47,7 @@ export type Database = {
           event_date?: string
           id?: string
           notes?: string | null
+          selected_packages?: Json | null
           service_id?: string
           status?: Database["public"]["Enums"]["booking_status"] | null
           total_price?: number | null

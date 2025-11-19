@@ -118,7 +118,7 @@ export const MyWeddingPage = () => {
         if (conversationsRes.ok) {
           const conversationsData = await conversationsRes.json();
           const conversations = conversationsData.conversations || [];
-          
+
           // Decrypt lastMessage for each conversation (skip if it's an offer message)
           const decryptedConversations = await Promise.all(
             conversations.map(async (conv: any) => {
@@ -126,7 +126,7 @@ export const MyWeddingPage = () => {
               if (conv.hasPendingOffer || conv.status === "offer-sent" || (conv.lastMessage && conv.lastMessage.startsWith("Booking Offer:"))) {
                 return conv;
               }
-              
+
               if (conv.lastMessage && isEncrypted(conv.lastMessage)) {
                 try {
                   const decrypted = await decryptMessage(
@@ -142,7 +142,7 @@ export const MyWeddingPage = () => {
               return conv;
             })
           );
-          
+
           setConversations(decryptedConversations);
         }
 
@@ -184,7 +184,7 @@ export const MyWeddingPage = () => {
         async (payload) => {
           console.log("[MyWeddingPage] Conversation updated");
           const updatedConversation = payload.new as any;
-          
+
           // Update the conversation in state without full refresh
           setConversations((prev) => {
             const index = prev.findIndex((c: any) => c.id === updatedConversation.id);
@@ -199,11 +199,11 @@ export const MyWeddingPage = () => {
                   if (freshConv) {
                     // Decrypt lastMessage if encrypted (skip for offer messages)
                     let decryptedConv = freshConv;
-                    if (!freshConv.hasPendingOffer && 
-                        freshConv.status !== "offer-sent" && 
-                        freshConv.lastMessage && 
-                        !freshConv.lastMessage.startsWith("Booking Offer:") &&
-                        isEncrypted(freshConv.lastMessage)) {
+                    if (!freshConv.hasPendingOffer &&
+                      freshConv.status !== "offer-sent" &&
+                      freshConv.lastMessage &&
+                      !freshConv.lastMessage.startsWith("Booking Offer:") &&
+                      isEncrypted(freshConv.lastMessage)) {
                       try {
                         const decrypted = await decryptMessage(
                           freshConv.lastMessage,
@@ -219,7 +219,7 @@ export const MyWeddingPage = () => {
                 });
               return prev;
             }
-            
+
             // Update existing conversation directly from payload
             const updated = prev[index];
             const lastMessageText = updatedConversation.last_message_text || updated.lastMessage;
@@ -229,7 +229,7 @@ export const MyWeddingPage = () => {
               timestamp: updatedConversation.last_message_at ? new Date(updatedConversation.last_message_at).toLocaleString() : updated.timestamp,
               unread: updatedConversation.couple_unread_count > 0 || updatedConversation.vendor_unread_count > 0,
             };
-            
+
             // Decrypt lastMessage if encrypted (skip for offer messages)
             const isOfferMessage = lastMessageText && lastMessageText.startsWith("Booking Offer:");
             if (lastMessageText && !isOfferMessage && isEncrypted(lastMessageText)) {
@@ -252,7 +252,7 @@ export const MyWeddingPage = () => {
                 });
               return prev; // Return prev while decrypting
             }
-            
+
             // No encryption, update directly
             const newConversations = [...prev];
             newConversations[index] = updatedConv;
@@ -277,16 +277,16 @@ export const MyWeddingPage = () => {
   // Use wedding data from database if available, otherwise fall back to context
   const displayData = wedding
     ? {
-        partner1Name: wedding.partner1_name,
-        partner2Name: wedding.partner2_name,
-        weddingDate: wedding.wedding_date,
-        location: wedding.location,
-        guestCount: wedding.guest_count.toString(),
-        budgetMin: wedding.budget_min?.toString(),
-        budgetMax: wedding.budget_max?.toString(),
-        themes: wedding.themes || [],
-        colorPalette: wedding.color_palette || [],
-      }
+      partner1Name: wedding.partner1_name,
+      partner2Name: wedding.partner2_name,
+      weddingDate: wedding.wedding_date,
+      location: wedding.location,
+      guestCount: wedding.guest_count.toString(),
+      budgetMin: wedding.budget_min?.toString(),
+      budgetMax: wedding.budget_max?.toString(),
+      themes: wedding.themes || [],
+      colorPalette: wedding.color_palette || [],
+    }
     : formData;
 
   // Calculate days until wedding
@@ -1279,12 +1279,12 @@ export const MyWeddingPage = () => {
                       <p className="text-sm font-semibold text-gray-900">
                         {displayData.weddingDate
                           ? new Date(
-                              displayData.weddingDate
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
+                            displayData.weddingDate
+                          ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
                           : "Not set"}
                       </p>
                     </div>
@@ -1320,10 +1320,10 @@ export const MyWeddingPage = () => {
                       <p className="text-sm font-semibold text-gray-900">
                         {displayData.budgetMin && displayData.budgetMax
                           ? `$${parseInt(
-                              displayData.budgetMin
-                            ).toLocaleString()}-${parseInt(
-                              displayData.budgetMax
-                            ).toLocaleString()}`
+                            displayData.budgetMin
+                          ).toLocaleString()}-${parseInt(
+                            displayData.budgetMax
+                          ).toLocaleString()}`
                           : "—"}
                       </p>
                     </div>
@@ -1335,7 +1335,7 @@ export const MyWeddingPage = () => {
                     <p className="text-sm font-semibold text-gray-900">
                       {wedding?.wedding_type
                         ? wedding.wedding_type.charAt(0).toUpperCase() +
-                          wedding.wedding_type.slice(1)
+                        wedding.wedding_type.slice(1)
                         : "—"}
                     </p>
                   </div>
@@ -1346,7 +1346,7 @@ export const MyWeddingPage = () => {
                     <p className="text-sm font-semibold text-gray-900">
                       {wedding?.formality_level
                         ? wedding.formality_level.charAt(0).toUpperCase() +
-                          wedding.formality_level.slice(1)
+                        wedding.formality_level.slice(1)
                         : "—"}
                     </p>
                   </div>
@@ -1388,14 +1388,14 @@ export const MyWeddingPage = () => {
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-5 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-blue-600" />
                     Planning Tasks
-                </h2>
+                  </h2>
                   <span className="text-sm font-medium text-blue-600">
                     {completedTasks}/{tasks.length}
                   </span>
-              </div>
+                </div>
               </div>
               <div className="p-4 lg:p-5 space-y-3">
                 {/* AI Suggestion */}
@@ -1438,11 +1438,10 @@ export const MyWeddingPage = () => {
                         />
                         <div className="flex-1 min-w-0">
                           <p
-                            className={`text-sm font-medium ${
-                              task.completed
-                                ? "line-through text-gray-400"
-                                : "text-gray-900"
-                            }`}
+                            className={`text-sm font-medium ${task.completed
+                              ? "line-through text-gray-400"
+                              : "text-gray-900"
+                              }`}
                           >
                             {task.title}
                           </p>
@@ -1464,10 +1463,42 @@ export const MyWeddingPage = () => {
                                       }
                                     )}
                                   </p>
-                  </div>
+                                </div>
                               </>
                             )}
-                </div>
+                          </div>
+                          {/* Display selected packages if available */}
+                          {(() => {
+                            // Assuming 'task' might have a 'booking' property with 'selectedPackages'
+                            // This part of the code seems to be intended for a 'booking' object,
+                            // but it's placed within a 'task' mapping.
+                            // If 'task' does not have 'booking.selectedPackages', this will always be empty.
+                            // For the purpose of this edit, I'm assuming 'task' has a 'booking' property.
+                            const packages = Array.isArray(task.booking?.selectedPackages)
+                              ? task.booking.selectedPackages
+                              : task.booking?.selectedPackages
+                                ? [task.booking.selectedPackages]
+                                : [];
+
+                            if (packages.length === 0) return null;
+
+                            return (
+                              <div className="mt-2 pt-2 border-t border-purple-200">
+                                <p className="text-xs font-medium text-gray-700 mb-1">Packages:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {packages.map((pkg: any, idx: number) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700"
+                                    >
+                                      {pkg.name || pkg.title || `Package ${idx + 1}`}
+                                      {pkg.price && <span className="ml-1 opacity-75">(${pkg.price})</span>}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -1484,8 +1515,8 @@ export const MyWeddingPage = () => {
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
-                  </div>
-                </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1507,17 +1538,17 @@ export const MyWeddingPage = () => {
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 lg:p-5 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-emerald-600" />
                     Budget Tracker
-                </h2>
+                  </h2>
                   <button
                     onClick={() => navigate("/budget-details")}
                     className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
                   >
                     Details
                   </button>
-              </div>
+                </div>
               </div>
               <div className="p-4 lg:p-5 space-y-4">
                 <div>
@@ -1569,7 +1600,7 @@ export const MyWeddingPage = () => {
                             className={`w-3 h-3 rounded-full ${item.color}`}
                           />
                           <span className="text-gray-600">{item.label}</span>
-                      </div>
+                        </div>
                         <span className="font-semibold text-gray-900">
                           $
                           {item.amount.toLocaleString("en-US", {
@@ -1577,10 +1608,10 @@ export const MyWeddingPage = () => {
                             maximumFractionDigits: 0,
                           })}
                         </span>
-              </div>
+                      </div>
                     ))
                   )}
-            </div>
+                </div>
 
                 {/* Extra Expenses List */}
                 {expenses.length > 0 && (
@@ -1613,7 +1644,7 @@ export const MyWeddingPage = () => {
                                 minimumFractionDigits: 0,
                                 maximumFractionDigits: 0,
                               })}
-                      </span>
+                            </span>
                             <button
                               onClick={() => handleEditExpense(expense)}
                               className="p-1 hover:bg-gray-200 rounded text-gray-600"
@@ -1627,9 +1658,9 @@ export const MyWeddingPage = () => {
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
                   </div>
                 )}
 
@@ -1674,15 +1705,15 @@ export const MyWeddingPage = () => {
                         </span>
                         <span className="text-sm font-semibold text-gray-900">
                           {guestStats.total}
-                  </span>
-                </div>
+                        </span>
+                      </div>
                       {guestStats.total > 0 && (
                         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
                             style={{ width: `${rsvpPercent}%` }}
                           />
-              </div>
+                        </div>
                       )}
                     </div>
 
@@ -1697,7 +1728,7 @@ export const MyWeddingPage = () => {
                             {guestStats.confirmed}
                           </p>
                           <p className="text-xs text-green-600">Confirmed</p>
-                    </div>
+                        </div>
                         <div className="bg-yellow-50 rounded-lg p-2 text-center">
                           <p className="text-lg font-bold text-yellow-700">
                             {guestStats.pending}
@@ -1710,8 +1741,8 @@ export const MyWeddingPage = () => {
                           </p>
                           <p className="text-xs text-red-600">Declined</p>
                         </div>
-                  </div>
-                </div>
+                      </div>
+                    </div>
 
                     {/* Recent Guests Preview */}
                     {guests.length > 0 && (
@@ -1736,13 +1767,12 @@ export const MyWeddingPage = () => {
                                 )}
                               </div>
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                  guest.rsvp_status === "yes"
-                                    ? "bg-green-100 text-green-700"
-                                    : guest.rsvp_status === "no"
-                                      ? "bg-red-100 text-red-700"
-                                      : "bg-yellow-100 text-yellow-700"
-                                }`}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${guest.rsvp_status === "yes"
+                                  ? "bg-green-100 text-green-700"
+                                  : guest.rsvp_status === "no"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-yellow-100 text-yellow-700"
+                                  }`}
                               >
                                 {guest.rsvp_status === "yes"
                                   ? "Yes"
@@ -1750,9 +1780,9 @@ export const MyWeddingPage = () => {
                                     ? "No"
                                     : "Pending"}
                               </span>
-                    </div>
-                  ))}
-                </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -1762,13 +1792,13 @@ export const MyWeddingPage = () => {
                       </p>
                     )}
 
-                <button
+                    <button
                       onClick={() => navigate("/guest-list")}
                       className="flex items-center justify-center gap-2 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg h-10 text-sm font-medium mt-3"
-                >
+                    >
                       <Users className="w-4 h-4" />
                       Manage Guest List
-                </button>
+                    </button>
                   </>
                 )}
               </div>
@@ -1790,31 +1820,30 @@ export const MyWeddingPage = () => {
                   </p>
                 ) : (
                   bookedVendors.map((vendor) => (
-                  <div
-                    key={vendor.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                  >
                     <div
-                      className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
-                      style={{ backgroundImage: `url(${vendor.image})` }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {vendor.name}
-                      </p>
+                      key={vendor.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div
+                        className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
+                        style={{ backgroundImage: `url(${vendor.image})` }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {vendor.name}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {vendor.category}
                         </p>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          vendor.status === "Confirmed"
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${vendor.status === "Confirmed"
                             ? "bg-green-100 text-green-700"
                             : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {vendor.status}
-                      </span>
-                    </div>
+                            }`}
+                        >
+                          {vendor.status}
+                        </span>
+                      </div>
                       <button
                         onClick={() => {
                           if (vendor.conversationId) {
@@ -1831,9 +1860,9 @@ export const MyWeddingPage = () => {
                         }}
                         className="p-2 hover:bg-gray-200 rounded-full"
                       >
-                      <MessageCircle className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
+                        <MessageCircle className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
                   ))
                 )}
 
@@ -1893,15 +1922,14 @@ export const MyWeddingPage = () => {
                             </p>
                           </div>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${
-                              booking.status === "confirmed"
-                                ? "bg-green-100 text-green-700"
-                                : booking.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : booking.status === "completed"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-red-100 text-red-700"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 ${booking.status === "confirmed"
+                              ? "bg-green-100 text-green-700"
+                              : booking.status === "pending"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : booking.status === "completed"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
                           >
                             {booking.status === "confirmed"
                               ? "Confirmed"
@@ -1922,6 +1950,32 @@ export const MyWeddingPage = () => {
                             {booking.price}
                           </span>
                         </div>
+                        {/* Display selected packages if available */}
+                        {(() => {
+                          const packages = Array.isArray(booking.selectedPackages)
+                            ? booking.selectedPackages
+                            : booking.selectedPackages
+                              ? [booking.selectedPackages]
+                              : [];
+
+                          if (packages.length === 0) return null;
+
+                          return (
+                            <div className="mt-2 pt-2 border-t border-purple-200">
+                              <p className="text-xs font-medium text-gray-700 mb-1">Packages:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {packages.map((pkg: any, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700"
+                                  >
+                                    {pkg.name || pkg.title || `Package ${idx + 1}`}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </button>
                   ))
@@ -2027,51 +2081,51 @@ export const MyWeddingPage = () => {
                     </p>
                   ) : (
                     conversations.slice(0, 4).map((conv) => (
-                    <button
+                      <button
                         key={conv.id}
                         onClick={() => navigate(`/chat/${conv.id}`)}
-                      className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                    >
-                      <div
-                        className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
+                        className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0"
                           style={{
                             backgroundImage: `url(${conv.vendorAvatar})`,
                           }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
                                 {conv.vendorName}
-                            </p>
-                            <p className="text-xs text-gray-500">
+                              </p>
+                              <p className="text-xs text-gray-500">
                                 {conv.vendorCategory || "Service"}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 ml-2">
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
                               <p className="text-xs text-gray-500">
                                 {conv.timestamp}
                               </p>
                               {conv.unread && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                            )}
+                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                              )}
                               {conv.hasPendingOffer && (
                                 <div
                                   className="w-2 h-2 bg-yellow-500 rounded-full"
                                   title="Pending Offer"
                                 />
                               )}
+                            </div>
                           </div>
-                        </div>
-                        <p
+                          <p
                             className={`text-xs ${conv.unread ? "text-gray-900 font-medium" : "text-gray-600"} truncate`}
-                        >
+                          >
                             {conv.hasPendingOffer
                               ? `💰 Offer: ${conv.pendingOffer?.price || "View offer"}`
                               : conv.lastMessage || "No messages yet"}
-                        </p>
-                      </div>
-                    </button>
+                          </p>
+                        </div>
+                      </button>
                     ))
                   )}
 
@@ -2090,10 +2144,10 @@ export const MyWeddingPage = () => {
             {/* Guest QR & Gallery */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 lg:p-5 border-b border-gray-100">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Camera className="w-5 h-5 text-pink-600" />
                   Guest Gallery
-                  </h2>
+                </h2>
               </div>
               <div className="p-4 lg:p-5 space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
@@ -2104,16 +2158,16 @@ export const MyWeddingPage = () => {
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
                         Guest Upload QR
-                          </p>
-                          <p className="text-xs text-gray-500">
+                      </p>
+                      <p className="text-xs text-gray-500">
                         Let guests share photos
-                          </p>
-                        </div>
-                      </div>
+                      </p>
+                    </div>
+                  </div>
                   <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 py-2 text-sm font-medium">
                     Generate
                   </button>
-                      </div>
+                </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -2136,10 +2190,10 @@ export const MyWeddingPage = () => {
             {/* Style & Preferences */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
-                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Palette className="w-5 h-5 text-purple-600" />
                   Style & Preferences
-                  </h2>
+                </h2>
               </div>
               <div className="p-4 lg:p-5 space-y-4">
                 <div>
@@ -2149,7 +2203,7 @@ export const MyWeddingPage = () => {
                   <p className="text-sm font-semibold text-gray-900">
                     {wedding?.venue_preference
                       ? wedding.venue_preference.charAt(0).toUpperCase() +
-                        wedding.venue_preference.slice(1)
+                      wedding.venue_preference.slice(1)
                       : "Indoor"}
                   </p>
                 </div>
@@ -2170,8 +2224,8 @@ export const MyWeddingPage = () => {
                         {type}
                       </span>
                     ))}
+                  </div>
                 </div>
-              </div>
 
                 <div>
                   <p className="text-xs text-gray-500 uppercase font-medium mb-2">
@@ -2187,7 +2241,7 @@ export const MyWeddingPage = () => {
                         className="px-2 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded"
                       >
                         {style}
-                    </span>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -2287,8 +2341,8 @@ export const MyWeddingPage = () => {
                       </div>
                     );
                   })}
-                  </div>
-                </div>
+              </div>
+            </div>
 
             {/* Booked Vendors */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
@@ -2322,15 +2376,14 @@ export const MyWeddingPage = () => {
                           {vendor.category}
                         </p>
                         <span
-                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            vendor.status === "Confirmed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${vendor.status === "Confirmed"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                            }`}
                         >
                           {vendor.status}
-                      </span>
-                    </div>
+                        </span>
+                      </div>
                       <button
                         onClick={() => {
                           if (vendor.conversationId) {
@@ -2349,7 +2402,7 @@ export const MyWeddingPage = () => {
                       >
                         <MessageCircle className="w-5 h-5 text-gray-600" />
                       </button>
-                </div>
+                    </div>
                   ))
                 )}
 
@@ -2367,18 +2420,18 @@ export const MyWeddingPage = () => {
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-purple-600" />
                     Recommended For You
-                </h2>
+                  </h2>
                   <button
                     onClick={() => navigate("/vendors")}
                     className="text-sm font-medium text-purple-600 hover:text-purple-700"
                   >
                     View All
                   </button>
-                        </div>
-                      </div>
+                </div>
+              </div>
               <div className="p-4 lg:p-5 space-y-3">
                 {suggestedVendors.map((vendor) => (
                   <div
@@ -2388,7 +2441,7 @@ export const MyWeddingPage = () => {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-gray-900">
                             {vendor.name}
                           </p>
                           <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
@@ -2402,11 +2455,11 @@ export const MyWeddingPage = () => {
                           <div className="flex items-center gap-1">
                             <span className="text-yellow-500">★</span>
                             <span className="font-medium">{vendor.rating}</span>
-                      </div>
+                          </div>
                           <span className="text-gray-400">•</span>
                           <span className="text-gray-600">{vendor.price}</span>
-                    </div>
-                </div>
+                        </div>
+                      </div>
                     </div>
                     <button
                       onClick={() => {

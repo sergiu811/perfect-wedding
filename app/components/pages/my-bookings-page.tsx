@@ -26,6 +26,7 @@ interface Booking {
   depositPaid: boolean;
   depositAmount?: string;
   conversationId?: string;
+  selectedPackages?: any[];
 }
 
 interface BookingsSummary {
@@ -133,11 +134,10 @@ export const MyBookingsPage = () => {
             <button
               key={filter.value}
               onClick={() => setFilterStatus(filter.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filterStatus === filter.value
-                  ? "bg-white text-rose-600"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterStatus === filter.value
+                ? "bg-white text-rose-600"
+                : "bg-white/20 text-white hover:bg-white/30"
+                }`}
             >
               {filter.label}
             </button>
@@ -280,6 +280,47 @@ export const MyBookingsPage = () => {
                     </div>
                   </div>
 
+                  {/* Display selected packages if available */}
+                  {(() => {
+                    const packages = Array.isArray(booking.selectedPackages)
+                      ? booking.selectedPackages
+                      : booking.selectedPackages
+                        ? [booking.selectedPackages]
+                        : [];
+
+                    if (packages.length === 0) return null;
+
+                    return (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs font-medium text-gray-700 mb-2">Packages:</p>
+                        <div className="flex flex-col gap-2">
+                          {packages.map((pkg: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="bg-purple-50 rounded-md p-2 border border-purple-100"
+                            >
+                              <div className="flex justify-between items-start">
+                                <span className="text-xs font-semibold text-purple-700">
+                                  {pkg.name || pkg.title || `Package ${idx + 1}`}
+                                </span>
+                                {pkg.price && (
+                                  <span className="text-xs font-medium text-purple-600">
+                                    ${pkg.price}
+                                  </span>
+                                )}
+                              </div>
+                              {pkg.description && (
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                  {pkg.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Button
@@ -287,17 +328,10 @@ export const MyBookingsPage = () => {
                         // Find conversation for this vendor
                         navigate(`/messages`);
                       }}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg h-10 font-medium flex items-center justify-center gap-2 text-xs"
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg h-10 font-medium flex items-center justify-center gap-2 text-xs"
                     >
                       <MessageCircle className="w-4 h-4" />
                       Message
-                    </Button>
-                    <Button
-                      onClick={() => navigate(`/booking-details/${booking.id}`)}
-                      className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg h-10 font-medium flex items-center justify-center gap-2 text-xs"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Details
                     </Button>
                   </div>
                 </div>

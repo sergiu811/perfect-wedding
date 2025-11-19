@@ -211,7 +211,7 @@ export const VendorDashboard = () => {
 
       // Get the 3 most recent conversations
       const recent = (conversationsData.conversations || []).slice(0, 3);
-      
+
       // Decrypt lastMessage for each conversation (skip if it's an offer message)
       const decryptedInquiries = await Promise.all(
         recent.map(async (conv: any) => {
@@ -436,9 +436,8 @@ export const VendorDashboard = () => {
                 <UserIcon className="w-4 h-4 text-rose-600" />
               </div>
               <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  showUserMenu ? "rotate-180" : ""
-                }`}
+                className={`w-4 h-4 transition-transform ${showUserMenu ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -593,21 +592,19 @@ export const VendorDashboard = () => {
         <div className="flex border-b-2 border-rose-600/20 bg-white rounded-t-xl">
           <button
             onClick={() => setActiveTab("dashboard")}
-            className={`flex-1 py-3 text-center text-sm font-bold transition-all ${
-              activeTab === "dashboard"
-                ? "text-rose-600 border-b-2 border-rose-600"
-                : "text-rose-600/70"
-            }`}
+            className={`flex-1 py-3 text-center text-sm font-bold transition-all ${activeTab === "dashboard"
+              ? "text-rose-600 border-b-2 border-rose-600"
+              : "text-rose-600/70"
+              }`}
           >
             🩷 Dashboard
           </button>
           <button
             onClick={() => setActiveTab("listings")}
-            className={`flex-1 py-3 text-center text-sm font-bold transition-all ${
-              activeTab === "listings"
-                ? "text-rose-600 border-b-2 border-rose-600"
-                : "text-rose-600/70"
-            }`}
+            className={`flex-1 py-3 text-center text-sm font-bold transition-all ${activeTab === "listings"
+              ? "text-rose-600 border-b-2 border-rose-600"
+              : "text-rose-600/70"
+              }`}
           >
             💼 My Listings
           </button>
@@ -646,34 +643,67 @@ export const VendorDashboard = () => {
                       <button
                         key={booking.id}
                         onClick={() => navigate("/my-bookings")}
-                        className="w-full flex items-center justify-between p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors"
+                        className="w-full flex flex-col gap-2 p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors"
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full bg-cover bg-center flex-shrink-0"
-                            style={{
-                              backgroundImage: booking.coupleAvatar
-                                ? `url(${booking.coupleAvatar})`
-                                : `url(https://ui-avatars.com/api/?name=${encodeURIComponent(booking.coupleName || "Couple")})`,
-                            }}
-                          />
-                          <div className="text-left">
-                            <p className="font-bold text-gray-900">
-                              {booking.coupleName || "Couple"}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(booking.eventDate)}
-                            </p>
+                        <div className="w-full flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-full bg-cover bg-center flex-shrink-0"
+                              style={{
+                                backgroundImage: booking.coupleAvatar
+                                  ? `url(${booking.coupleAvatar})`
+                                  : `url(https://ui-avatars.com/api/?name=${encodeURIComponent(booking.coupleName || "Couple")})`,
+                              }}
+                            />
+                            <div className="text-left">
+                              <p className="font-bold text-gray-900">
+                                {booking.coupleName || "Couple"}
+                              </p>
+                              {booking.serviceTitle && (
+                                <p className="text-xs text-rose-600 truncate">
+                                  {booking.serviceTitle}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-600 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(booking.eventDate)}
+                              </p>
+                            </div>
                           </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
+                              booking.status
+                            )}`}
+                          >
+                            {capitalizeStatus(booking.status)}
+                          </span>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
-                            booking.status
-                          )}`}
-                        >
-                          {capitalizeStatus(booking.status)}
-                        </span>
+
+                        {/* Display selected packages if available */}
+                        {(() => {
+                          const packages = Array.isArray(booking.selectedPackages)
+                            ? booking.selectedPackages
+                            : booking.selectedPackages
+                              ? [booking.selectedPackages]
+                              : [];
+
+                          if (packages.length === 0) return null;
+
+                          return (
+                            <div className="w-full mt-1 pt-2 border-t border-pink-200/50">
+                              <div className="flex flex-wrap gap-1.5">
+                                {packages.map((pkg: any, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-white/60 text-rose-700 border border-rose-100"
+                                  >
+                                    {pkg.name || pkg.title || `Package ${idx + 1}`}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </button>
                     ))}
                   </div>
@@ -872,11 +902,10 @@ export const VendorDashboard = () => {
                                   service.is_active
                                 )
                               }
-                              className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap transition-colors ${
-                                service.is_active
-                                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              }`}
+                              className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap transition-colors ${service.is_active
+                                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
                               title="Click to toggle active status"
                             >
                               {service.is_active ? "Active" : "Inactive"}

@@ -227,10 +227,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 : undefined,
               deposit_paid: bookingData?.deposit
                 ? parseFloat(
-                    String(bookingData.deposit).replace(/[^0-9.]/g, "")
-                  )
+                  String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                )
                 : undefined,
               notes: bookingData?.notes || undefined,
+              selected_packages: offerData.packageDetails || offerData.selectedPackages || null,
               updated_at: new Date().toISOString(),
             })
             .eq("id", existingBooking.id);
@@ -257,10 +258,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 ),
                 deposit_paid: bookingData?.deposit
                   ? parseFloat(
-                      String(bookingData.deposit).replace(/[^0-9.]/g, "")
-                    )
+                    String(bookingData.deposit).replace(/[^0-9.]/g, "")
+                  )
                   : null,
                 notes: bookingData?.notes || null,
+                selected_packages: offerData.packageDetails || offerData.selectedPackages || null,
               });
 
             if (bookingError) {

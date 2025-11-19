@@ -143,7 +143,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         vendor = {
           name: couple
             ? `${couple.first_name || ""} ${couple.last_name || ""}`.trim() ||
-              "Couple"
+            "Couple"
             : "Couple",
           avatar: couple?.avatar_url,
         };
@@ -182,7 +182,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
           ? formatPrice(booking.deposit_paid)
           : undefined,
         serviceId: service?.id,
-        coupleName: isVendor ? vendor.name : undefined,
+        serviceTitle: service?.title,
+        selectedPackages: booking.selected_packages || null,
+        coupleName: isVendor
+          ? (vendor.name !== "Couple"
+            ? vendor.name
+            : booking.wedding
+              ? `${booking.wedding.partner1_name} & ${booking.wedding.partner2_name}`
+              : "Couple")
+          : undefined,
         coupleAvatar: isVendor ? vendor.avatar : undefined,
       };
     });
