@@ -61,67 +61,14 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   // Scroll button state
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [conversationInfo, setConversationInfo] = useState<{
     vendorName: string;
     vendorAvatar: string;
     vendorCategory: string;
   } | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Dynamic layout refs
-  const headerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const [bottomHeight, setBottomHeight] = useState(0);
-
-  // Measure header and bottom heights immediately and on resize
-  const measureHeights = useCallback(() => {
-    if (headerRef.current && bottomRef.current) {
-      // Use getBoundingClientRect for accurate measurements including safe areas
-      const headerRect = headerRef.current.getBoundingClientRect();
-      const bottomRect = bottomRef.current.getBoundingClientRect();
-
-      setHeaderHeight(headerRect.height);
-      setBottomHeight(bottomRect.height);
-    }
-  }, []);
-
-  // Request notification permission on mount (local fallback, but global provider handles it)
-  useEffect(() => {
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission);
-    }
-  }, []);
-
-  // Initial measurement and setup ResizeObserver
-  useEffect(() => {
-    // Measure immediately on mount
-    measureHeights();
-
-    // Also measure after a small delay to catch any layout shifts
-    const timeoutId = setTimeout(measureHeights, 0);
-
-    // Setup ResizeObserver for dynamic changes
-    const headerEl = headerRef.current;
-    const bottomEl = bottomRef.current;
-
-    if (!headerEl || !bottomEl) return;
-
-    const observer = new ResizeObserver(() => {
-      measureHeights();
-    });
-
-    observer.observe(headerEl);
-    observer.observe(bottomEl);
-
-    return () => {
-      clearTimeout(timeoutId);
-      observer.disconnect();
-    };
-  }, [measureHeights]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom function
   const scrollToBottom = useCallback((smooth = false) => {
@@ -162,12 +109,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   // Scroll to bottom only on initial load
   const hasScrolledRef = useRef(false);
   useEffect(() => {
-    if (
-      headerHeight > 0 &&
-      bottomHeight > 0 &&
-      messages.length > 0 &&
-      !hasScrolledRef.current
-    ) {
+    if (messages.length > 0 && !hasScrolledRef.current) {
       // Initial scroll
       const timeoutId = setTimeout(() => {
         scrollToBottom(false);
@@ -176,7 +118,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages.length, headerHeight, bottomHeight, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
   const isVendor = profile?.role === "vendor";
 
@@ -716,11 +658,10 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const vendorCategory = conversationInfo?.vendorCategory || "Service";
 
   return (
-    <div className="h-screen w-screen bg-pink-50 relative overflow-hidden mx-auto">
+    <div className="flex flex-col h-screen bg-pink-50 overflow-hidden">
       {/* FIXED HEADER */}
       <header
-        ref={headerRef}
-        className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-30 p-4 flex items-center gap-3"
+        className="flex-none bg-white border-b border-gray-200 z-30 p-4 flex items-center gap-3"
         style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}
       >
         <button onClick={() => navigate("/messages")}>
@@ -742,195 +683,179 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
         </div>
       </header>
 
-      {/* SCROLLABLE MESSAGES */}
-      <main
-        data-chat-messages
-        className="absolute inset-x-0 overflow-y-auto space-y-4"
-        onScroll={handleScroll}
-        style={{
-          top:
-            headerHeight > 0
-              ? `${headerHeight}px`
-              : `calc(64px + env(safe-area-inset-top, 0px))`,
-          bottom: 0,
-          padding: "1rem",
-          paddingBottom:
-            bottomHeight > 0
-              ? `${bottomHeight + 16}px`
-              : `calc(120px + env(safe-area-inset-bottom, 0px))`,
-        }}
-      >
-
-        <div className="max-w-3xl mx-auto w-full space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === (isVendor ? "vendor" : "couple")
-                ? "justify-end"
-                : "justify-start"
-                }`}
-            >
-              {msg.type === "offer" ? (
-                // Offer Card
-                <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-white" />
+      {/* SCROLLABLE MESSAGES AREA */}
+      <div className="flex-1 relative min-h-0">
+        <main
+          data-chat-messages
+          className="absolute inset-0 overflow-y-auto p-4"
+          onScroll={handleScroll}
+        >
+          <div className="max-w-3xl mx-auto w-full space-y-4 pb-4">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === (isVendor ? "vendor" : "couple")
+                  ? "justify-end"
+                  : "justify-start"
+                  }`}
+              >
+                {msg.type === "offer" ? (
+                  // Offer Card
+                  <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Booking Offer</p>
+                        <p className="text-xs text-gray-500">{msg.timestamp}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-900">Booking Offer</p>
-                      <p className="text-xs text-gray-500">{msg.timestamp}</p>
-                    </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    {/* Service Info */}
-                    {msg.offerDetails?.serviceName && (
+                    <div className="space-y-3">
+                      {/* Service Info */}
+                      {msg.offerDetails?.serviceName && (
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-gray-500 mb-1">Service</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {msg.offerDetails.serviceName}
+                            {msg.offerDetails.serviceCategory && (
+                              <span className="ml-2 text-xs font-normal text-gray-500">
+                                ({msg.offerDetails.serviceCategory})
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+
                       <div className="bg-white rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-1">Service</p>
+                        <p className="text-xs text-gray-500 mb-1">Total Price</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {msg.offerDetails?.price}
+                        </p>
+                      </div>
+
+                      <div className="bg-white rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2">Event Date</p>
                         <p className="text-sm font-semibold text-gray-900">
-                          {msg.offerDetails.serviceName}
-                          {msg.offerDetails.serviceCategory && (
-                            <span className="ml-2 text-xs font-normal text-gray-500">
-                              ({msg.offerDetails.serviceCategory})
-                            </span>
-                          )}
+                          {msg.offerDetails?.date}
                         </p>
                       </div>
-                    )}
 
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Total Price</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {msg.offerDetails?.price}
-                      </p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-2">Event Date</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {msg.offerDetails?.date}
-                      </p>
-                    </div>
-
-                    {/* Selected Packages */}
-                    {msg.offerDetails?.packageDetails &&
-                      msg.offerDetails.packageDetails.length > 0 && (
-                        <div className="bg-white rounded-lg p-3">
-                          <p className="text-xs text-gray-500 mb-2">
-                            Selected Packages
-                          </p>
-                          <ul className="space-y-1.5">
-                            {msg.offerDetails.packageDetails.map((pkg, idx) => (
-                              <li
-                                key={pkg.id || idx}
-                                className="text-xs text-gray-700 flex items-start gap-2"
-                              >
-                                <CheckCheck className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <span className="font-semibold">
-                                    {pkg.name}
-                                  </span>
-                                  {pkg.price && (
-                                    <span className="ml-2 text-purple-600">
-                                      ($
-                                      {parseFloat(
-                                        String(pkg.price)
-                                      ).toLocaleString()}
-                                      )
+                      {/* Selected Packages */}
+                      {msg.offerDetails?.packageDetails &&
+                        msg.offerDetails.packageDetails.length > 0 && (
+                          <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-2">
+                              Selected Packages
+                            </p>
+                            <ul className="space-y-1.5">
+                              {msg.offerDetails.packageDetails.map((pkg, idx) => (
+                                <li
+                                  key={pkg.id || idx}
+                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                >
+                                  <CheckCheck className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <span className="font-semibold">
+                                      {pkg.name}
                                     </span>
-                                  )}
-                                  {pkg.description && (
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                      {pkg.description}
-                                    </p>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                                    {pkg.price && (
+                                      <span className="ml-2 text-purple-600">
+                                        ($
+                                        {parseFloat(
+                                          String(pkg.price)
+                                        ).toLocaleString()}
+                                        )
+                                      </span>
+                                    )}
+                                    {pkg.description && (
+                                      <p className="text-xs text-gray-500 mt-0.5">
+                                        {pkg.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                    {/* Included Services (custom details) */}
-                    {msg.offerDetails?.services &&
-                      msg.offerDetails.services.length > 0 && (
-                        <div className="bg-white rounded-lg p-3">
-                          <p className="text-xs text-gray-500 mb-2">
-                            Included Services
+                      {/* Included Services (custom details) */}
+                      {msg.offerDetails?.services &&
+                        msg.offerDetails.services.length > 0 && (
+                          <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-2">
+                              Included Services
+                            </p>
+                            <ul className="space-y-1.5">
+                              {msg.offerDetails.services.map((service, idx) => (
+                                <li
+                                  key={idx}
+                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                >
+                                  <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>{service}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      {msg.offerDetails?.status === "accepted" ? (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm font-semibold text-green-700">
+                            ✓ Offer Accepted
                           </p>
-                          <ul className="space-y-1.5">
-                            {msg.offerDetails.services.map((service, idx) => (
-                              <li
-                                key={idx}
-                                className="text-xs text-gray-700 flex items-start gap-2"
-                              >
-                                <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span>{service}</span>
-                              </li>
-                            ))}
-                          </ul>
                         </div>
-                      )}
-
-                    {msg.offerDetails?.status === "accepted" ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-green-700">
-                          ✓ Offer Accepted
-                        </p>
-                      </div>
-                    ) : msg.offerDetails?.status === "rejected" ? (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-red-700">
-                          Offer Rejected
-                        </p>
-                      </div>
-                    ) : !isVendor && msg.offerDetails?.status === "pending" ? (
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() =>
-                            handleAcceptOffer(msg.id, msg.offerDetails)
-                          }
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
-                        >
-                          Accept Offer
-                        </Button>
-                        <Button
-                          onClick={() => handleRejectOffer(msg.id)}
-                          className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    ) : null}
+                      ) : msg.offerDetails?.status === "rejected" ? (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <p className="text-sm font-semibold text-red-700">
+                            Offer Rejected
+                          </p>
+                        </div>
+                      ) : !isVendor && msg.offerDetails?.status === "pending" ? (
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() =>
+                              handleAcceptOffer(msg.id, msg.offerDetails)
+                            }
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
+                          >
+                            Accept Offer
+                          </Button>
+                          <Button
+                            onClick={() => handleRejectOffer(msg.id)}
+                            className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")
-                    ? "bg-rose-600 text-white"
-                    : "bg-white text-gray-900"
-                    }`}
-                >
-                  <p>{msg.message}</p>
-                  <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </main>
+                ) : (
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")
+                      ? "bg-rose-600 text-white"
+                      : "bg-white text-gray-900"
+                      }`}
+                  >
+                    <p>{msg.message}</p>
+                    <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </main>
 
-      {/* SCROLL TO BOTTOM BUTTON */}
-      {
-        showScrollButton && (
+        {/* SCROLL TO BOTTOM BUTTON */}
+        {showScrollButton && (
           <button
             onClick={() => scrollToBottom(true)}
-            className="fixed right-4 z-40 bg-white shadow-lg rounded-full p-3 border border-gray-200 text-gray-600 hover:text-rose-600 hover:border-rose-200 transition-all animate-in fade-in zoom-in duration-200"
-            style={{
-              bottom: bottomHeight > 0 ? `${bottomHeight + 20}px` : "140px",
-            }}
+            className="absolute right-4 bottom-4 z-40 bg-white shadow-lg rounded-full p-3 border border-gray-200 text-gray-600 hover:text-rose-600 hover:border-rose-200 transition-all animate-in fade-in zoom-in duration-200"
           >
             <div className="relative">
               <ChevronDown className="w-6 h-6" />
@@ -941,13 +866,12 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
               )}
             </div>
           </button>
-        )
-      }
+        )}
+      </div>
 
       {/* FIXED BOTTOM AREA */}
       <div
-        ref={bottomRef}
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-30"
+        className="flex-none bg-white border-t border-gray-200 p-4 z-30"
         style={{
           paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
         }}
