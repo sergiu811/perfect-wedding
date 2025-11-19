@@ -9,6 +9,7 @@ import {
   DollarSign,
   Plus,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
@@ -56,6 +57,11 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const [sending, setSending] = useState(false);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>("default");
+
+  // Scroll button state
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [conversationInfo, setConversationInfo] = useState<{
     vendorName: string;
@@ -121,18 +127,35 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const scrollToBottom = useCallback((smooth = false) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
-        behavior: "smooth",
+        behavior: smooth ? "smooth" : "auto",
         block: "end",
         inline: "nearest",
       });
+      // Reset unread count when scrolling to bottom
+      setUnreadCount(0);
     } else {
       // Fallback: scroll the main container directly
       const mainEl = document.querySelector(
         "[data-chat-messages]"
       ) as HTMLElement;
       if (mainEl) {
-        mainEl.scrollTop = mainEl.scrollHeight;
+        mainEl.scrollTop = mainEl.scrollHeight + 150;
+        setUnreadCount(0);
       }
+    }
+  }, []);
+
+  // Handle scroll event to show/hide button
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < 150;
+
+    setShowScrollButton(!isNearBottom);
+
+    // If user scrolls to bottom manually, reset unread count
+    if (isNearBottom) {
+      setUnreadCount(0);
     }
   }, []);
 
@@ -333,9 +356,21 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                       window.location.pathname === `/chat/${conversationId}`;
 
                     if (isOnChatPage) {
-                      setTimeout(() => {
-                        if (isMounted) scrollToBottom(true);
-                      }, 100);
+                      // Check if we should auto-scroll or show unread badge
+                      const container = document.querySelector("[data-chat-messages]");
+                      const isNearBottom = container
+                        ? container.scrollHeight - container.scrollTop - container.clientHeight < 150
+                        : true;
+
+                      if (isNearBottom || formattedMessage.sender === (isVendor ? "vendor" : "couple")) {
+                        // Auto-scroll if near bottom OR if I sent the message
+                        setTimeout(() => {
+                          if (isMounted) scrollToBottom(true);
+                        }, 100);
+                      } else {
+                        // User is scrolled up, increment unread count
+                        setUnreadCount(prev => prev + 1);
+                      }
                     }
                   }
                 }
@@ -681,7 +716,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const vendorCategory = conversationInfo?.vendorCategory || "Service";
 
   return (
-    <div className="w-full h-screen bg-pink-50 relative overflow-hidden">
+    <div className="h-screen w-screen bg-pink-50 relative overflow-hidden mx-auto">
       {/* FIXED HEADER */}
       <header
         ref={headerRef}
@@ -711,6 +746,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
       <main
         data-chat-messages
         className="absolute inset-x-0 overflow-y-auto space-y-4"
+        onScroll={handleScroll}
         style={{
           top:
             headerHeight > 0
@@ -724,164 +760,189 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
               : `calc(120px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.sender === (isVendor ? "vendor" : "couple")
-              ? "justify-end"
-              : "justify-start"
-              }`}
-          >
-            {msg.type === "offer" ? (
-              // Offer Card
-              <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">Booking Offer</p>
-                    <p className="text-xs text-gray-500">{msg.timestamp}</p>
-                  </div>
-                </div>
 
-                <div className="space-y-3">
-                  {/* Service Info */}
-                  {msg.offerDetails?.serviceName && (
+        <div className="max-w-3xl mx-auto w-full space-y-4">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender === (isVendor ? "vendor" : "couple")
+                ? "justify-end"
+                : "justify-start"
+                }`}
+            >
+              {msg.type === "offer" ? (
+                // Offer Card
+                <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 lg:p-5 border-2 border-purple-200 shadow-md">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Booking Offer</p>
+                      <p className="text-xs text-gray-500">{msg.timestamp}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Service Info */}
+                    {msg.offerDetails?.serviceName && (
+                      <div className="bg-white rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">Service</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {msg.offerDetails.serviceName}
+                          {msg.offerDetails.serviceCategory && (
+                            <span className="ml-2 text-xs font-normal text-gray-500">
+                              ({msg.offerDetails.serviceCategory})
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Service</p>
+                      <p className="text-xs text-gray-500 mb-1">Total Price</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {msg.offerDetails?.price}
+                      </p>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Event Date</p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {msg.offerDetails.serviceName}
-                        {msg.offerDetails.serviceCategory && (
-                          <span className="ml-2 text-xs font-normal text-gray-500">
-                            ({msg.offerDetails.serviceCategory})
-                          </span>
-                        )}
+                        {msg.offerDetails?.date}
                       </p>
                     </div>
-                  )}
 
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-1">Total Price</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {msg.offerDetails?.price}
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-2">Event Date</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {msg.offerDetails?.date}
-                    </p>
-                  </div>
-
-                  {/* Selected Packages */}
-                  {msg.offerDetails?.packageDetails &&
-                    msg.offerDetails.packageDetails.length > 0 && (
-                      <div className="bg-white rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-2">
-                          Selected Packages
-                        </p>
-                        <ul className="space-y-1.5">
-                          {msg.offerDetails.packageDetails.map((pkg, idx) => (
-                            <li
-                              key={pkg.id || idx}
-                              className="text-xs text-gray-700 flex items-start gap-2"
-                            >
-                              <CheckCheck className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <span className="font-semibold">
-                                  {pkg.name}
-                                </span>
-                                {pkg.price && (
-                                  <span className="ml-2 text-purple-600">
-                                    ($
-                                    {parseFloat(
-                                      String(pkg.price)
-                                    ).toLocaleString()}
-                                    )
+                    {/* Selected Packages */}
+                    {msg.offerDetails?.packageDetails &&
+                      msg.offerDetails.packageDetails.length > 0 && (
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-gray-500 mb-2">
+                            Selected Packages
+                          </p>
+                          <ul className="space-y-1.5">
+                            {msg.offerDetails.packageDetails.map((pkg, idx) => (
+                              <li
+                                key={pkg.id || idx}
+                                className="text-xs text-gray-700 flex items-start gap-2"
+                              >
+                                <CheckCheck className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <span className="font-semibold">
+                                    {pkg.name}
                                   </span>
-                                )}
-                                {pkg.description && (
-                                  <p className="text-xs text-gray-500 mt-0.5">
-                                    {pkg.description}
-                                  </p>
-                                )}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                                  {pkg.price && (
+                                    <span className="ml-2 text-purple-600">
+                                      ($
+                                      {parseFloat(
+                                        String(pkg.price)
+                                      ).toLocaleString()}
+                                      )
+                                    </span>
+                                  )}
+                                  {pkg.description && (
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      {pkg.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                  {/* Included Services (custom details) */}
-                  {msg.offerDetails?.services &&
-                    msg.offerDetails.services.length > 0 && (
-                      <div className="bg-white rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-2">
-                          Included Services
+                    {/* Included Services (custom details) */}
+                    {msg.offerDetails?.services &&
+                      msg.offerDetails.services.length > 0 && (
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-gray-500 mb-2">
+                            Included Services
+                          </p>
+                          <ul className="space-y-1.5">
+                            {msg.offerDetails.services.map((service, idx) => (
+                              <li
+                                key={idx}
+                                className="text-xs text-gray-700 flex items-start gap-2"
+                              >
+                                <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span>{service}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                    {msg.offerDetails?.status === "accepted" ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-green-700">
+                          ✓ Offer Accepted
                         </p>
-                        <ul className="space-y-1.5">
-                          {msg.offerDetails.services.map((service, idx) => (
-                            <li
-                              key={idx}
-                              className="text-xs text-gray-700 flex items-start gap-2"
-                            >
-                              <CheckCheck className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span>{service}</span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
-                    )}
-
-                  {msg.offerDetails?.status === "accepted" ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-sm font-semibold text-green-700">
-                        ✓ Offer Accepted
-                      </p>
-                    </div>
-                  ) : msg.offerDetails?.status === "rejected" ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-sm font-semibold text-red-700">
-                        Offer Rejected
-                      </p>
-                    </div>
-                  ) : !isVendor && msg.offerDetails?.status === "pending" ? (
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        onClick={() =>
-                          handleAcceptOffer(msg.id, msg.offerDetails)
-                        }
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
-                      >
-                        Accept Offer
-                      </Button>
-                      <Button
-                        onClick={() => handleRejectOffer(msg.id)}
-                        className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  ) : null}
+                    ) : msg.offerDetails?.status === "rejected" ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-red-700">
+                          Offer Rejected
+                        </p>
+                      </div>
+                    ) : !isVendor && msg.offerDetails?.status === "pending" ? (
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() =>
+                            handleAcceptOffer(msg.id, msg.offerDetails)
+                          }
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg h-10 font-semibold"
+                        >
+                          Accept Offer
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectOffer(msg.id)}
+                          className="flex-1 bg-white hover:bg-gray-100 text-gray-900 rounded-lg h-10 font-semibold border border-gray-300"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")
-                  ? "bg-rose-600 text-white"
-                  : "bg-white text-gray-900"
-                  }`}
-              >
-                <p>{msg.message}</p>
-                <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
-              </div>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+              ) : (
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")
+                    ? "bg-rose-600 text-white"
+                    : "bg-white text-gray-900"
+                    }`}
+                >
+                  <p>{msg.message}</p>
+                  <p className="text-xs opacity-60 mt-1">{msg.timestamp}</p>
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </main>
+
+      {/* SCROLL TO BOTTOM BUTTON */}
+      {
+        showScrollButton && (
+          <button
+            onClick={() => scrollToBottom(true)}
+            className="fixed right-4 z-40 bg-white shadow-lg rounded-full p-3 border border-gray-200 text-gray-600 hover:text-rose-600 hover:border-rose-200 transition-all animate-in fade-in zoom-in duration-200"
+            style={{
+              bottom: bottomHeight > 0 ? `${bottomHeight + 20}px` : "140px",
+            }}
+          >
+            <div className="relative">
+              <ChevronDown className="w-6 h-6" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </div>
+          </button>
+        )
+      }
 
       {/* FIXED BOTTOM AREA */}
       <div
@@ -930,230 +991,232 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
       </div>
 
       {/* Offer Form Modal */}
-      {showOfferForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">
-                Create Booking Offer
-              </h3>
-              <button
-                onClick={() => setShowOfferForm(false)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Service Selection */}
-              <div>
-                <label className="text-sm font-bold text-gray-900 mb-2 block">
-                  Select Service *
-                </label>
-                <select
-                  value={offerData.serviceId}
-                  onChange={(e) => {
-                    const selectedService = vendorServices.find(
-                      (s) => s.id === e.target.value
-                    );
-                    setOfferData({
-                      ...offerData,
-                      serviceId: e.target.value,
-                      serviceName: selectedService?.title || "",
-                      serviceCategory: selectedService?.category || "",
-                      selectedPackages: [], // Reset packages when service changes
-                    });
-                  }}
-                  className="w-full h-12 border border-gray-300 rounded-lg px-3 bg-white text-gray-900"
+      {
+        showOfferForm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+            <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Create Booking Offer
+                </h3>
+                <button
+                  onClick={() => setShowOfferForm(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
                 >
-                  <option value="">Choose a service...</option>
-                  {vendorServices.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.title} - {service.category}
-                    </option>
-                  ))}
-                </select>
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Package Selection */}
-              {offerData.serviceId &&
-                (() => {
-                  const selectedService = vendorServices.find(
-                    (s) => s.id === offerData.serviceId
-                  );
-                  const servicePackages = selectedService?.packages || [];
+              <div className="p-4 space-y-4">
+                {/* Service Selection */}
+                <div>
+                  <label className="text-sm font-bold text-gray-900 mb-2 block">
+                    Select Service *
+                  </label>
+                  <select
+                    value={offerData.serviceId}
+                    onChange={(e) => {
+                      const selectedService = vendorServices.find(
+                        (s) => s.id === e.target.value
+                      );
+                      setOfferData({
+                        ...offerData,
+                        serviceId: e.target.value,
+                        serviceName: selectedService?.title || "",
+                        serviceCategory: selectedService?.category || "",
+                        selectedPackages: [], // Reset packages when service changes
+                      });
+                    }}
+                    className="w-full h-12 border border-gray-300 rounded-lg px-3 bg-white text-gray-900"
+                  >
+                    <option value="">Choose a service...</option>
+                    {vendorServices.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.title} - {service.category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  if (servicePackages.length > 0) {
-                    return (
-                      <div>
-                        <label className="text-sm font-bold text-gray-900 mb-2 block">
-                          Select Packages (Optional)
-                        </label>
-                        <p className="text-xs text-gray-500 mb-3">
-                          Choose packages from this service to include in the
-                          offer
-                        </p>
-                        <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                          {servicePackages.map((pkg: any) => {
-                            const isSelected =
-                              offerData.selectedPackages.includes(
-                                pkg.id || pkg.name
-                              );
-                            return (
-                              <label
-                                key={pkg.id || pkg.name}
-                                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${isSelected
-                                  ? "border-purple-600 bg-purple-50"
-                                  : "border-gray-200 hover:border-gray-300"
-                                  }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    const packageId = pkg.id || pkg.name;
-                                    if (e.target.checked) {
-                                      setOfferData({
-                                        ...offerData,
-                                        selectedPackages: [
-                                          ...offerData.selectedPackages,
-                                          packageId,
-                                        ],
-                                      });
-                                    } else {
-                                      setOfferData({
-                                        ...offerData,
-                                        selectedPackages:
-                                          offerData.selectedPackages.filter(
-                                            (id) => id !== packageId
-                                          ),
-                                      });
-                                    }
-                                  }}
-                                  className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className="font-semibold text-gray-900 text-sm">
-                                      {pkg.name || "Unnamed Package"}
-                                    </p>
-                                    {pkg.price && (
-                                      <p className="text-sm font-bold text-purple-600">
-                                        $
-                                        {parseFloat(
-                                          String(pkg.price)
-                                        ).toLocaleString()}
+                {/* Package Selection */}
+                {offerData.serviceId &&
+                  (() => {
+                    const selectedService = vendorServices.find(
+                      (s) => s.id === offerData.serviceId
+                    );
+                    const servicePackages = selectedService?.packages || [];
+
+                    if (servicePackages.length > 0) {
+                      return (
+                        <div>
+                          <label className="text-sm font-bold text-gray-900 mb-2 block">
+                            Select Packages (Optional)
+                          </label>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Choose packages from this service to include in the
+                            offer
+                          </p>
+                          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                            {servicePackages.map((pkg: any) => {
+                              const isSelected =
+                                offerData.selectedPackages.includes(
+                                  pkg.id || pkg.name
+                                );
+                              return (
+                                <label
+                                  key={pkg.id || pkg.name}
+                                  className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${isSelected
+                                    ? "border-purple-600 bg-purple-50"
+                                    : "border-gray-200 hover:border-gray-300"
+                                    }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      const packageId = pkg.id || pkg.name;
+                                      if (e.target.checked) {
+                                        setOfferData({
+                                          ...offerData,
+                                          selectedPackages: [
+                                            ...offerData.selectedPackages,
+                                            packageId,
+                                          ],
+                                        });
+                                      } else {
+                                        setOfferData({
+                                          ...offerData,
+                                          selectedPackages:
+                                            offerData.selectedPackages.filter(
+                                              (id) => id !== packageId
+                                            ),
+                                        });
+                                      }
+                                    }}
+                                    className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className="font-semibold text-gray-900 text-sm">
+                                        {pkg.name || "Unnamed Package"}
+                                      </p>
+                                      {pkg.price && (
+                                        <p className="text-sm font-bold text-purple-600">
+                                          $
+                                          {parseFloat(
+                                            String(pkg.price)
+                                          ).toLocaleString()}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {pkg.description && (
+                                      <p className="text-xs text-gray-600 line-clamp-2">
+                                        {pkg.description}
                                       </p>
                                     )}
                                   </div>
-                                  {pkg.description && (
-                                    <p className="text-xs text-gray-600 line-clamp-2">
-                                      {pkg.description}
-                                    </p>
-                                  )}
-                                </div>
-                              </label>
-                            );
-                          })}
+                                </label>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-              {/* Price */}
-              <div>
-                <label className="text-sm font-bold text-gray-900 mb-2 block">
-                  Total Price *
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    value={offerData.price}
-                    onChange={(e) =>
-                      setOfferData({ ...offerData, price: e.target.value })
+                      );
                     }
-                    placeholder="15,000"
-                    className="w-full pl-10 h-12 border-gray-300 rounded-lg"
+                    return null;
+                  })()}
+
+                {/* Price */}
+                <div>
+                  <label className="text-sm font-bold text-gray-900 mb-2 block">
+                    Total Price *
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      type="text"
+                      value={offerData.price}
+                      onChange={(e) =>
+                        setOfferData({ ...offerData, price: e.target.value })
+                      }
+                      placeholder="15,000"
+                      className="w-full pl-10 h-12 border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {/* Event Date */}
+                <div>
+                  <label className="text-sm font-bold text-gray-900 mb-2 block">
+                    Event Date *
+                  </label>
+                  <Input
+                    type="date"
+                    value={offerData.date}
+                    onChange={(e) =>
+                      setOfferData({ ...offerData, date: e.target.value })
+                    }
+                    className="w-full h-12 border-gray-300 rounded-lg"
                   />
                 </div>
-              </div>
 
-              {/* Event Date */}
-              <div>
-                <label className="text-sm font-bold text-gray-900 mb-2 block">
-                  Event Date *
-                </label>
-                <Input
-                  type="date"
-                  value={offerData.date}
-                  onChange={(e) =>
-                    setOfferData({ ...offerData, date: e.target.value })
-                  }
-                  className="w-full h-12 border-gray-300 rounded-lg"
-                />
-              </div>
-
-              {/* Package Details */}
-              <div>
-                <label className="text-sm font-bold text-gray-900 mb-2 block">
-                  Package Details / What's Included *
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Specify what's included in this package
-                </p>
-                <div className="space-y-2">
-                  {offerData.services.map((service, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={service}
-                        onChange={(e) => updateService(index, e.target.value)}
-                        placeholder="e.g., Venue rental for 8 hours"
-                        className="flex-1 h-10 border-gray-300 rounded-lg text-sm"
-                      />
-                      {offerData.services.length > 1 && (
-                        <button
-                          onClick={() => removeService(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addService}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Service
-                  </button>
+                {/* Package Details */}
+                <div>
+                  <label className="text-sm font-bold text-gray-900 mb-2 block">
+                    Package Details / What's Included *
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Specify what's included in this package
+                  </p>
+                  <div className="space-y-2">
+                    {offerData.services.map((service, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={service}
+                          onChange={(e) => updateService(index, e.target.value)}
+                          placeholder="e.g., Venue rental for 8 hours"
+                          className="flex-1 h-10 border-gray-300 rounded-lg text-sm"
+                        />
+                        {offerData.services.length > 1 && (
+                          <button
+                            onClick={() => removeService(index)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={addService}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Service
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={() => setShowOfferForm(false)}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-xl h-12 font-semibold"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSendOffer}
-                  disabled={sending}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-12 font-semibold disabled:opacity-50"
-                >
-                  {sending ? "Sending..." : "Send Offer"}
-                </Button>
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    onClick={() => setShowOfferForm(false)}
+                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-xl h-12 font-semibold"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSendOffer}
+                    disabled={sending}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-12 font-semibold disabled:opacity-50"
+                  >
+                    {sending ? "Sending..." : "Send Offer"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
