@@ -13,9 +13,16 @@ import {
   Shirt,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Switch } from "~/components/ui/switch";
+import { Slider } from "~/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Input } from "~/components/ui/input";
 import { useRouter } from "~/contexts/router-context";
 import { usePlanning } from "~/contexts/planning-context";
-import { Input } from "~/components/ui/input";
+import { cn } from "~/lib/utils";
 
 const VENDOR_CATEGORIES = [
   { id: "venue", name: "Venue", icon: Users },
@@ -44,20 +51,35 @@ export const PlanningStep3 = () => {
     formData.hasBookedVendors || false
   );
 
-  const handleContinue = () => {
-    const form = document.querySelector("form");
-    if (!form) return;
+  const [preferredContactMethod, setPreferredContactMethod] = useState(
+    formData.preferredContactMethod || ""
+  );
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const formDataObj = new FormData(form);
+  const handleContinue = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (selectedVendors.length === 0) {
+      newErrors.vendors = "Please select at least one vendor category";
+    }
+    if (!preferredContactMethod) {
+      newErrors.preferredContactMethod = "Please select a preferred contact method";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setErrors({});
 
     updateFormData({
       vendorCategories: selectedVendors,
       vendorPriorities: priorities,
       hasBookedVendors: hasBooked,
-      bookedVendorsDetails: formDataObj.get("bookedVendorsDetails") as string,
-      preferredContactMethod: formDataObj.get(
-        "preferredContactMethod"
-      ) as string,
+      bookedVendorsDetails: (document.querySelector('input[name="bookedVendorsDetails"]') as HTMLInputElement)?.value || "",
+      preferredContactMethod,
     });
 
     navigate("/planning/step-4");
@@ -85,12 +107,9 @@ export const PlanningStep3 = () => {
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
-        <button
-          onClick={() => navigate("/planning/step-2")}
-          className="text-gray-900"
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate("/planning/step-2")}>
           <ArrowLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Vendor Needs
         </h1>
@@ -122,116 +141,107 @@ export const PlanningStep3 = () => {
 
         <form className="space-y-6">
           {/* Vendor Categories */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
-            <label className="text-base font-bold text-gray-900">
-              Vendor Categories
-            </label>
-            <p className="text-sm text-gray-500">
-              You can always change these later
-            </p>
-            <div className="space-y-3">
-              {VENDOR_CATEGORIES.map((vendor) => {
-                const Icon = vendor.icon;
-                const isSelected = selectedVendors.includes(vendor.id);
-                return (
-                  <div key={vendor.id} className="space-y-2">
-                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleVendor(vendor.id)}
-                        className="w-5 h-5 rounded text-rose-600"
-                      />
-                      <Icon className="w-5 h-5 text-rose-600" />
-                      <span className="flex-1 font-medium">{vendor.name}</span>
-                    </label>
-
-                    {isSelected && (
-                      <div className="ml-8 pl-4 border-l-2 border-rose-200">
-                        <label className="text-sm text-gray-700 mb-2 block">
-                          Priority Level
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-500">Low</span>
-                          <input
-                            type="range"
-                            min="1"
-                            max="5"
-                            value={priorities[vendor.id] || 3}
-                            onChange={(e) =>
-                              setPriority(vendor.id, parseInt(e.target.value))
-                            }
-                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
-                          />
-                          <span className="text-xs text-gray-500">High</span>
-                        </div>
-                        <div className="text-center mt-1">
-                          <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-medium">
-                            {priorities[vendor.id] === 1 && "Not urgent"}
-                            {priorities[vendor.id] === 2 && "Could help"}
-                            {priorities[vendor.id] === 3 && "Important"}
-                            {priorities[vendor.id] === 4 && "High priority"}
-                            {priorities[vendor.id] === 5 && "Must have!"}
-                          </span>
-                        </div>
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <Label className="text-base font-bold">Vendor Categories</Label>
+              <p className="text-sm text-gray-500">
+                You can always change these later
+              </p>
+              <div className="space-y-3">
+                {VENDOR_CATEGORIES.map((vendor) => {
+                  const Icon = vendor.icon;
+                  const isSelected = selectedVendors.includes(vendor.id);
+                  return (
+                    <div key={vendor.id} className="space-y-2">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <Checkbox
+                          id={vendor.id}
+                          checked={isSelected}
+                          onCheckedChange={() => toggleVendor(vendor.id)}
+                        />
+                        <Icon className="w-5 h-5 text-rose-600" />
+                        <Label htmlFor={vendor.id} className="flex-1 font-medium cursor-pointer">
+                          {vendor.name}
+                        </Label>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+
+                      {isSelected && (
+                        <div className="ml-8 pl-4 border-l-2 border-rose-200 space-y-2">
+                          <Label className="text-sm text-gray-700">Priority Level</Label>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-500">Low</span>
+                            <Slider
+                              value={[priorities[vendor.id] || 3]}
+                              onValueChange={(value) => setPriority(vendor.id, value[0])}
+                              min={1}
+                              max={5}
+                              step={1}
+                              className="flex-1"
+                            />
+                            <span className="text-xs text-gray-500">High</span>
+                          </div>
+                          <div className="text-center">
+                            <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-medium">
+                              {priorities[vendor.id] === 1 && "Not urgent"}
+                              {priorities[vendor.id] === 2 && "Could help"}
+                              {priorities[vendor.id] === 3 && "Important"}
+                              {priorities[vendor.id] === 4 && "High priority"}
+                              {priorities[vendor.id] === 5 && "Must have!"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {errors.vendors && (
+                <p className="text-sm text-red-600 mt-2">{errors.vendors}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Already Booked */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="flex items-center justify-between">
-              <span className="text-base font-bold text-gray-900">
-                Already booked any vendors?
-              </span>
-              <button
-                type="button"
-                onClick={() => setHasBooked(!hasBooked)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  hasBooked ? "bg-rose-600" : "bg-gray-200"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    hasBooked ? "translate-x-6" : "translate-x-1"
-                  }`}
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-bold">Already booked any vendors?</Label>
+                <Switch checked={hasBooked} onCheckedChange={setHasBooked} />
+              </div>
+              {hasBooked && (
+                <Input
+                  name="bookedVendorsDetails"
+                  defaultValue={formData.bookedVendorsDetails}
+                  placeholder="e.g., Venue and photographer"
+                  className="w-full bg-gray-50 border-gray-200 h-12"
                 />
-              </button>
-            </label>
-            {hasBooked && (
-              <Input
-                name="bookedVendorsDetails"
-                defaultValue={formData.bookedVendorsDetails}
-                placeholder="e.g., Venue and photographer"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              />
-            )}
-          </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Preferred Contact Method */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Preferred Communication Method *
-            </label>
-            <select
-              name="preferredContactMethod"
-              defaultValue={formData.preferredContactMethod || ""}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            >
-              <option value="" disabled>
-                Select contact method
-              </option>
-              <option value="chat">In-App Chat</option>
-              <option value="email">Email</option>
-              <option value="phone">Phone</option>
-              <option value="whatsapp">WhatsApp</option>
-            </select>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Preferred Communication Method *</Label>
+              <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod} required>
+                <SelectTrigger className={cn(
+                  "w-full bg-gray-50 h-12",
+                  errors.preferredContactMethod && "border-red-500"
+                )}>
+                  <SelectValue placeholder="Select contact method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chat">In-App Chat</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.preferredContactMethod && (
+                <p className="text-sm text-red-600">{errors.preferredContactMethod}</p>
+              )}
+            </CardContent>
+          </Card>
         </form>
       </main>
 
@@ -243,12 +253,13 @@ export const PlanningStep3 = () => {
         >
           Next: Timeline Setup
         </Button>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate("/planning/step-2")}
-          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600 h-auto"
         >
           Back
-        </button>
+        </Button>
       </footer>
     </div>
   );

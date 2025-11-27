@@ -1,6 +1,11 @@
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Alert, AlertDescription } from "~/components/ui/alert";
 import { useAuth } from "~/contexts/auth-context";
 import { usePlanning } from "~/contexts/planning-context";
 import { useRouter } from "~/contexts/router-context";
@@ -36,18 +41,24 @@ export const PlanningStep4 = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(
     formData.acceptedTerms || false
   );
+  const [currentStage, setCurrentStage] = useState(formData.currentStage || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleGenerate = async () => {
     const form = document.querySelector("form");
+    const newErrors: Record<string, string> = {};
 
-    // Validation checks with specific error messages
+    // Validation checks
+    if (!currentStage) {
+      newErrors.currentStage = "Please select your current planning stage";
+    }
+
     if (!acceptedTerms) {
       setError(
         "Please accept the Terms of Service and Privacy Policy to continue."
       );
-      return;
     }
 
     if (!user) {
@@ -57,6 +68,14 @@ export const PlanningStep4 = () => {
       return;
     }
 
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!acceptedTerms) return; // Error already set above
+
     if (!form) {
       setError("Form not found. Please refresh the page and try again.");
       return;
@@ -64,9 +83,9 @@ export const PlanningStep4 = () => {
 
     setLoading(true);
     setError("");
+    setErrors({});
 
     const formDataObj = new FormData(form);
-    const currentStage = formDataObj.get("currentStage") as string;
 
     // Update context
     updateFormData({
@@ -159,12 +178,9 @@ export const PlanningStep4 = () => {
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
-        <button
-          onClick={() => navigate("/planning/step-3")}
-          className="text-gray-900"
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate("/planning/step-3")}>
           <ArrowLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Final Details
         </h1>
@@ -196,133 +212,105 @@ export const PlanningStep4 = () => {
 
         {/* Auth Warning */}
         {!user && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <p className="text-sm text-yellow-900 font-medium">
+          <Alert className="bg-yellow-50 border-yellow-200">
+            <AlertDescription className="text-sm text-yellow-900 font-medium">
               ⚠️ You're not logged in. Please{" "}
-              <button
+              <Button
+                variant="link"
                 onClick={() => navigate("/auth")}
-                className="underline font-bold hover:text-yellow-700"
+                className="underline font-bold hover:text-yellow-700 h-auto p-0 inline"
               >
                 log in
-              </button>{" "}
+              </Button>{" "}
               to save your wedding plan.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         <form className="space-y-6">
           {/* Current Stage */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Current Planning Stage *
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="currentStage"
-                  value="just-engaged"
-                  defaultChecked={formData.currentStage === "just-engaged"}
-                  className="w-5 h-5 text-rose-600"
-                  required
-                />
-                <span>Just Engaged 💍</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="currentStage"
-                  value="6-12-months"
-                  defaultChecked={formData.currentStage === "6-12-months"}
-                  className="w-5 h-5 text-rose-600"
-                />
-                <span>6–12 months before wedding</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="currentStage"
-                  value="3-6-months"
-                  defaultChecked={formData.currentStage === "3-6-months"}
-                  className="w-5 h-5 text-rose-600"
-                />
-                <span>3–6 months before</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="currentStage"
-                  value="less-3-months"
-                  defaultChecked={formData.currentStage === "less-3-months"}
-                  className="w-5 h-5 text-rose-600"
-                />
-                <span>Less than 3 months ⏰</span>
-              </label>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Current Planning Stage *</Label>
+              <RadioGroup value={currentStage} onValueChange={setCurrentStage} required>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="just-engaged" id="just-engaged" />
+                  <Label htmlFor="just-engaged" className="cursor-pointer">Just Engaged 💍</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="6-12-months" id="6-12-months" />
+                  <Label htmlFor="6-12-months" className="cursor-pointer">6–12 months before wedding</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="3-6-months" id="3-6-months" />
+                  <Label htmlFor="3-6-months" className="cursor-pointer">3–6 months before</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="less-3-months" id="less-3-months" />
+                  <Label htmlFor="less-3-months" className="cursor-pointer">Less than 3 months ⏰</Label>
+                </div>
+              </RadioGroup>
+              {errors.currentStage && (
+                <p className="text-sm text-red-600">{errors.currentStage}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Tasks You Want Help With */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Tasks You Want Help With
-            </label>
-            <p className="text-sm text-gray-500">Select all that apply</p>
-            <div className="space-y-2">
-              {HELP_TASKS.map((task) => (
-                <label
-                  key={task}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedTasks.includes(task)}
-                    onChange={() => toggleTask(task)}
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>{task}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Tasks You Want Help With</Label>
+              <p className="text-sm text-gray-500">Select all that apply</p>
+              <div className="space-y-2">
+                {HELP_TASKS.map((task) => (
+                  <div key={task} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                    <Checkbox
+                      id={task}
+                      checked={selectedTasks.includes(task)}
+                      onCheckedChange={() => toggleTask(task)}
+                    />
+                    <Label htmlFor={task} className="cursor-pointer">{task}</Label>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Notification Preferences */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Notification Preferences
-            </label>
-            <p className="text-sm text-gray-500">
-              How would you like to receive updates?
-            </p>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedNotifications.includes("email")}
-                  onChange={() => toggleNotification("email")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>Email Notifications</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedNotifications.includes("app")}
-                  onChange={() => toggleNotification("app")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>App Notifications</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedNotifications.includes("whatsapp")}
-                  onChange={() => toggleNotification("whatsapp")}
-                  className="w-5 h-5 rounded text-rose-600"
-                />
-                <span>WhatsApp Updates</span>
-              </label>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Notification Preferences</Label>
+              <p className="text-sm text-gray-500">
+                How would you like to receive updates?
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <Checkbox
+                    id="email"
+                    checked={selectedNotifications.includes("email")}
+                    onCheckedChange={() => toggleNotification("email")}
+                  />
+                  <Label htmlFor="email" className="cursor-pointer">Email Notifications</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <Checkbox
+                    id="app"
+                    checked={selectedNotifications.includes("app")}
+                    onCheckedChange={() => toggleNotification("app")}
+                  />
+                  <Label htmlFor="app" className="cursor-pointer">App Notifications</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <Checkbox
+                    id="whatsapp"
+                    checked={selectedNotifications.includes("whatsapp")}
+                    onCheckedChange={() => toggleNotification("whatsapp")}
+                  />
+                  <Label htmlFor="whatsapp" className="cursor-pointer">WhatsApp Updates</Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Progress Summary */}
           <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-lg">
@@ -360,35 +348,39 @@ export const PlanningStep4 = () => {
           </div>
 
           {/* Terms & Conditions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="w-5 h-5 rounded text-rose-600 mt-0.5 flex-shrink-0"
-              />
-              <span className="text-sm text-blue-900">
-                I agree to the{" "}
-                <a href="#" className="underline font-medium">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" className="underline font-medium">
-                  Privacy Policy
-                </a>
-              </span>
-            </label>
-          </div>
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription>
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="terms" className="text-sm text-blue-900 cursor-pointer">
+                  I agree to the{" "}
+                  <a href="#" className="underline font-medium">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="#" className="underline font-medium">
+                    Privacy Policy
+                  </a>
+                </Label>
+              </div>
+            </AlertDescription>
+          </Alert>
         </form>
       </main>
 
       {/* Footer */}
       <footer className="p-4 lg:p-6 space-y-3 bg-white border-t border-gray-200 -mx-4 lg:-mx-8">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
-            {error}
-          </div>
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertDescription className="text-sm text-red-800">
+              {error}
+            </AlertDescription>
+          </Alert>
         )}
         <Button
           onClick={handleGenerate}
@@ -397,13 +389,14 @@ export const PlanningStep4 = () => {
         >
           {loading ? "Saving..." : "✨ Generate My Plan"}
         </Button>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate("/planning/step-3")}
-          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600 h-auto"
           disabled={loading}
         >
           Back
-        </button>
+        </Button>
       </footer>
     </div>
   );

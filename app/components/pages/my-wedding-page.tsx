@@ -23,6 +23,24 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "~/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { useAuth } from "~/contexts/auth-context";
 import { usePlanning } from "~/contexts/planning-context";
 import { useRouter } from "~/contexts/router-context";
@@ -366,52 +384,50 @@ export const MyWeddingPage = () => {
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Expense Name *
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="expense-name">Expense Name *</Label>
+          <Input
+            id="expense-name"
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             placeholder="e.g., Custom decorations"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Category *
-          </label>
-          <select
+        <div className="space-y-2">
+          <Label htmlFor="expense-category">Category *</Label>
+          <Select
             value={useCustomCategory ? "custom" : formData.category}
-            onChange={(e) => {
-              const isCustom = e.target.value === "custom";
+            onValueChange={(value) => {
+              const isCustom = value === "custom";
               setUseCustomCategory(isCustom);
               if (!isCustom) {
-                setFormData({ ...formData, category: e.target.value });
+                setFormData({ ...formData, category: value });
               }
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            required
           >
-            {categories.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="expense-category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {useCustomCategory && (
             <div className="mt-2">
-              <input
+              <Input
                 type="text"
                 value={formData.customCategory}
                 onChange={(e) =>
                   setFormData({ ...formData, customCategory: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Enter custom category name (e.g., Transportation, Hair & Makeup)"
                 required
               />
@@ -422,11 +438,10 @@ export const MyWeddingPage = () => {
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Amount ($) *
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="expense-amount">Amount ($) *</Label>
+          <Input
+            id="expense-amount"
             type="number"
             step="0.01"
             min="0"
@@ -434,56 +449,44 @@ export const MyWeddingPage = () => {
             onChange={(e) =>
               setFormData({ ...formData, amount: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             placeholder="0.00"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Description
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="expense-description">Description</Label>
+          <Textarea
+            id="expense-description"
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             rows={2}
             placeholder="Optional description..."
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Date
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="expense-date">Date</Label>
+          <Input
+            id="expense-date"
             type="date"
             value={formData.expense_date}
             onChange={(e) =>
               setFormData({ ...formData, expense_date: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900"
-          >
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
+          <Button type="submit">
             {expense ? "Update" : "Add"} Expense
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     );
   };
@@ -628,54 +631,52 @@ export const MyWeddingPage = () => {
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Task Title *
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="task-title">Task Title *</Label>
+          <Input
+            id="task-title"
             type="text"
             value={formData.title}
             onChange={(e) =>
               setFormData({ ...formData, title: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             placeholder="e.g., Book Venue"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Category *
-          </label>
-          <select
+        <div className="space-y-2">
+          <Label htmlFor="task-category">Category *</Label>
+          <Select
             value={useCustomCategory ? "Custom Category..." : formData.category}
-            onChange={(e) => {
-              const isCustom = e.target.value === "Custom Category...";
+            onValueChange={(value) => {
+              const isCustom = value === "Custom Category...";
               setUseCustomCategory(isCustom);
               if (!isCustom) {
-                setFormData({ ...formData, category: e.target.value });
+                setFormData({ ...formData, category: value });
               }
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            required
           >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="task-category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {useCustomCategory && (
             <div className="mt-2">
-              <input
+              <Input
                 type="text"
                 value={formData.customCategory}
                 onChange={(e) =>
                   setFormData({ ...formData, customCategory: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Enter custom category name (e.g., Transportation, Hair & Makeup)"
                 required
               />
@@ -687,70 +688,61 @@ export const MyWeddingPage = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
-              Due Date
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="task-due-date">Due Date</Label>
+            <Input
+              id="task-due-date"
               type="date"
               value={formData.due_date}
               onChange={(e) =>
                 setFormData({ ...formData, due_date: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
-              Priority
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="task-priority">Priority</Label>
+            <Select
               value={formData.priority}
-              onChange={(e) =>
-                setFormData({ ...formData, priority: e.target.value })
+              onValueChange={(value) =>
+                setFormData({ ...formData, priority: value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
-              {priorities.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="task-priority">
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                {priorities.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            Notes
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="task-notes">Notes</Label>
+          <Textarea
+            id="task-notes"
             value={formData.notes}
             onChange={(e) =>
               setFormData({ ...formData, notes: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             rows={2}
             placeholder="Optional notes..."
           />
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900"
-          >
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
+          <Button type="submit">
             {task ? "Update" : "Add"} Task
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     );
   };
@@ -1034,32 +1026,6 @@ export const MyWeddingPage = () => {
       ? Math.round((guestStats.confirmed / guestStats.total) * 100)
       : 0;
 
-  // Booked vendors - from actual bookings
-  const bookedVendors = bookings.map((booking) => {
-    // Find conversation for this booking by matching serviceId
-    const conversation = booking.serviceId
-      ? conversations.find((c) => c.serviceId === booking.serviceId)
-      : null;
-
-    return {
-      id: booking.id,
-      bookingId: booking.id,
-      serviceId: booking.serviceId,
-      vendorId: booking.vendorId,
-      name: booking.vendorName,
-      category: booking.vendorCategory,
-      status:
-        booking.status === "confirmed"
-          ? "Confirmed"
-          : booking.status === "pending"
-            ? "Pending"
-            : booking.status === "completed"
-              ? "Completed"
-              : "Cancelled",
-      image: booking.vendorImage,
-      conversationId: conversation?.id || null,
-    };
-  });
 
   // Suggested vendors
   const suggestedVendors = [
@@ -1804,77 +1770,6 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
-            {/* Booked Vendors */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-green-600" />
-                  Booked Vendors
-                </h2>
-              </div>
-              <div className="p-4 lg:p-5 space-y-3 max-h-[300px] overflow-y-auto">
-                {bookedVendors.length === 0 && !loadingBookings ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No booked vendors yet. Start booking vendors to see them
-                    here.
-                  </p>
-                ) : (
-                  bookedVendors.map((vendor) => (
-                    <div
-                      key={vendor.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div
-                        className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
-                        style={{ backgroundImage: `url(${vendor.image})` }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {vendor.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {vendor.category}
-                        </p>
-                        <span
-                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${vendor.status === "Confirmed"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                            }`}
-                        >
-                          {vendor.status}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (vendor.conversationId) {
-                            navigate(`/chat/${vendor.conversationId}`);
-                          } else if (vendor.serviceId) {
-                            // Try to find conversation by serviceId
-                            const conv = conversations.find(
-                              (c) => c.serviceId === vendor.serviceId
-                            );
-                            if (conv?.id) {
-                              navigate(`/chat/${conv.id}`);
-                            }
-                          }
-                        }}
-                        className="p-2 hover:bg-gray-200 rounded-full"
-                      >
-                        <MessageCircle className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </div>
-                  ))
-                )}
-
-                <button
-                  onClick={() => navigate("/vendors")}
-                  className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-600 transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="font-medium">Add Vendor</span>
-                </button>
-              </div>
-            </div>
 
             {/* My Bookings */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
@@ -2344,78 +2239,6 @@ export const MyWeddingPage = () => {
               </div>
             </div>
 
-            {/* Booked Vendors */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 lg:p-5 border-b border-gray-100">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-green-600" />
-                  Booked Vendors
-                </h2>
-              </div>
-              <div className="p-4 lg:p-5 space-y-3 max-h-[300px] overflow-y-auto">
-                {bookedVendors.length === 0 && !loadingBookings ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No booked vendors yet. Start booking vendors to see them
-                    here.
-                  </p>
-                ) : (
-                  bookedVendors.map((vendor) => (
-                    <div
-                      key={vendor.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div
-                        className="w-12 h-12 bg-cover bg-center rounded-lg flex-shrink-0"
-                        style={{ backgroundImage: `url(${vendor.image})` }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {vendor.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {vendor.category}
-                        </p>
-                        <span
-                          className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${vendor.status === "Confirmed"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                            }`}
-                        >
-                          {vendor.status}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (vendor.conversationId) {
-                            navigate(`/chat/${vendor.conversationId}`);
-                          } else if (vendor.serviceId) {
-                            // Try to find conversation by serviceId
-                            const conv = conversations.find(
-                              (c) => c.serviceId === vendor.serviceId
-                            );
-                            if (conv?.id) {
-                              navigate(`/chat/${conv.id}`);
-                            }
-                          }
-                        }}
-                        className="p-2 hover:bg-gray-200 rounded-full"
-                      >
-                        <MessageCircle className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </div>
-                  ))
-                )}
-
-                <button
-                  onClick={() => navigate("/vendors")}
-                  className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-600 transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="font-medium">Add Vendor</span>
-                </button>
-              </div>
-            </div>
-
             {/* Suggested Vendors */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden lg:col-span-1">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 lg:p-5 border-b border-gray-100">
@@ -2603,64 +2426,42 @@ export const MyWeddingPage = () => {
       </main>
 
       {/* Add/Edit Expense Modal */}
-      {showAddExpense && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                {editingExpense ? "Edit Expense" : "Add Extra Expense"}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowAddExpense(false);
-                  setEditingExpense(null);
-                }}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <ExpenseForm
-              expense={editingExpense}
-              onSave={handleSaveExpense}
-              onCancel={() => {
-                setShowAddExpense(false);
-                setEditingExpense(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingExpense ? "Edit Expense" : "Add Extra Expense"}
+            </DialogTitle>
+          </DialogHeader>
+          <ExpenseForm
+            expense={editingExpense}
+            onSave={handleSaveExpense}
+            onCancel={() => {
+              setShowAddExpense(false);
+              setEditingExpense(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Task Modal */}
-      {showAddTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                {editingTask ? "Edit Task" : "Add New Task"}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowAddTask(false);
-                  setEditingTask(null);
-                }}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <TaskForm
-              task={editingTask}
-              onSave={handleSaveTask}
-              onCancel={() => {
-                setShowAddTask(false);
-                setEditingTask(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTask ? "Edit Task" : "Add New Task"}
+            </DialogTitle>
+          </DialogHeader>
+          <TaskForm
+            task={editingTask}
+            onSave={handleSaveTask}
+            onCancel={() => {
+              setShowAddTask(false);
+              setEditingTask(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* AI Chat Bubble (Floating) */}
       {showAIChat && (
@@ -2688,10 +2489,10 @@ export const MyWeddingPage = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               placeholder="Ask me anything..."
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-full h-10 px-4 text-sm"
+              className="flex-1 bg-gray-50 border-gray-200 rounded-full h-10 px-4 text-sm"
             />
             <button className="bg-rose-600 hover:bg-rose-700 text-white rounded-full w-10 h-10 flex items-center justify-center">
               →

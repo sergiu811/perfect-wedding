@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Mail, Lock, User, Heart, Building2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useAuth } from "~/contexts/auth-context";
 
 export const SignupPage = () => {
@@ -69,184 +73,164 @@ export const SignupPage = () => {
         </div>
 
         {/* Role Toggle */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setRole("couple")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                role === "couple"
-                  ? "bg-white text-rose-600 shadow"
-                  : "text-gray-600"
-              }`}
+        <Card className="shadow-xl border-none">
+          <CardHeader className="pb-4">
+            <Tabs
+              defaultValue="couple"
+              value={role}
+              onValueChange={(v) => setRole(v as "couple" | "vendor")}
+              className="w-full"
             >
-              Couple
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("vendor")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                role === "vendor"
-                  ? "bg-white text-purple-600 shadow"
-                  : "text-gray-600"
-              }`}
-            >
-              Vendor
-            </button>
-          </div>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="couple">Couple</TabsTrigger>
+                <TabsTrigger value="vendor">Vendor</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+              {/* Name Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="pl-9"
+                      placeholder="John"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
                     type="text"
                     required
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                    placeholder="John"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
 
-            {/* Business Name (Vendor Only) */}
-            {role === "vendor" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business Name
-                </label>
+              {/* Business Name (Vendor Only) */}
+              {role === "vendor" && (
+                <div className="space-y-2">
+                  <Label htmlFor="businessName">Business Name</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="businessName"
+                      type="text"
+                      required
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="pl-9"
+                      placeholder="Your Business Name"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
                     required
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                    placeholder="Your Business Name"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-9"
+                    placeholder="you@example.com"
                   />
                 </div>
               </div>
-            )}
 
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                  placeholder="you@example.com"
-                />
+              {/* Password Fields */}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Password Fields */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                  placeholder="••••••••"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-9"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={loading}
-              className={`w-full h-12 text-white font-semibold rounded-lg shadow-lg ${
-                role === "couple"
-                  ? "bg-rose-600 hover:bg-rose-700"
-                  : "bg-purple-600 hover:bg-purple-700"
-              }`}
-            >
-              {loading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-
-          {/* Sign In Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <button
-                onClick={() => navigate("/login")}
-                className="text-rose-600 hover:underline font-medium"
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className={`w-full text-white font-semibold shadow-lg ${role === "couple"
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : "bg-purple-600 hover:bg-purple-700"
+                  }`}
               >
-                Sign In
-              </button>
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-8">
-          By creating an account, you agree to our{" "}
-          <a href="/terms" className="text-rose-600 hover:underline">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="/privacy" className="text-rose-600 hover:underline">
-            Privacy Policy
-          </a>
-        </p>
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                Already have an account?{" "}
+                <button
+                  onClick={() => navigate("/login")}
+                  className="text-rose-600 hover:underline font-medium"
+                >
+                  Sign In
+                </button>
+              </p>
+              <p className="text-xs text-gray-500">
+                By creating an account, you agree to our{" "}
+                <a href="/terms" className="text-rose-600 hover:underline">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/privacy" className="text-rose-600 hover:underline">
+                  Privacy Policy
+                </a>
+              </p>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -19,6 +19,31 @@ import {
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Textarea } from "~/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
+import { Label } from "~/components/ui/label";
 import { useRouter } from "~/contexts/router-context";
 import { useSeating } from "~/hooks/use-seating";
 import type { Table } from "~/hooks/use-seating";
@@ -62,7 +87,8 @@ export const SeatingPlannerPage = () => {
   const stats = getStats();
   const loading = seatingLoading || guestsLoading;
 
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const selectedTable = tables.find((t) => t.id === selectedTableId) || null;
   const [showAddTable, setShowAddTable] = useState(false);
   const [viewMode, setViewMode] = useState<"visual" | "list">("visual");
   const [zoom, setZoom] = useState(100);
@@ -189,26 +215,17 @@ export const SeatingPlannerPage = () => {
       {/* View Toggle & Actions */}
       <div className="p-4 lg:p-6 bg-white border-b border-gray-100">
         <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setViewMode("visual")}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === "visual"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-100 text-gray-600"
-            }`}
+          <Tabs
+            defaultValue="visual"
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as "visual" | "list")}
+            className="w-full"
           >
-            Visual Map
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === "list"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            List View
-          </button>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="visual">Visual Map</TabsTrigger>
+              <TabsTrigger value="list">List View</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="flex gap-2">
@@ -327,7 +344,7 @@ export const SeatingPlannerPage = () => {
                       return (
                         <button
                           key={table.id}
-                          onClick={() => setSelectedTable(table)}
+                          onClick={() => setSelectedTableId(table.id)}
                           onDragOver={(e) => {
                             if (draggedGuest && !isFull) {
                               e.preventDefault();
@@ -359,20 +376,18 @@ export const SeatingPlannerPage = () => {
                               setDraggedGuest(null);
                             }
                           }}
-                          className={`p-4 rounded-xl border-2 transition-all ${
-                            selectedTable?.id === table.id
-                              ? "border-indigo-600 bg-indigo-50 shadow-lg"
-                              : "border-gray-300 bg-white hover:border-indigo-300"
-                          } ${isFull ? "opacity-60" : ""}`}
+                          className={`p-4 rounded-xl border-2 transition-all ${selectedTable?.id === table.id
+                            ? "border-indigo-600 bg-indigo-50 shadow-lg"
+                            : "border-gray-300 bg-white hover:border-indigo-300"
+                            } ${isFull ? "opacity-60" : ""}`}
                           style={{ backgroundColor: table.color }}
                         >
                           <div className="text-center">
                             <div
-                              className={`w-20 h-20 mx-auto mb-2 border-4 border-gray-700 flex items-center justify-center text-gray-700 font-bold ${
-                                table.shape === "round"
-                                  ? "rounded-full"
-                                  : "rounded-lg"
-                              }`}
+                              className={`w-20 h-20 mx-auto mb-2 border-4 border-gray-700 flex items-center justify-center text-gray-700 font-bold ${table.shape === "round"
+                                ? "rounded-full"
+                                : "rounded-lg"
+                                }`}
                               style={{
                                 backgroundColor: "rgba(255,255,255,0.8)",
                               }}
@@ -447,7 +462,7 @@ export const SeatingPlannerPage = () => {
                         </div>
                         <div className="flex gap-1">
                           <button
-                            onClick={() => setSelectedTable(table)}
+                            onClick={() => setSelectedTableId(table.id)}
                             className="p-2 hover:bg-white/50 rounded-lg"
                           >
                             <Edit2 className="w-4 h-4 text-gray-600" />
@@ -493,124 +508,124 @@ export const SeatingPlannerPage = () => {
           <div className="lg:col-span-1 space-y-4 lg:space-y-6">
             {/* Unseated Guests */}
             {unseatedGuests.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
                     <Users className="w-5 h-5 text-amber-600" />
                     Unseated Guests ({unseatedGuests.length})
-                  </h3>
-                </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Search Input */}
+                  <div className="mb-3 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search by name, category, or meal..."
+                      value={guestSearchQuery}
+                      onChange={(e) => setGuestSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-10"
+                    />
+                    {guestSearchQuery && (
+                      <button
+                        onClick={() => setGuestSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
 
-                {/* Search Input */}
-                <div className="mb-3 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search by name, category, or meal..."
-                    value={guestSearchQuery}
-                    onChange={(e) => setGuestSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 h-10 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                  />
-                  {guestSearchQuery && (
-                    <button
-                      onClick={() => setGuestSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800">
-                    💡 <strong>Tip:</strong>{" "}
-                    {selectedTable
-                      ? `Click a guest to assign to ${selectedTable.name} or drag to any table`
-                      : "Drag guests to tables or click a table seat to assign"}
-                  </p>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {filteredUnseatedGuests.length === 0 ? (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500">
-                        {guestSearchQuery
-                          ? "No guests match your search"
-                          : "No unseated guests"}
-                      </p>
-                    </div>
-                  ) : (
-                    filteredUnseatedGuests.map((guest) => (
-                      <div
-                        key={guest.id}
-                        draggable
-                        onDragStart={(e) => {
-                          setDraggedGuest(guest);
-                          e.currentTarget.classList.add("opacity-50");
-                        }}
-                        onDragEnd={(e) => {
-                          setDraggedGuest(null);
-                          e.currentTarget.classList.remove("opacity-50");
-                        }}
-                        onClick={async () => {
-                          if (selectedTable) {
-                            const nextSeat =
-                              selectedTable.assignedSeats.length + 1;
-                            if (nextSeat <= selectedTable.seats) {
-                              await handleAssignGuest(
-                                selectedTable.id,
-                                nextSeat,
-                                guest.id
-                              );
-                            } else {
-                              alert(
-                                "This table is full! Select another table or drag the guest."
-                              );
+                  <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-800">
+                      💡 <strong>Tip:</strong>{" "}
+                      {selectedTable
+                        ? `Click a guest to assign to ${selectedTable.name} or drag to any table`
+                        : "Drag guests to tables or click a table seat to assign"}
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {filteredUnseatedGuests.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500">
+                          {guestSearchQuery
+                            ? "No guests match your search"
+                            : "No unseated guests"}
+                        </p>
+                      </div>
+                    ) : (
+                      filteredUnseatedGuests.map((guest) => (
+                        <div
+                          key={guest.id}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggedGuest(guest);
+                            e.currentTarget.classList.add("opacity-50");
+                          }}
+                          onDragEnd={(e) => {
+                            setDraggedGuest(null);
+                            e.currentTarget.classList.remove("opacity-50");
+                          }}
+                          onClick={async () => {
+                            if (selectedTable) {
+                              const nextSeat =
+                                selectedTable.assignedSeats.length + 1;
+                              if (nextSeat <= selectedTable.seats) {
+                                await handleAssignGuest(
+                                  selectedTable.id,
+                                  nextSeat,
+                                  guest.id
+                                );
+                              } else {
+                                alert(
+                                  "This table is full! Select another table or drag the guest."
+                                );
+                              }
                             }
-                          }
-                        }}
-                        className={`flex items-center justify-between p-3 bg-amber-50 border-2 rounded-lg cursor-move hover:shadow-md transition-all ${
-                          selectedTable
+                          }}
+                          className={`flex items-center justify-between p-3 bg-amber-50 border-2 rounded-lg cursor-move hover:shadow-md transition-all ${selectedTable
                             ? "border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50"
                             : "border-amber-200 hover:border-amber-400"
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            <HighlightText
-                              text={guest.name}
-                              query={guestSearchQuery}
-                            />
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            <HighlightText
-                              text={guest.relationship}
-                              query={guestSearchQuery}
-                            />{" "}
-                            •{" "}
-                            <HighlightText
-                              text={guest.mealPreference}
-                              query={guestSearchQuery}
-                            />
-                          </p>
+                            }`}
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              <HighlightText
+                                text={guest.name}
+                                query={guestSearchQuery}
+                              />
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              <HighlightText
+                                text={guest.relationship}
+                                query={guestSearchQuery}
+                              />{" "}
+                              •{" "}
+                              <HighlightText
+                                text={guest.mealPreference}
+                                query={guestSearchQuery}
+                              />
+                            </p>
+                          </div>
+                          <div className="text-gray-400 text-xs">⋮⋮</div>
                         </div>
-                        <div className="text-gray-400 text-xs">⋮⋮</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Selected Table Details */}
             {selectedTable && (
-              <div className="bg-white rounded-xl shadow-md border-2 border-indigo-200 overflow-hidden">
+              <Card className="border-2 border-indigo-200 overflow-hidden">
                 <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-4 border-b border-indigo-200">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold text-gray-900">
                       {selectedTable.name}
                     </h3>
                     <button
-                      onClick={() => setSelectedTable(null)}
+                      onClick={() => setSelectedTableId(null)}
                       className="text-gray-600 hover:text-gray-800"
                     >
                       ✕
@@ -622,7 +637,7 @@ export const SeatingPlannerPage = () => {
                   </p>
                 </div>
 
-                <div className="p-4">
+                <CardContent className="p-4">
                   {/* Seat Grid */}
                   <div className="grid grid-cols-4 gap-2 mb-4">
                     {Array.from(
@@ -682,11 +697,10 @@ export const SeatingPlannerPage = () => {
                               setDraggedGuest(null);
                             }
                           }}
-                          className={`aspect-square rounded-lg border-2 flex flex-col items-center justify-center p-2 text-xs transition-all ${
-                            seat
-                              ? "bg-green-100 border-green-400 hover:border-green-600"
-                              : "bg-gray-50 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer"
-                          }`}
+                          className={`aspect-square rounded-lg border-2 flex flex-col items-center justify-center p-2 text-xs transition-all ${seat
+                            ? "bg-green-100 border-green-400 hover:border-green-600"
+                            : "bg-gray-50 border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer"
+                            }`}
                         >
                           <span className="font-bold text-gray-700 mb-1">
                             {seatNum}
@@ -706,31 +720,24 @@ export const SeatingPlannerPage = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Table Name
-                      </label>
+                    <div className="grid gap-2">
+                      <Label htmlFor="editTableName">Table Name</Label>
                       <Input
+                        id="editTableName"
                         value={selectedTable.name}
                         onChange={(e) =>
                           updateTable(selectedTable.id, {
                             name: e.target.value,
                           })
                         }
-                        onBlur={(e) =>
-                          updateTable(selectedTable.id, {
-                            name: e.target.value,
-                          })
-                        }
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg h-10 px-3 text-sm"
+                        className="h-10"
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Number of Seats
-                      </label>
+                    <div className="grid gap-2">
+                      <Label htmlFor="editSeats">Number of Seats</Label>
                       <Input
+                        id="editSeats"
                         type="number"
                         min="2"
                         max="20"
@@ -741,24 +748,21 @@ export const SeatingPlannerPage = () => {
                             updateTable(selectedTable.id, { seats: newSeats });
                           }
                         }}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg h-10 px-3 text-sm"
+                        className="h-10"
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Table Shape
-                      </label>
+                    <div className="grid gap-2">
+                      <Label>Table Shape</Label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() =>
                             updateTable(selectedTable.id, { shape: "round" })
                           }
-                          className={`p-3 rounded-lg border-2 transition-all ${
-                            selectedTable.shape === "round"
-                              ? "border-indigo-600 bg-indigo-50"
-                              : "border-gray-200"
-                          }`}
+                          className={`p-3 rounded-lg border-2 transition-all ${selectedTable.shape === "round"
+                            ? "border-indigo-600 bg-indigo-50"
+                            : "border-gray-200"
+                            }`}
                         >
                           <div className="w-12 h-12 mx-auto rounded-full border-4 border-gray-700" />
                           <p className="text-xs font-medium mt-2">Round</p>
@@ -769,11 +773,10 @@ export const SeatingPlannerPage = () => {
                               shape: "rectangle",
                             })
                           }
-                          className={`p-3 rounded-lg border-2 transition-all ${
-                            selectedTable.shape === "rectangle"
-                              ? "border-indigo-600 bg-indigo-50"
-                              : "border-gray-200"
-                          }`}
+                          className={`p-3 rounded-lg border-2 transition-all ${selectedTable.shape === "rectangle"
+                            ? "border-indigo-600 bg-indigo-50"
+                            : "border-gray-200"
+                            }`}
                         >
                           <div className="w-12 h-8 mx-auto rounded-lg border-4 border-gray-700" />
                           <p className="text-xs font-medium mt-2">Rectangle</p>
@@ -781,11 +784,10 @@ export const SeatingPlannerPage = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Notes
-                      </label>
-                      <textarea
+                    <div className="grid gap-2">
+                      <Label htmlFor="editNotes">Notes</Label>
+                      <Textarea
+                        id="editNotes"
                         value={selectedTable.notes || ""}
                         onChange={(e) =>
                           updateTable(selectedTable.id, {
@@ -793,180 +795,200 @@ export const SeatingPlannerPage = () => {
                           })
                         }
                         placeholder="e.g., Near dance floor, window view..."
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm min-h-[60px]"
+                        className="min-h-[60px]"
                       />
                     </div>
 
-                    <button
+                    <Button
+                      variant="destructive"
                       onClick={async () => {
                         if (confirm(`Delete ${selectedTable.name}?`)) {
                           await deleteTable(selectedTable.id);
-                          setSelectedTable(null);
+                          setSelectedTableId(null);
                         }
                       }}
-                      className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg h-10 text-sm font-medium"
+                      className="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Delete Table
-                    </button>
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Table List View */}
             {viewMode === "list" && (
               <div className="space-y-3">
                 {tables.map((table) => (
-                  <div
+                  <Card
                     key={table.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
+                    className="border-gray-100"
                     style={{ backgroundColor: table.color || "#fff" }}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="text-base font-semibold text-gray-900">
-                          {table.name}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {table.assignedSeats.length}/{table.seats} seats •{" "}
-                          {table.shape}
-                        </p>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="text-base font-semibold text-gray-900">
+                            {table.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {table.assignedSeats.length}/{table.seats} seats •{" "}
+                            {table.shape}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setSelectedTableId(table.id)}
+                          className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        >
+                          Manage
+                        </Button>
                       </div>
-                      <button
-                        onClick={() => setSelectedTable(table)}
-                        className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-                      >
-                        Manage
-                      </button>
-                    </div>
 
-                    {table.assignedSeats.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {table.assignedSeats.map((seat) => (
-                          <span
-                            key={seat.seatNumber}
-                            className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs"
-                          >
-                            {seat.guestName}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      {table.assignedSeats.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {table.assignedSeats.map((seat) => (
+                            <Badge
+                              key={seat.seatNumber}
+                              variant="secondary"
+                              className="bg-green-100 text-green-700 hover:bg-green-200"
+                            >
+                              {seat.guestName}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
 
             {/* Export Options */}
-            <div className="bg-white rounded-xl shadow-md p-4 lg:p-5">
-              <h3 className="text-base font-bold text-gray-900 mb-3">
-                Export & Share
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg h-10 text-sm font-medium">
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </button>
-                <button className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg h-10 text-sm font-medium">
-                  <Share2 className="w-4 h-4" />
-                  Share Link
-                </button>
-              </div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold">
+                  Export & Share
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share Link
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Statistics */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <p className="text-xs text-gray-500 mb-1">Avg Guests/Table</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {tables.length > 0
-                    ? Math.round(totalSeated / tables.length)
-                    : 0}
-                </p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <p className="text-xs text-gray-500 mb-1">Empty Seats</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {tables.reduce((sum, t) => sum + t.seats, 0) - totalSeated}
-                </p>
-              </div>
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Avg Guests/Table
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tables.length > 0
+                      ? Math.round(totalSeated / tables.length)
+                      : 0}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-gray-500 mb-1">Empty Seats</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tables.reduce((sum, t) => sum + t.seats, 0) - totalSeated}
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </main>
 
       {/* Guest Picker Modal */}
-      {showGuestPicker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 flex items-center justify-between rounded-t-2xl">
-              <h3 className="text-lg font-bold">
-                Select Guest for Seat #{showGuestPicker.seatNumber}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowGuestPicker(null);
-                  setGuestSearchQuery("");
-                }}
-                className="text-white/80 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
+      <Dialog
+        open={!!showGuestPicker}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowGuestPicker(null);
+            setGuestSearchQuery("");
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Select Guest for Seat #{showGuestPicker?.seatNumber}
+            </DialogTitle>
+          </DialogHeader>
 
-            {/* Search Input in Modal */}
-            <div className="p-4 pb-2 border-b border-gray-100">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search by name, category, or meal..."
-                  value={guestSearchQuery}
-                  onChange={(e) => setGuestSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 h-10 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                  autoFocus
-                />
-                {guestSearchQuery && (
-                  <button
-                    onClick={() => setGuestSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              {filteredUnseatedGuests.length > 0 && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Showing {filteredUnseatedGuests.length} of{" "}
-                  {unseatedGuests.length} guests
-                </p>
+          {/* Search Input in Modal */}
+          <div className="p-4 pb-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, category, or meal..."
+                value={guestSearchQuery}
+                onChange={(e) => setGuestSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10"
+                autoFocus
+              />
+              {guestSearchQuery && (
+                <button
+                  onClick={() => setGuestSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
             </div>
+            {filteredUnseatedGuests.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                Showing {filteredUnseatedGuests.length} of{" "}
+                {unseatedGuests.length} guests
+              </p>
+            )}
+          </div>
 
-            <div className="p-4 overflow-y-auto flex-1">
-              {unseatedGuests.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                  <p className="text-gray-600">All guests are seated!</p>
-                </div>
-              ) : filteredUnseatedGuests.length === 0 ? (
-                <div className="text-center py-8">
-                  <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-600">No guests match your search</p>
+          <div className="p-4 overflow-y-auto flex-1">
+            {unseatedGuests.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-600">All guests are seated!</p>
+              </div>
+            ) : filteredUnseatedGuests.length === 0 ? (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600">No guests match your search</p>
+                <button
+                  onClick={() => setGuestSearchQuery("")}
+                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-700"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredUnseatedGuests.map((guest) => (
                   <button
-                    onClick={() => setGuestSearchQuery("")}
-                    className="mt-2 text-sm text-indigo-600 hover:text-indigo-700"
-                  >
-                    Clear search
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredUnseatedGuests.map((guest) => (
-                    <button
-                      key={guest.id}
-                      onClick={async () => {
+                    key={guest.id}
+                    onClick={async () => {
+                      if (showGuestPicker) {
                         await handleAssignGuest(
                           showGuestPicker.tableId,
                           showGuestPicker.seatNumber,
@@ -974,166 +996,150 @@ export const SeatingPlannerPage = () => {
                         );
                         setShowGuestPicker(null);
                         setGuestSearchQuery("");
-                      }}
-                      className="w-full text-left p-3 bg-gray-50 hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-400 rounded-lg transition-all"
-                    >
-                      <p className="text-sm font-medium text-gray-900">
-                        <HighlightText
-                          text={guest.name}
-                          query={guestSearchQuery}
-                        />
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        <HighlightText
-                          text={guest.relationship}
-                          query={guestSearchQuery}
-                        />{" "}
-                        •{" "}
-                        <HighlightText
-                          text={guest.mealPreference}
-                          query={guestSearchQuery}
-                        />
-                        {guest.plusOnes > 0 && ` • +${guest.plusOnes}`}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      }
+                    }}
+                    className="w-full text-left p-3 bg-gray-50 hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-400 rounded-lg transition-all"
+                  >
+                    <p className="text-sm font-medium text-gray-900">
+                      <HighlightText
+                        text={guest.name}
+                        query={guestSearchQuery}
+                      />
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      <HighlightText
+                        text={guest.relationship}
+                        query={guestSearchQuery}
+                      />{" "}
+                      •{" "}
+                      <HighlightText
+                        text={guest.mealPreference}
+                        query={guestSearchQuery}
+                      />
+                      {guest.plusOnes > 0 && ` • +${guest.plusOnes}`}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="p-4 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowGuestPicker(null);
+                setGuestSearchQuery("");
+              }}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Table Modal */}
+      <Dialog
+        open={showAddTable}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddTable(false);
+            setNewTableForm({ name: "", seats: 8, shape: "round" });
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Add New Table</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (newTableForm.name.trim()) {
+                await addTable({
+                  name: newTableForm.name.trim(),
+                  seats: newTableForm.seats,
+                  shape: newTableForm.shape,
+                  position: { x: 100, y: 100 },
+                  color: "#F5F5F5",
+                });
+                setShowAddTable(false);
+                setNewTableForm({ name: "", seats: 8, shape: "round" });
+              }
+            }}
+            className="grid gap-4 py-4"
+          >
+            <p className="text-sm text-gray-600">
+              Create a new table for your seating arrangement. You can assign
+              guests after creating the table.
+            </p>
+
+            <div className="grid gap-2">
+              <Label htmlFor="tableName">Table Name *</Label>
+              <Input
+                id="tableName"
+                value={newTableForm.name}
+                onChange={(e) =>
+                  setNewTableForm({ ...newTableForm, name: e.target.value })
+                }
+                placeholder="e.g., Table 4 - Cousins"
+                autoFocus
+              />
             </div>
-            <div className="p-4 border-t border-gray-200">
+            <div className="grid gap-2">
+              <Label htmlFor="seats">Number of Seats *</Label>
+              <Input
+                id="seats"
+                type="number"
+                min="2"
+                max="20"
+                value={newTableForm.seats}
+                onChange={(e) =>
+                  setNewTableForm({
+                    ...newTableForm,
+                    seats: parseInt(e.target.value) || 2,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="shape">Table Shape *</Label>
+              <Select
+                value={newTableForm.shape}
+                onValueChange={(value) =>
+                  setNewTableForm({
+                    ...newTableForm,
+                    shape: value as "round" | "rectangle",
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select shape" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="round">Round</SelectItem>
+                  <SelectItem value="rectangle">Rectangle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
               <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
-                  setShowGuestPicker(null);
-                  setGuestSearchQuery("");
+                  setShowAddTable(false);
+                  setNewTableForm({ name: "", seats: 8, shape: "round" });
                 }}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-full h-12"
               >
                 Cancel
               </Button>
+              <Button type="submit" disabled={!newTableForm.name.trim()}>
+                Add Table
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Table Modal */}
-      {showAddTable && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAddTable(false);
-              setNewTableForm({ name: "", seats: 8, shape: "round" });
-            }
-          }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 flex items-center justify-between rounded-t-2xl">
-              <h3 className="text-lg font-bold">Add New Table</h3>
-              <button
-                onClick={() => {
-                  setShowAddTable(false);
-                  setNewTableForm({ name: "", seats: 8, shape: "round" });
-                }}
-                className="text-white/80 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (newTableForm.name.trim()) {
-                  await addTable({
-                    name: newTableForm.name.trim(),
-                    seats: newTableForm.seats,
-                    shape: newTableForm.shape,
-                    position: { x: 100, y: 100 },
-                    color: "#F5F5F5",
-                  });
-                  setShowAddTable(false);
-                  setNewTableForm({ name: "", seats: 8, shape: "round" });
-                }
-              }}
-              className="p-4 space-y-4"
-            >
-              <p className="text-sm text-gray-600">
-                Create a new table for your seating arrangement. You can assign
-                guests after creating the table.
-              </p>
-
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Table Name *
-                </label>
-                <Input
-                  value={newTableForm.name}
-                  onChange={(e) =>
-                    setNewTableForm({ ...newTableForm, name: e.target.value })
-                  }
-                  placeholder="e.g., Table 4 - Cousins"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Number of Seats *
-                </label>
-                <Input
-                  type="number"
-                  min="2"
-                  max="20"
-                  value={newTableForm.seats}
-                  onChange={(e) =>
-                    setNewTableForm({
-                      ...newTableForm,
-                      seats: parseInt(e.target.value) || 2,
-                    })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Table Shape *
-                </label>
-                <select
-                  value={newTableForm.shape}
-                  onChange={(e) =>
-                    setNewTableForm({
-                      ...newTableForm,
-                      shape: e.target.value as "round" | "rectangle",
-                    })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                >
-                  <option value="round">Round</option>
-                  <option value="rectangle">Rectangle</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="submit"
-                  disabled={!newTableForm.name.trim()}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-12 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Add Table
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setShowAddTable(false);
-                    setNewTableForm({ name: "", seats: 8, shape: "round" });
-                  }}
-                  className="flex-1 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-12"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

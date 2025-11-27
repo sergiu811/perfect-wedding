@@ -12,6 +12,7 @@ import {
   Calendar,
   Download,
   X,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -62,7 +63,7 @@ const getCategoryDisplayLabel = (category: string): string => {
   if (CATEGORY_LABELS[category]) {
     return CATEGORY_LABELS[category];
   }
-  
+
   // Otherwise, format the custom category name (snake_case to Title Case)
   return category
     .split("_")
@@ -91,6 +92,19 @@ export const BudgetDetailsPage = () => {
     description: "",
     expense_date: "",
   });
+  const [activeCategoryMenuId, setActiveCategoryMenuId] = useState<string | null>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeCategoryMenuId && !(event.target as Element).closest('.category-menu-container')) {
+        setActiveCategoryMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeCategoryMenuId]);
 
   // Fetch all data
   useEffect(() => {
@@ -102,7 +116,7 @@ export const BudgetDetailsPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch wedding
         const { data: weddingData } = await getWeddingByUserId(supabase, user.id);
         if (weddingData) {
@@ -181,17 +195,17 @@ export const BudgetDetailsPage = () => {
 
     // Combine allocations and spent amounts
     const categories: BudgetCategory[] = [];
-    
+
     // Add categories from allocations
     Object.entries(allocationMap).forEach(([category, alloc]) => {
-        categories.push({
-          id: alloc.id,
-          category,
-          name: getCategoryDisplayLabel(category),
-          allocated: alloc.allocated,
-          spent: spentMap[category] || 0,
-          color: CATEGORY_COLORS[category] || CATEGORY_COLORS.other,
-        });
+      categories.push({
+        id: alloc.id,
+        category,
+        name: getCategoryDisplayLabel(category),
+        allocated: alloc.allocated,
+        spent: spentMap[category] || 0,
+        color: CATEGORY_COLORS[category] || CATEGORY_COLORS.other,
+      });
     });
 
     // Add categories that have spending but no allocation
@@ -244,13 +258,13 @@ export const BudgetDetailsPage = () => {
       const method = isNew ? "POST" : "PUT";
       const body = isNew
         ? {
-            category: category.category,
-            allocated_amount: allocated,
-          }
+          category: category.category,
+          allocated_amount: allocated,
+        }
         : {
-            id: categoryId,
-            allocated_amount: allocated,
-          };
+          id: categoryId,
+          allocated_amount: allocated,
+        };
 
       const response = await fetch("/api/budget-allocations", {
         method,
@@ -351,7 +365,7 @@ export const BudgetDetailsPage = () => {
     // Create comprehensive budget report
     const reportDate = new Date().toISOString().split("T")[0];
     const weddingDate = wedding?.wedding_date || "N/A";
-    const partnerNames = wedding 
+    const partnerNames = wedding
       ? `${wedding.partner1_name} & ${wedding.partner2_name}`
       : "N/A";
 
@@ -380,7 +394,7 @@ export const BudgetDetailsPage = () => {
     csvRows.push("Category,Allocated,Spent,Remaining,Percentage Spent");
     budgetCategories.forEach((category) => {
       const remaining = category.allocated - category.spent;
-      const percentage = category.allocated > 0 
+      const percentage = category.allocated > 0
         ? Math.round((category.spent / category.allocated) * 100)
         : 0;
       csvRows.push(
@@ -443,10 +457,10 @@ export const BudgetDetailsPage = () => {
   };
 
   const handleAddCategory = async () => {
-    const finalCategory = newCategory.useCustom 
+    const finalCategory = newCategory.useCustom
       ? newCategory.customCategory.trim().toLowerCase().replace(/\s+/g, "_")
       : newCategory.category;
-    
+
     if (!finalCategory || !newCategory.allocated) {
       alert("Please select a category and enter an allocated amount");
       return;
@@ -537,11 +551,10 @@ export const BudgetDetailsPage = () => {
                 <div
                   className="h-full bg-white rounded-full transition-all"
                   style={{
-                    width: `${
-                      budgetTotal > 0
-                        ? Math.min((totalSpent / budgetTotal) * 100, 100)
-                        : 0
-                    }%`,
+                    width: `${budgetTotal > 0
+                      ? Math.min((totalSpent / budgetTotal) * 100, 100)
+                      : 0
+                      }%`,
                   }}
                 />
               </div>
@@ -558,9 +571,8 @@ export const BudgetDetailsPage = () => {
                 </p>
               </div>
               <p
-                className={`text-2xl lg:text-3xl font-bold ${
-                  remaining >= 0 ? "text-emerald-600" : "text-red-600"
-                }`}
+                className={`text-2xl lg:text-3xl font-bold ${remaining >= 0 ? "text-emerald-600" : "text-red-600"
+                  }`}
               >
                 ${Math.abs(remaining).toLocaleString()}
               </p>
@@ -664,25 +676,47 @@ export const BudgetDetailsPage = () => {
                           <Plus className="w-3 h-3 lg:w-4 lg:h-4 inline mr-1" />
                           <span className="hidden sm:inline">Add Expense</span>
                         </button>
-                        <button
-                          onClick={() => {
-                            setEditingId(category.id);
-                            setEditingData({ allocated: category.allocated });
-                          }}
-                          className="p-1.5 lg:p-2 hover:bg-gray-100 rounded transition-colors"
-                          title="Edit Allocation"
-                        >
-                          <Edit2 className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
-                        </button>
-                        {!category.id.startsWith("spent-") && (
+                        <div className="relative category-menu-container">
                           <button
-                            onClick={() => handleDeleteAllocation(category.id)}
-                            className="p-1.5 lg:p-2 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Allocation"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCategoryMenuId(activeCategoryMenuId === category.id ? null : category.id);
+                            }}
+                            className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
                           >
-                            <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" />
+                            <MoreVertical className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
-                        )}
+
+                          {activeCategoryMenuId === category.id && (
+                            <div className="absolute right-0 top-8 z-10 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 animate-in fade-in zoom-in-95 duration-100">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(category.id);
+                                  setEditingData({ allocated: category.allocated });
+                                  setActiveCategoryMenuId(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs lg:text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                              >
+                                <Edit2 className="w-3 h-3 lg:w-4 lg:h-4" />
+                                Edit Allocation
+                              </button>
+                              {!category.id.startsWith("spent-") && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAllocation(category.id);
+                                    setActiveCategoryMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs lg:text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                                >
+                                  <Trash2 className="w-3 h-3 lg:w-4 lg:h-4" />
+                                  Delete Allocation
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -693,12 +727,11 @@ export const BudgetDetailsPage = () => {
                           <div
                             className={`h-full ${category.color} rounded-full transition-all`}
                             style={{
-                              width: `${
-                                Math.min(
-                                  (category.spent / category.allocated) * 100,
-                                  100
-                                )
-                              }%`,
+                              width: `${Math.min(
+                                (category.spent / category.allocated) * 100,
+                                100
+                              )
+                                }%`,
                             }}
                           />
                         </div>
@@ -923,8 +956,8 @@ export const BudgetDetailsPage = () => {
                       value={newCategory.useCustom ? "custom" : newCategory.category}
                       onChange={(e) => {
                         const isCustom = e.target.value === "custom";
-                        setNewCategory({ 
-                          ...newCategory, 
+                        setNewCategory({
+                          ...newCategory,
                           useCustom: isCustom,
                           category: isCustom ? newCategory.category : e.target.value
                         });
@@ -938,7 +971,7 @@ export const BudgetDetailsPage = () => {
                       ))}
                       <option value="custom">Custom Category...</option>
                     </select>
-                    
+
                     {newCategory.useCustom && (
                       <div className="mt-2">
                         <Input

@@ -545,7 +545,8 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to reject offer");
+        const data = await response.json();
+        throw new Error(data.error || "Failed to reject offer");
       }
 
       // Update message in local state
@@ -562,9 +563,9 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             : msg
         )
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rejecting offer:", error);
-      alert("Failed to reject offer. Please try again.");
+      alert(error.message || "Failed to reject offer. Please try again.");
     }
   };
 
@@ -658,7 +659,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const vendorCategory = conversationInfo?.vendorCategory || "Service";
 
   return (
-    <div className="flex flex-col h-screen bg-pink-50 overflow-hidden">
+    <div className="w-screen flex flex-col h-screen bg-pink-50 overflow-hidden">
       {/* FIXED HEADER */}
       <header
         className="flex-none bg-white border-b border-gray-200 z-30 p-4 flex items-center gap-3"
@@ -860,7 +861,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             <div className="relative">
               <ChevronDown className="w-6 h-6" />
               {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                <span className="absolute -top-5 -left-6 bg-rose-600 text-white text-[10px] font-bold w-8 h-8 flex items-center justify-center rounded-full border-2 border-white">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}

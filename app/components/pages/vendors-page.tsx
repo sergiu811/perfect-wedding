@@ -20,6 +20,9 @@ import {
 import { useRouter } from "~/contexts/router-context";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Toggle } from "~/components/ui/toggle";
 
 const VENDOR_CATEGORIES = [
   {
@@ -159,7 +162,7 @@ export const VendorsPage = () => {
       const firstService = vendorServices[0];
       const avgRating =
         vendorServices.reduce((sum, s) => sum + (s.rating || 0), 0) /
-          vendorServices.filter((s) => s.rating).length || 0;
+        vendorServices.filter((s) => s.rating).length || 0;
       const totalReviews = vendorServices.reduce(
         (sum, s) => sum + (s.review_count || 0),
         0
@@ -287,7 +290,7 @@ export const VendorsPage = () => {
     const totalVendors = uniqueVendors.length;
     const avgRating =
       uniqueVendors.reduce((sum, v) => sum + (v.rating || 0), 0) /
-        uniqueVendors.filter((v) => v.rating).length || 0;
+      uniqueVendors.filter((v) => v.rating).length || 0;
     const totalReviews = uniqueVendors.reduce(
       (sum, v) => sum + (v.reviewCount || 0),
       0
@@ -333,17 +336,17 @@ export const VendorsPage = () => {
                   className="w-full h-10 pl-10 pr-3 rounded-lg bg-white text-gray-900 text-sm placeholder:text-gray-500 border-0"
                 />
               </div>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 h-10 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
-                  showFilters
+                className={`px-4 h-10 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${showFilters
                     ? "bg-white text-rose-600"
                     : "bg-white/20 text-white hover:bg-white/30"
-                }`}
+                  }`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
                 Filters
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -355,17 +358,14 @@ export const VendorsPage = () => {
                 <p className="text-sm font-semibold mb-2">Price Range</p>
                 <div className="flex flex-wrap gap-2">
                   {["$", "$$", "$$$", "$$$$"].map((range) => (
-                    <button
+                    <Toggle
                       key={range}
-                      onClick={() => togglePriceRange(range)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        priceRange.includes(range)
-                          ? "bg-white text-rose-600"
-                          : "bg-white/20 text-white hover:bg-white/30"
-                      }`}
+                      pressed={priceRange.includes(range)}
+                      onPressedChange={() => togglePriceRange(range)}
+                      className="px-3 py-1 rounded-full text-xs font-medium data-[state=on]:bg-white data-[state=on]:text-rose-600 data-[state=off]:bg-white/20 data-[state=off]:text-white hover:bg-white/30"
                     >
                       {range}
-                    </button>
+                    </Toggle>
                   ))}
                 </div>
               </div>
@@ -375,35 +375,33 @@ export const VendorsPage = () => {
                 <p className="text-sm font-semibold mb-2">Minimum Rating</p>
                 <div className="flex gap-2">
                   {[5, 4, 3].map((rating) => (
-                    <button
+                    <Toggle
                       key={rating}
-                      onClick={() =>
+                      pressed={selectedRating === rating}
+                      onPressedChange={() =>
                         setSelectedRating(
                           selectedRating === rating ? null : rating
                         )
                       }
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-                        selectedRating === rating
-                          ? "bg-white text-rose-600"
-                          : "bg-white/20 text-white hover:bg-white/30"
-                      }`}
+                      className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 data-[state=on]:bg-white data-[state=on]:text-rose-600 data-[state=off]:bg-white/20 data-[state=off]:text-white hover:bg-white/30"
                     >
                       <Star className="w-3 h-3 fill-current" />
                       {rating}+
-                    </button>
+                    </Toggle>
                   ))}
                 </div>
               </div>
 
-              <button
+              <Button
+                variant="link"
                 onClick={() => {
                   setPriceRange([]);
                   setSelectedRating(null);
                 }}
-                className="text-xs text-white/80 hover:text-white underline"
+                className="text-xs text-white/80 hover:text-white underline h-auto p-0"
               >
                 Clear all filters
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -419,13 +417,14 @@ export const VendorsPage = () => {
             </h3>
             <div className="flex flex-wrap gap-2">
               {POPULAR_SEARCHES.map((search) => (
-                <button
+                <Badge
                   key={search}
+                  variant="secondary"
+                  className="px-3 py-1.5 cursor-pointer hover:bg-rose-50 hover:text-rose-600 transition-colors"
                   onClick={() => setSearchQuery(search)}
-                  className="px-3 py-1.5 bg-white rounded-full text-xs font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors shadow-sm"
                 >
                   {search}
-                </button>
+                </Badge>
               ))}
             </div>
           </div>
@@ -445,12 +444,13 @@ export const VendorsPage = () => {
               <Search className="w-8 h-8 text-red-400" />
             </div>
             <p className="text-gray-600 font-medium">{error}</p>
-            <button
+            <Button
+              variant="link"
               onClick={() => window.location.reload()}
               className="mt-4 text-rose-600 hover:text-rose-700 font-medium"
             >
               Try again
-            </button>
+            </Button>
           </div>
         ) : searchQuery && filteredVendors.length > 0 ? (
           <div className="mb-6">
@@ -458,80 +458,83 @@ export const VendorsPage = () => {
               <h3 className="text-lg font-bold text-gray-900">
                 Vendor Results ({filteredVendors.length})
               </h3>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setSearchQuery("");
                   setSelectedLocation("");
                   setPriceRange([]);
                   setSelectedRating(null);
                 }}
-                className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
+                className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1 h-auto p-0"
               >
                 <X className="w-4 h-4" />
                 Clear
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-3">
               {filteredVendors.map((vendor) => {
                 const firstService = vendor.services[0];
                 return (
-                  <button
+                  <Card
                     key={vendor.vendorId}
+                    className="cursor-pointer hover:shadow-xl transition-all group"
                     onClick={() =>
                       navigate(
                         getCategoryRoute(vendor.category, firstService.id)
                       )
                     }
-                    className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all text-left group"
                   >
-                    <div className="flex gap-4">
-                      <img
-                        src={vendor.image || vendor.vendorAvatar}
-                        alt={vendor.vendorName}
-                        className="w-20 h-20 rounded-lg object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 truncate group-hover:text-rose-600 transition-colors">
-                              {vendor.vendorName}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {getCategoryLabel(vendor.category)}
-                            </p>
+                    <CardContent className="p-4">
+                      <div className="flex gap-4">
+                        <img
+                          src={vendor.image || vendor.vendorAvatar}
+                          alt={vendor.vendorName}
+                          className="w-20 h-20 rounded-lg object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-gray-900 truncate group-hover:text-rose-600 transition-colors">
+                                {vendor.vendorName}
+                              </h4>
+                              <Badge variant="secondary" className="text-xs mt-0.5">
+                                {getCategoryLabel(vendor.category)}
+                              </Badge>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors flex-shrink-0" />
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors flex-shrink-0" />
-                        </div>
-                        {vendor.location && (
-                          <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
-                            <MapPin className="w-3 h-3" />
-                            {vendor.location}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 mt-2">
-                          {vendor.rating && (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                              <span className="text-sm font-semibold text-gray-900">
-                                {vendor.rating.toFixed(1)}
-                              </span>
-                              {vendor.reviewCount > 0 && (
-                                <span className="text-xs text-gray-500">
-                                  ({vendor.reviewCount})
-                                </span>
-                              )}
+                          {vendor.location && (
+                            <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
+                              <MapPin className="w-3 h-3" />
+                              {vendor.location}
                             </div>
                           )}
-                          {vendor.minPrice && (
-                            <span className="text-xs text-gray-600">
-                              From ${vendor.minPrice.toLocaleString()}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                            {vendor.rating && (
+                              <div className="flex items-center gap-1">
+                                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {vendor.rating.toFixed(1)}
+                                </span>
+                                {vendor.reviewCount > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    ({vendor.reviewCount})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {vendor.minPrice && (
+                              <span className="text-xs text-gray-600">
+                                From ${vendor.minPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
@@ -545,7 +548,8 @@ export const VendorsPage = () => {
             <p className="text-sm text-gray-500 mt-1">
               Try adjusting your search or filters
             </p>
-            <button
+            <Button
+              variant="link"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedLocation("");
@@ -555,7 +559,7 @@ export const VendorsPage = () => {
               className="mt-4 text-rose-600 hover:text-rose-700 font-medium"
             >
               Clear search
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -570,13 +574,14 @@ export const VendorsPage = () => {
                   : "Browse by Category"}
             </h3>
             {searchQuery && filteredVendors.length === 0 && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setSearchQuery("")}
-                className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
+                className="text-sm text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1 h-auto p-0"
               >
                 <X className="w-4 h-4" />
                 Clear
-              </button>
+              </Button>
             )}
           </div>
 
@@ -585,10 +590,10 @@ export const VendorsPage = () => {
               const Icon = category.icon;
               const count = categoryCounts[category.id] || 0;
               return (
-                <button
+                <Card
                   key={category.id}
+                  className="group relative cursor-pointer hover:shadow-xl transition-all overflow-hidden"
                   onClick={() => navigate(category.route)}
-                  className="group relative bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all overflow-hidden"
                 >
                   {/* Gradient Background */}
                   <div
@@ -596,7 +601,7 @@ export const VendorsPage = () => {
                   />
 
                   {/* Content */}
-                  <div className="relative space-y-3">
+                  <CardContent className="relative p-4 space-y-3">
                     <div
                       className={`w-12 h-12 rounded-xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-lg`}
                     >
@@ -610,9 +615,9 @@ export const VendorsPage = () => {
                         {count} {count === 1 ? "vendor" : "vendors"}
                       </p>
                     </div>
-                    <ChevronRight className="absolute top-4 right-0 w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors" />
-                  </div>
-                </button>
+                    <ChevronRight className="absolute top-4 right-4 w-5 h-5 text-gray-400 group-hover:text-rose-600 transition-colors" />
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -632,24 +637,30 @@ export const VendorsPage = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-rose-600">
-              {stats.totalVendors}+
-            </p>
-            <p className="text-xs text-gray-600 mt-1">Vendors</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-blue-600">
-              {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}
-            </p>
-            <p className="text-xs text-gray-600 mt-1">Avg Rating</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-            <p className="text-2xl font-bold text-green-600">
-              {stats.totalReviews}+
-            </p>
-            <p className="text-xs text-gray-600 mt-1">Reviews</p>
-          </div>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-rose-600">
+                {stats.totalVendors}+
+              </p>
+              <p className="text-xs text-gray-600 mt-1">Vendors</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">Avg Rating</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">
+                {stats.totalReviews}+
+              </p>
+              <p className="text-xs text-gray-600 mt-1">Reviews</p>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

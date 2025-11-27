@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          category_specific_details: Json | null
           created_at: string | null
           deposit_paid: number | null
           event_date: string
@@ -29,6 +30,7 @@ export type Database = {
           wedding_id: string
         }
         Insert: {
+          category_specific_details?: Json | null
           created_at?: string | null
           deposit_paid?: number | null
           event_date: string
@@ -42,6 +44,7 @@ export type Database = {
           wedding_id: string
         }
         Update: {
+          category_specific_details?: Json | null
           created_at?: string | null
           deposit_paid?: number | null
           event_date?: string
@@ -67,6 +70,138 @@ export type Database = {
             columns: ["wedding_id"]
             isOneToOne: false
             referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_allocations: {
+        Row: {
+          allocated_amount: number
+          category: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          updated_at: string | null
+          wedding_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          category: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+          wedding_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          category?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+          wedding_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_allocations_wedding_id_fkey"
+            columns: ["wedding_id"]
+            isOneToOne: false
+            referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          description: string | null
+          expense_date: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          wedding_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          wedding_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          wedding_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_expenses_wedding_id_fkey"
+            columns: ["wedding_id"]
+            isOneToOne: false
+            referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          couple_id: string
+          couple_unread_count: number | null
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          last_message_text: string | null
+          service_id: string | null
+          status: string | null
+          updated_at: string | null
+          vendor_id: string
+          vendor_unread_count: number | null
+        }
+        Insert: {
+          couple_id: string
+          couple_unread_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_text?: string | null
+          service_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vendor_id: string
+          vendor_unread_count?: number | null
+        }
+        Update: {
+          couple_id?: string
+          couple_unread_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_text?: string | null
+          service_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vendor_id?: string
+          vendor_unread_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -126,6 +261,97 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "guests_wedding_id_fkey"
+            columns: ["wedding_id"]
+            isOneToOne: false
+            referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          message_type: Database["public"]["Enums"]["message_type"] | null
+          offer_data: Json | null
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          offer_data?: Json | null
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          offer_data?: Json | null
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planning_tasks: {
+        Row: {
+          category: string
+          completed: boolean | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          order_index: number | null
+          priority: string | null
+          title: string
+          updated_at: string | null
+          wedding_id: string
+        }
+        Insert: {
+          category: string
+          completed?: boolean | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          priority?: string | null
+          title: string
+          updated_at?: string | null
+          wedding_id: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          priority?: string | null
+          title?: string
+          updated_at?: string | null
+          wedding_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_tasks_wedding_id_fkey"
             columns: ["wedding_id"]
             isOneToOne: false
             referencedRelation: "weddings"
@@ -451,11 +677,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mark_messages_read: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       booking_status: "pending" | "confirmed" | "rejected" | "completed"
       gift_status: "pending" | "received" | "na"
+      message_type: "text" | "offer" | "booking"
       rsvp_status: "yes" | "no" | "pending"
       service_category:
         | "venue"
@@ -594,6 +824,7 @@ export const Constants = {
     Enums: {
       booking_status: ["pending", "confirmed", "rejected", "completed"],
       gift_status: ["pending", "received", "na"],
+      message_type: ["text", "offer", "booking"],
       rsvp_status: ["yes", "no", "pending"],
       service_category: [
         "venue",

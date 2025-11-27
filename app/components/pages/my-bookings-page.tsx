@@ -19,7 +19,7 @@ interface Booking {
   vendorName: string;
   vendorCategory: string;
   vendorImage: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "completed" | "rejected";
   date: string;
   price: string;
   location: string;
@@ -100,11 +100,11 @@ export const MyBookingsPage = () => {
             <span className="text-xs font-semibold">Completed</span>
           </div>
         );
-      case "cancelled":
+      case "rejected":
         return (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-full">
             <XCircle className="w-3.5 h-3.5" />
-            <span className="text-xs font-semibold">Cancelled</span>
+            <span className="text-xs font-semibold">Rejected</span>
           </div>
         );
       default:

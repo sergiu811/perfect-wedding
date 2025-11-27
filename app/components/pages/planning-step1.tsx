@@ -1,31 +1,71 @@
-import React from "react";
-import { ArrowLeft, Heart } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, Heart, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Card, CardContent } from "~/components/ui/card";
+import { Calendar } from "~/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { useRouter } from "~/contexts/router-context";
 import { usePlanning } from "~/contexts/planning-context";
+import { cn } from "~/lib/utils";
 
 export const PlanningStep1 = () => {
   const { navigate } = useRouter();
   const { formData, updateFormData } = usePlanning();
 
+  // Local state for form fields
+  const [date, setDate] = useState<Date | undefined>(
+    formData.weddingDate ? new Date(formData.weddingDate) : undefined
+  );
+  const [weddingType, setWeddingType] = useState(formData.weddingType || "");
+  const [language, setLanguage] = useState(formData.language || "");
+  const [referralSource, setReferralSource] = useState(formData.referralSource || "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const handleContinue = () => {
-    const form = document.querySelector("form");
+    const form = document.querySelector("form") as HTMLFormElement;
     if (!form) return;
 
     const formDataObj = new FormData(form);
+    const newErrors: Record<string, string> = {};
 
+    // Validate required fields
+    const partner1Name = formDataObj.get("partner1Name") as string;
+    const partner2Name = formDataObj.get("partner2Name") as string;
+    const guestCount = formDataObj.get("guestCount") as string;
+    const budgetMin = formDataObj.get("budgetMin") as string;
+    const budgetMax = formDataObj.get("budgetMax") as string;
+    const location = formDataObj.get("location") as string;
+
+    if (!partner1Name?.trim()) newErrors.partner1Name = "Partner 1 name is required";
+    if (!partner2Name?.trim()) newErrors.partner2Name = "Partner 2 name is required";
+    if (!date) newErrors.weddingDate = "Wedding date is required";
+    if (!guestCount?.trim()) newErrors.guestCount = "Guest count is required";
+    if (!budgetMin?.trim()) newErrors.budgetMin = "Minimum budget is required";
+    if (!budgetMax?.trim()) newErrors.budgetMax = "Maximum budget is required";
+    if (!location?.trim()) newErrors.location = "Location is required";
+    if (!weddingType) newErrors.weddingType = "Wedding type is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     updateFormData({
-      partner1Name: formDataObj.get("partner1Name") as string,
-      partner2Name: formDataObj.get("partner2Name") as string,
-      weddingDate: formDataObj.get("weddingDate") as string,
-      guestCount: formDataObj.get("guestCount") as string,
-      budgetMin: formDataObj.get("budgetMin") as string,
-      budgetMax: formDataObj.get("budgetMax") as string,
-      location: formDataObj.get("location") as string,
-      weddingType: formDataObj.get("weddingType") as string,
-      language: formDataObj.get("language") as string,
-      referralSource: formDataObj.get("referralSource") as string,
+      partner1Name,
+      partner2Name,
+      weddingDate: date ? format(date, "yyyy-MM-dd") : "",
+      guestCount,
+      budgetMin,
+      budgetMax,
+      location,
+      weddingType,
+      language,
+      referralSource,
     });
 
     navigate("/planning/step-2");
@@ -35,9 +75,9 @@ export const PlanningStep1 = () => {
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
-        <button onClick={() => navigate("/")} className="text-gray-900">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
           <ArrowLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Start Planning
         </h1>
@@ -70,169 +110,230 @@ export const PlanningStep1 = () => {
 
         <form className="space-y-6">
           {/* Partner Names */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Partner Names *
-            </label>
-            <Input
-              name="partner1Name"
-              defaultValue={formData.partner1Name}
-              placeholder="Partner 1 Name"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            />
-            <Input
-              name="partner2Name"
-              defaultValue={formData.partner2Name}
-              placeholder="Partner 2 Name"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            />
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Partner Names *</Label>
+              <div className="space-y-2">
+                <Input
+                  name="partner1Name"
+                  defaultValue={formData.partner1Name}
+                  placeholder="Partner 1 Name"
+                  className={cn(
+                    "w-full bg-gray-50 border-gray-200 h-12",
+                    errors.partner1Name && "border-red-500"
+                  )}
+                  required
+                />
+                {errors.partner1Name && (
+                  <p className="text-sm text-red-600">{errors.partner1Name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Input
+                  name="partner2Name"
+                  defaultValue={formData.partner2Name}
+                  placeholder="Partner 2 Name"
+                  className={cn(
+                    "w-full bg-gray-50 border-gray-200 h-12",
+                    errors.partner2Name && "border-red-500"
+                  )}
+                  required
+                />
+                {errors.partner2Name && (
+                  <p className="text-sm text-red-600">{errors.partner2Name}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Wedding Date */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Wedding Date *
-            </label>
-            <Input
-              name="weddingDate"
-              type="date"
-              defaultValue={formData.weddingDate}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            />
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Wedding Date *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-12 justify-start text-left font-normal bg-gray-50",
+                      !date && "text-muted-foreground",
+                      errors.weddingDate && "border-red-500"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {errors.weddingDate && (
+                <p className="text-sm text-red-600">{errors.weddingDate}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Guest Count */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Expected Guest Count *
-            </label>
-            <Input
-              name="guestCount"
-              type="number"
-              min="1"
-              defaultValue={formData.guestCount}
-              placeholder="e.g., 100"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            />
-            <p className="text-xs text-gray-500">
-              You can adjust this later as plans evolve
-            </p>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Expected Guest Count *</Label>
+              <Input
+                name="guestCount"
+                type="number"
+                min="1"
+                defaultValue={formData.guestCount}
+                placeholder="e.g., 100"
+                className={cn(
+                  "w-full bg-gray-50 border-gray-200 h-12",
+                  errors.guestCount && "border-red-500"
+                )}
+                required
+              />
+              {errors.guestCount && (
+                <p className="text-sm text-red-600">{errors.guestCount}</p>
+              )}
+              <p className="text-xs text-gray-500">
+                You can adjust this later as plans evolve
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Budget */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Estimated Budget ($) *
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Input
-                  name="budgetMin"
-                  type="number"
-                  min="0"
-                  defaultValue={formData.budgetMin}
-                  placeholder="Min"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                  required
-                />
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Estimated Budget ($) *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Input
+                    name="budgetMin"
+                    type="number"
+                    min="0"
+                    defaultValue={formData.budgetMin}
+                    placeholder="Min"
+                    className={cn(
+                      "w-full bg-gray-50 border-gray-200 h-12",
+                      errors.budgetMin && "border-red-500"
+                    )}
+                    required
+                  />
+                  {errors.budgetMin && (
+                    <p className="text-sm text-red-600">{errors.budgetMin}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    name="budgetMax"
+                    type="number"
+                    min="0"
+                    defaultValue={formData.budgetMax}
+                    placeholder="Max"
+                    className={cn(
+                      "w-full bg-gray-50 border-gray-200 h-12",
+                      errors.budgetMax && "border-red-500"
+                    )}
+                    required
+                  />
+                  {errors.budgetMax && (
+                    <p className="text-sm text-red-600">{errors.budgetMax}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <Input
-                  name="budgetMax"
-                  type="number"
-                  min="0"
-                  defaultValue={formData.budgetMax}
-                  placeholder="Max"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                  required
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500">
-              This helps us recommend vendors in your price range
-            </p>
-          </div>
+              <p className="text-xs text-gray-500">
+                This helps us recommend vendors in your price range
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Location */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Wedding Location *
-            </label>
-            <Input
-              name="location"
-              defaultValue={formData.location}
-              placeholder="City or Region"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            />
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Wedding Location *</Label>
+              <Input
+                name="location"
+                defaultValue={formData.location}
+                placeholder="City, Region, or Venue"
+                className={cn(
+                  "w-full bg-gray-50 border-gray-200 h-12",
+                  errors.location && "border-red-500"
+                )}
+                required
+              />
+              {errors.location && (
+                <p className="text-sm text-red-600">{errors.location}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Wedding Type */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Wedding Type *
-            </label>
-            <select
-              name="weddingType"
-              defaultValue={formData.weddingType || ""}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            >
-              <option value="" disabled>
-                Select wedding type
-              </option>
-              <option value="traditional">Traditional</option>
-              <option value="destination">Destination</option>
-              <option value="civil">Civil Ceremony</option>
-              <option value="religious">Religious</option>
-              <option value="elopement">Elopement</option>
-              <option value="intimate">Intimate Gathering</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Wedding Type *</Label>
+              <Select value={weddingType} onValueChange={setWeddingType} required>
+                <SelectTrigger className={cn(
+                  "w-full bg-gray-50 h-12",
+                  errors.weddingType && "border-red-500"
+                )}>
+                  <SelectValue placeholder="Select wedding type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="traditional">Traditional</SelectItem>
+                  <SelectItem value="modern">Modern</SelectItem>
+                  <SelectItem value="destination">Destination</SelectItem>
+                  <SelectItem value="intimate">Intimate / Elopement</SelectItem>
+                  <SelectItem value="cultural">Cultural</SelectItem>
+                  <SelectItem value="luxury">Luxury</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.weddingType && (
+                <p className="text-sm text-red-600">{errors.weddingType}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Preferred Language */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Preferred Language
-            </label>
-            <select
-              name="language"
-              defaultValue={formData.language || ""}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-            >
-              <option value="">Select language</option>
-              <option value="english">English</option>
-              <option value="spanish">Spanish</option>
-              <option value="french">French</option>
-              <option value="german">German</option>
-              <option value="italian">Italian</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Preferred Language</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-full bg-gray-50 h-12">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="english">English</SelectItem>
+                  <SelectItem value="spanish">Spanish</SelectItem>
+                  <SelectItem value="french">French</SelectItem>
+                  <SelectItem value="german">German</SelectItem>
+                  <SelectItem value="italian">Italian</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
           {/* How did you hear about us */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              How did you hear about us?
-            </label>
-            <select
-              name="referralSource"
-              defaultValue={formData.referralSource || ""}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-            >
-              <option value="">Select an option</option>
-              <option value="social">Social Media</option>
-              <option value="friend">Friend/Family</option>
-              <option value="search">Search Engine</option>
-              <option value="vendor">Vendor Recommendation</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">How did you hear about us?</Label>
+              <Select value={referralSource} onValueChange={setReferralSource}>
+                <SelectTrigger className="w-full bg-gray-50 h-12">
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="social">Social Media</SelectItem>
+                  <SelectItem value="friend">Friend/Family</SelectItem>
+                  <SelectItem value="search">Search Engine</SelectItem>
+                  <SelectItem value="vendor">Vendor Recommendation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
         </form>
       </main>
 
@@ -244,12 +345,13 @@ export const PlanningStep1 = () => {
         >
           Next: Style & Theme
         </Button>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate("/")}
-          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600 h-auto"
         >
           Cancel
-        </button>
+        </Button>
       </footer>
     </div>
   );

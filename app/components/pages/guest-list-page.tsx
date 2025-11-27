@@ -13,10 +13,36 @@ import {
   Trash2,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Textarea } from "~/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Label } from "~/components/ui/label";
 import type { Guest } from "~/contexts/guest-list-context";
 import { useGuestList } from "~/hooks/use-guest-list";
 import { useRouter } from "~/contexts/router-context";
@@ -46,9 +72,12 @@ export const GuestListPage = () => {
 
   // Filter guests
   const filteredGuests = guests.filter((guest) => {
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
-      guest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guest.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      guest.name.toLowerCase().includes(query) ||
+      guest.email?.toLowerCase().includes(query) ||
+      guest.relationship.toLowerCase().includes(query) ||
+      (guest.mealPreference?.toLowerCase() || "").includes(query);
     const matchesFilter =
       filterRSVP === "all" || guest.rsvpStatus === filterRSVP;
     return matchesSearch && matchesFilter;
@@ -281,14 +310,22 @@ export const GuestListPage = () => {
         {/* Search & Filter */}
         <div className="space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              type="search"
+              type="text"
               placeholder="Search guests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-lg h-12 pl-10 pr-4"
+              className="w-full pl-10 pr-10"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -413,46 +450,23 @@ export const GuestListPage = () => {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setFilterRSVP("all")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterRSVP === "all"
-                ? "bg-rose-600 text-white"
-                : "bg-white text-gray-600 border border-gray-200"
-            }`}
+          <Tabs
+            defaultValue="all"
+            value={filterRSVP}
+            onValueChange={(value) => setFilterRSVP(value)}
+            className="w-full"
           >
-            All ({stats.total})
-          </button>
-          <button
-            onClick={() => setFilterRSVP("yes")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterRSVP === "yes"
-                ? "bg-green-600 text-white"
-                : "bg-white text-gray-600 border border-gray-200"
-            }`}
-          >
-            Confirmed ({stats.confirmed})
-          </button>
-          <button
-            onClick={() => setFilterRSVP("pending")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterRSVP === "pending"
-                ? "bg-amber-600 text-white"
-                : "bg-white text-gray-600 border border-gray-200"
-            }`}
-          >
-            Pending ({stats.pending})
-          </button>
-          <button
-            onClick={() => setFilterRSVP("no")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterRSVP === "no"
-                ? "bg-red-600 text-white"
-                : "bg-white text-gray-600 border border-gray-200"
-            }`}
-          >
-            Declined ({stats.declined})
-          </button>
+            <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
+              <TabsTrigger value="yes">
+                Confirmed ({stats.confirmed})
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                Pending ({stats.pending})
+              </TabsTrigger>
+              <TabsTrigger value="no">Declined ({stats.declined})</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Guest Cards */}
@@ -464,32 +478,34 @@ export const GuestListPage = () => {
 
         <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 max-h-[500px] overflow-y-auto">
           {filteredGuests.map((guest) => (
-            <div
-              key={guest.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-            >
-              <div className="p-4">
+            <Card key={guest.id} className="overflow-hidden">
+              <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="text-base font-semibold text-gray-900">
                         {guest.name}
                       </h4>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      <Badge
+                        variant={
                           guest.rsvpStatus === "yes"
-                            ? "bg-green-100 text-green-700"
+                            ? "default"
                             : guest.rsvpStatus === "no"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
-                        }`}
+                              ? "destructive"
+                              : "secondary"
+                        }
+                        className={
+                          guest.rsvpStatus === "yes"
+                            ? "bg-green-600 hover:bg-green-700"
+                            : ""
+                        }
                       >
                         {guest.rsvpStatus === "yes"
                           ? "✓ Confirmed"
                           : guest.rsvpStatus === "no"
                             ? "✗ Declined"
                             : "⏳ Pending"}
-                      </span>
+                      </Badge>
                     </div>
                     <div className="space-y-1">
                       {guest.email && (
@@ -519,18 +535,22 @@ export const GuestListPage = () => {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleOpenEditModal(guest)}
-                      className="p-2 hover:bg-gray-100 rounded-lg"
+                      className="h-8 w-8 hover:bg-gray-100"
                     >
                       <Edit2 className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteGuest(guest.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg"
+                      className="h-8 w-8 hover:bg-red-50"
                     >
                       <Trash2 className="w-4 h-4 text-red-600" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -544,11 +564,10 @@ export const GuestListPage = () => {
                     </span>
                     {guest.giftStatus && guest.giftStatus !== "na" && (
                       <span
-                        className={`${
-                          guest.giftStatus === "received"
-                            ? "text-green-600"
-                            : "text-gray-500"
-                        }`}
+                        className={`${guest.giftStatus === "received"
+                          ? "text-green-600"
+                          : "text-gray-500"
+                          }`}
                       >
                         🎁{" "}
                         {guest.giftStatus === "received"
@@ -557,12 +576,15 @@ export const GuestListPage = () => {
                       </span>
                     )}
                   </div>
-                  <button className="text-rose-600 hover:text-rose-700 text-xs font-medium">
+                  <Button
+                    variant="link"
+                    className="text-rose-600 hover:text-rose-700 text-xs font-medium h-auto p-0"
+                  >
                     Message
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
@@ -647,189 +669,176 @@ export const GuestListPage = () => {
       </main>
 
       {/* Add/Edit Guest Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">
-                {editingGuest ? "Edit Guest" : "Add New Guest"}
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
+      {/* Add/Edit Guest Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto rounded-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingGuest ? "Edit Guest" : "Add New Guest"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                value={formData.name || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="John Doe"
+              />
             </div>
-            <div className="p-4 space-y-4">
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Full Name *
-                </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  value={formData.name || ""}
+                  id="email"
+                  type="email"
+                  value={formData.email || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, email: e.target.value })
                   }
-                  placeholder="John Doe"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
+                  placeholder="email@example.com"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    value={formData.email || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="email@example.com"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                    Phone
-                  </label>
-                  <Input
-                    value={formData.phone || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    placeholder="555-0100"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Relationship *
-                </label>
-                <select
-                  value={formData.relationship || "Friend"}
-                  onChange={(e) =>
-                    setFormData({ ...formData, relationship: e.target.value })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                >
-                  <option value="Family">Family</option>
-                  <option value="Friend">Friend</option>
-                  <option value="Colleague">Colleague</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  RSVP Status
-                </label>
-                <select
-                  value={formData.rsvpStatus || "pending"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      rsvpStatus: e.target.value as "yes" | "no" | "pending",
-                    })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="yes">Confirmed</option>
-                  <option value="no">Declined</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Meal Preference
-                </label>
-                <select
-                  value={formData.mealPreference || "Standard"}
-                  onChange={(e) =>
-                    setFormData({ ...formData, mealPreference: e.target.value })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                >
-                  <option value="Standard">Standard</option>
-                  <option value="Vegetarian">Vegetarian</option>
-                  <option value="Vegan">Vegan</option>
-                  <option value="Gluten-Free">Gluten-Free</option>
-                  <option value="Custom">Custom</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Plus-Ones
-                </label>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone</Label>
                 <Input
-                  type="number"
-                  min="0"
-                  value={formData.plusOnes || 0}
+                  id="phone"
+                  value={formData.phone || ""}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      plusOnes: parseInt(e.target.value) || 0,
-                    })
+                    setFormData({ ...formData, phone: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
+                  placeholder="555-0100"
                 />
               </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Table Number (Optional)
-                </label>
-                <Input
-                  value={formData.tableNumber || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tableNumber: e.target.value })
-                  }
-                  placeholder="e.g., 5"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 block">
-                  Notes
-                </label>
-                <textarea
-                  value={formData.notes || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  placeholder="Special dietary needs, accessibility requirements..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-4 min-h-[80px]"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={handleSaveGuest}
-                  disabled={saving}
-                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full h-12 disabled:opacity-50"
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingGuest
-                      ? "Update Guest"
-                      : "Add Guest"}
-                </Button>
-                <Button
-                  onClick={() => setShowAddModal(false)}
-                  disabled={saving}
-                  className="flex-1 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full h-12"
-                >
-                  Cancel
-                </Button>
-              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="relationship">Relationship *</Label>
+              <Select
+                value={formData.relationship || "Friend"}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, relationship: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Family">Family</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Colleague">Colleague</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rsvpStatus">RSVP Status</Label>
+              <Select
+                value={formData.rsvpStatus || "pending"}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    rsvpStatus: value as "yes" | "no" | "pending",
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="yes">Confirmed</SelectItem>
+                  <SelectItem value="no">Declined</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="mealPreference">Meal Preference</Label>
+              <Select
+                value={formData.mealPreference || "Standard"}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, mealPreference: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select meal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  <SelectItem value="Vegetarian">Vegetarian</SelectItem>
+                  <SelectItem value="Vegan">Vegan</SelectItem>
+                  <SelectItem value="Gluten-Free">Gluten-Free</SelectItem>
+                  <SelectItem value="Custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="plusOnes">Plus-Ones</Label>
+              <Input
+                id="plusOnes"
+                type="number"
+                min="0"
+                value={formData.plusOnes || 0}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    plusOnes: parseInt(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="tableNumber">Table Number (Optional)</Label>
+              <Input
+                id="tableNumber"
+                value={formData.tableNumber || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, tableNumber: e.target.value })
+                }
+                placeholder="e.g., 5"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                placeholder="Special dietary needs, accessibility requirements..."
+              />
             </div>
           </div>
-        </div>
-      )}
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowAddModal(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveGuest}
+              disabled={saving}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {saving
+                ? "Saving..."
+                : editingGuest
+                  ? "Update Guest"
+                  : "Add Guest"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

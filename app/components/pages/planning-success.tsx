@@ -81,14 +81,14 @@ export const PlanningSuccess = () => {
                   <p className="font-semibold text-base lg:text-lg text-gray-900">
                     {formData.weddingDate
                       ? new Date(formData.weddingDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )
+                        "en-US",
+                        {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )
                       : "Not set"}
                   </p>
                 </div>
@@ -100,8 +100,8 @@ export const PlanningSuccess = () => {
                   <p className="font-semibold text-base lg:text-lg text-gray-900">
                     {formData.themes && formData.themes.length > 0
                       ? formData.themes
-                          .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
-                          .join(", ")
+                        .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+                        .join(", ")
                       : "Classic"}
                   </p>
                 </div>
@@ -162,12 +162,13 @@ export const PlanningSuccess = () => {
             >
               View Suggested Vendors
             </Button>
-            <button
+            <Button
+              variant="ghost"
               onClick={() => navigate("/")}
-              className="w-full text-sm lg:text-base font-medium text-gray-600 hover:text-rose-600 p-3"
+              className="w-full text-sm lg:text-base font-medium text-gray-600 hover:text-rose-600 p-3 h-auto"
             >
               Invite Partner to Collaborate
-            </button>
+            </Button>
           </div>
 
           {/* Quick Tips */}

@@ -83,6 +83,14 @@ export const AddServiceStep2 = () => {
       "cateringNone",
       "parking",
       "accommodation",
+      "facilityAC",
+      "facilityWaiters",
+      "facilityTablesChairs",
+      "facilitySoundSystem",
+      "facilityWiFi",
+      "facilityGenerator",
+      "facilityDanceFloor",
+      "facilityStage",
     ],
     photo_video: [
       "drone",
@@ -201,8 +209,7 @@ export const AddServiceStep2 = () => {
   };
 
   const getFieldClasses = (fieldName: string, baseClasses: string) =>
-    `${baseClasses} ${
-      errors[fieldName] ? "border-red-500 focus:ring-red-500" : ""
+    `${baseClasses} ${errors[fieldName] ? "border-red-500 focus:ring-red-500" : ""
     }`;
 
   const handleContinue = () => {
@@ -435,11 +442,10 @@ export const AddServiceStep2 = () => {
                     fieldRefs.current["locationType"] = el;
                   }
                 }}
-                className={`space-y-2 ${
-                  errors.locationType
+                className={`space-y-2 ${errors.locationType
                     ? "rounded-lg border border-red-500 p-3"
                     : ""
-                }`}
+                  }`}
               >
                 <label className="flex items-center gap-3">
                   <input
@@ -556,6 +562,86 @@ export const AddServiceStep2 = () => {
                 defaultValue={getFieldValue("menuPrice", "")}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4 focus:ring-2 focus:ring-rose-600"
               />
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+              <label className="text-base font-bold text-gray-900">
+                Facilities Available
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityAC"
+                    defaultChecked={getBooleanValue("facilityAC")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Air Conditioning (AC)</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityWaiters"
+                    defaultChecked={getBooleanValue("facilityWaiters")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Waiters/Service Staff</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityTablesChairs"
+                    defaultChecked={getBooleanValue("facilityTablesChairs")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Tables & Chairs</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilitySoundSystem"
+                    defaultChecked={getBooleanValue("facilitySoundSystem")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Sound System</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityWiFi"
+                    defaultChecked={getBooleanValue("facilityWiFi")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>WiFi</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityGenerator"
+                    defaultChecked={getBooleanValue("facilityGenerator")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Generator/Backup Power</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityDanceFloor"
+                    defaultChecked={getBooleanValue("facilityDanceFloor")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Dance Floor</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="facilityStage"
+                    defaultChecked={getBooleanValue("facilityStage")}
+                    className="w-5 h-5 rounded text-rose-600"
+                  />
+                  <span>Stage/Platform</span>
+                </label>
+              </div>
             </div>
           </div>
         );
@@ -1282,11 +1368,10 @@ export const AddServiceStep2 = () => {
                       <div
                         id={`sample-${sample.id}`}
                         key={sample.id}
-                        className={`border-2 rounded-xl p-4 space-y-3 bg-gray-50 ${
-                          Object.keys(sampleError).length > 0
+                        className={`border-2 rounded-xl p-4 space-y-3 bg-gray-50 ${Object.keys(sampleError).length > 0
                             ? "border-red-300"
                             : "border-gray-200"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-bold text-rose-600">
@@ -1316,11 +1401,10 @@ export const AddServiceStep2 = () => {
                               clearSampleError(sample.id, "name");
                             }}
                             placeholder="e.g., Tasting Box, Mini Cupcake Set"
-                            className={`w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600 ${
-                              sampleError.name
+                            className={`w-full bg-white border border-gray-200 rounded-lg h-11 px-3 focus:ring-2 focus:ring-rose-600 ${sampleError.name
                                 ? "border-red-500 focus:ring-red-500"
                                 : ""
-                            }`}
+                              }`}
                           />
                           {sampleError.name && (
                             <p className="mt-1 text-xs text-red-600">
@@ -1350,11 +1434,10 @@ export const AddServiceStep2 = () => {
                               type="number"
                               min="0"
                               placeholder="0 (or enter 'Free')"
-                              className={`w-full bg-white border border-gray-200 rounded-lg h-11 pl-7 pr-3 focus:ring-2 focus:ring-rose-600 ${
-                                sampleError.price
+                              className={`w-full bg-white border border-gray-200 rounded-lg h-11 pl-7 pr-3 focus:ring-2 focus:ring-rose-600 ${sampleError.price
                                   ? "border-red-500 focus:ring-red-500"
                                   : ""
-                              }`}
+                                }`}
                             />
                           </div>
                           {sampleError.price && (
@@ -1379,11 +1462,10 @@ export const AddServiceStep2 = () => {
                               clearSampleError(sample.id, "description");
                             }}
                             placeholder="Describe what's included (e.g., 6 mini cupcakes in assorted flavors)..."
-                            className={`w-full bg-white border border-gray-200 rounded-lg min-h-[80px] p-3 focus:ring-2 focus:ring-rose-600 focus:border-transparent text-sm ${
-                              sampleError.description
+                            className={`w-full bg-white border border-gray-200 rounded-lg min-h-[80px] p-3 focus:ring-2 focus:ring-rose-600 focus:border-transparent text-sm ${sampleError.description
                                 ? "border-red-500 focus:ring-red-500"
                                 : ""
-                            }`}
+                              }`}
                           />
                           {sampleError.description && (
                             <p className="mt-1 text-xs text-red-600">

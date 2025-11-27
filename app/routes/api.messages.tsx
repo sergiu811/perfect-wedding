@@ -277,6 +277,73 @@ export async function action({ request }: ActionFunctionArgs) {
           .from("conversations")
           .update({ status: "closed" })
           .eq("id", conversation.id);
+      } else if (status === "rejected") {
+        console.log("Processing rejected offer for message:", messageId);
+        // If rejected, update the booking status to cancelled
+        // Get user's wedding
+        const { data: wedding } = await supabase
+          .from("weddings")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (wedding) {
+          console.log("Found wedding:", wedding.id);
+          const offerData = message.offer_data || {};
+          console.log("Offer data:", JSON.stringify(offerData));
+          const serviceId = offerData.serviceId;
+
+          if (serviceId) {
+            console.log("Searching for booking with serviceId:", serviceId);
+            // Find the booking
+            const { data: existingBooking } = await supabase
+              .from("bookings")
+              .select("id, status")
+              .eq("wedding_id", wedding.id)
+              .eq("service_id", serviceId)
+              .maybeSingle();
+
+            if (existingBooking) {
+              console.log("Found existing booking:", existingBooking);
+              // Update booking to rejected status
+              const { error: updateError } = await supabase
+                .from("bookings")
+                .update({
+                  status: "rejected",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", existingBooking.id);
+
+              if (updateError) {
+                console.error("Error updating booking to rejected:", updateError);
+                return Response.json(
+                  { error: "Failed to reject booking: " + updateError.message },
+                  { status: 500, headers }
+                );
+              } else {
+                console.log("Successfully updated booking to rejected");
+              }
+            } else {
+              console.log("No existing booking found for service:", serviceId, "wedding:", wedding.id);
+              return Response.json(
+                { error: `Booking not found for service ${serviceId}` },
+                { status: 404, headers }
+              );
+            }
+          } else {
+            console.log("No serviceId found in offer data");
+            return Response.json(
+              { error: "Service ID missing in offer data" },
+              { status: 400, headers }
+            );
+          }
+        } else {
+          console.log("No wedding found for user:", user.id);
+          return Response.json(
+            { error: "Wedding profile not found" },
+            { status: 404, headers }
+          );
+        }
       }
 
       return Response.json({ success: true }, { headers });

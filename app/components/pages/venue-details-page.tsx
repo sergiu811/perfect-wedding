@@ -137,10 +137,10 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
     packages:
       service.packages && Array.isArray(service.packages)
         ? service.packages.map((pkg: any, idx: number) => ({
-            name: pkg.name || `Package ${idx + 1}`,
-            price: pkg.price || pkg.price_range || "Contact for pricing",
-            description: pkg.description || "",
-          }))
+          name: pkg.name || `Package ${idx + 1}`,
+          price: pkg.price || pkg.price_range || "Contact for pricing",
+          description: pkg.description || "",
+        }))
         : [],
     rating: service.rating || 0,
     reviewCount: service.review_count || 0,
@@ -366,6 +366,73 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
               {!venue.parking && !venue.accommodation && (
                 <p className="text-gray-600">No additional amenities</p>
               )}
+            </div>
+          </div>
+
+          {/* Facilities */}
+          <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">
+              Facilities
+            </h3>
+            <div className="space-y-2">
+              {service.specific_fields?.facilityAC && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Air Conditioning</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityWaiters && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Waiters/Service Staff</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityTablesChairs && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Tables & Chairs</span>
+                </div>
+              )}
+              {service.specific_fields?.facilitySoundSystem && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Sound System</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityWiFi && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">WiFi</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityGenerator && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Generator/Backup Power</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityDanceFloor && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Dance Floor</span>
+                </div>
+              )}
+              {service.specific_fields?.facilityStage && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-600">Stage/Platform</span>
+                </div>
+              )}
+              {!service.specific_fields?.facilityAC &&
+                !service.specific_fields?.facilityWaiters &&
+                !service.specific_fields?.facilityTablesChairs &&
+                !service.specific_fields?.facilitySoundSystem &&
+                !service.specific_fields?.facilityWiFi &&
+                !service.specific_fields?.facilityGenerator &&
+                !service.specific_fields?.facilityDanceFloor &&
+                !service.specific_fields?.facilityStage && (
+                  <p className="text-gray-600">Contact vendor for facilities</p>
+                )}
             </div>
           </div>
 

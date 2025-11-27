@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import { ArrowLeft, Palette } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Checkbox } from "~/components/ui/checkbox";
 import { useRouter } from "~/contexts/router-context";
 import { usePlanning } from "~/contexts/planning-context";
+import { cn } from "~/lib/utils";
 
 const THEMES = [
   { id: "rustic", name: "Rustic", image: "🌾", color: "bg-amber-100" },
@@ -59,18 +65,40 @@ export const PlanningStep2 = () => {
   const [selectedMusicStyles, setSelectedMusicStyles] = useState<string[]>(
     formData.musicStyles || []
   );
+  const [formalityLevel, setFormalityLevel] = useState(formData.formalityLevel || "");
+  const [venuePreference, setVenuePreference] = useState(formData.venuePreference || "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleContinue = () => {
-    const form = document.querySelector("form");
-    if (!form) return;
+    const newErrors: Record<string, string> = {};
 
-    const formDataObj = new FormData(form);
+    if (selectedThemes.length === 0) {
+      newErrors.themes = "Please select at least one theme";
+    }
+    if (!venuePreference) {
+      newErrors.venuePreference = "Please select a venue preference";
+    }
+    if (!formalityLevel) {
+      newErrors.formalityLevel = "Please select a formality level";
+    }
+    if (selectedVenueTypes.length === 0) {
+      newErrors.venueTypes = "Please select at least one venue type";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Scroll to top to see errors if needed, or just let the user find them
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setErrors({});
 
     updateFormData({
       themes: selectedThemes,
       colorPalette: selectedPalette,
-      venuePreference: formDataObj.get("venuePreference") as string,
-      formalityLevel: formDataObj.get("formalityLevel") as string,
+      venuePreference,
+      formalityLevel,
       venueTypes: selectedVenueTypes,
       musicStyles: selectedMusicStyles,
     });
@@ -102,12 +130,9 @@ export const PlanningStep2 = () => {
     <div className="min-h-screen flex flex-col bg-pink-50 pb-20 px-4 lg:px-8">
       {/* Header */}
       <header className="flex items-center p-4 lg:p-6 bg-white border-b border-gray-200 -mx-4 lg:-mx-8">
-        <button
-          onClick={() => navigate("/planning/step-1")}
-          className="text-gray-900"
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate("/planning/step-1")}>
           <ArrowLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h1 className="text-lg lg:text-xl font-bold text-center flex-1 text-gray-900 pr-6">
           Style & Theme
         </h1>
@@ -139,195 +164,184 @@ export const PlanningStep2 = () => {
 
         <form className="space-y-6">
           {/* Wedding Theme */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Wedding Theme (select all that apply)
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {THEMES.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => toggleTheme(theme.id)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedThemes.includes(theme.id)
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">
+                Wedding Theme (select all that apply)
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                {THEMES.map((theme) => (
+                  <Button
+                    key={theme.id}
+                    type="button"
+                    variant="outline"
+                    onClick={() => toggleTheme(theme.id)}
+                    className={`p-4 h-auto ${selectedThemes.includes(theme.id)
                       ? "border-rose-600 bg-rose-50"
                       : "border-gray-200 bg-gray-50"
-                  }`}
-                >
-                  <div
-                    className={`text-4xl mb-2 ${theme.color} p-3 rounded-lg inline-block`}
+                      }`}
                   >
-                    {theme.image}
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {theme.name}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`text-4xl mb-2 ${theme.color} p-3 rounded-lg`}
+                      >
+                        {theme.image}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {theme.name}
+                      </p>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+              {errors.themes && (
+                <p className="text-sm text-red-600">{errors.themes}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Color Palette */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Color Palette
-            </label>
-            <div className="space-y-3">
-              {COLOR_PALETTES.map((palette) => (
-                <button
-                  key={palette.id}
-                  type="button"
-                  onClick={() => setSelectedPalette(palette.colors)}
-                  className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-between ${
-                    selectedPalette[0] === palette.colors[0]
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Color Palette</Label>
+              <div className="space-y-3">
+                {COLOR_PALETTES.map((palette) => (
+                  <Button
+                    key={palette.id}
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelectedPalette(palette.colors)}
+                    className={`w-full p-3 h-auto justify-between ${selectedPalette[0] === palette.colors[0]
                       ? "border-rose-600 bg-rose-50"
                       : "border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1">
-                      {palette.colors.map((color) => (
-                        <div
-                          key={color}
-                          className="w-8 h-8 rounded-full border border-gray-200"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {palette.colors.map((color) => (
+                          <div
+                            key={color}
+                            className="w-8 h-8 rounded-full border border-gray-200"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {palette.name}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {palette.name}
-                    </span>
-                  </div>
-                  {selectedPalette[0] === palette.colors[0] && (
-                    <span className="text-rose-600">✓</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+                    {selectedPalette[0] === palette.colors[0] && (
+                      <span className="text-rose-600">✓</span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Venue Preference */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Outdoor or Indoor Preference *
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="venuePreference"
-                  value="outdoor"
-                  defaultChecked={formData.venuePreference === "outdoor"}
-                  className="w-5 h-5 text-rose-600"
-                  required
-                />
-                <span>Outdoor</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="venuePreference"
-                  value="indoor"
-                  defaultChecked={formData.venuePreference === "indoor"}
-                  className="w-5 h-5 text-rose-600"
-                />
-                <span>Indoor</span>
-              </label>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input
-                  type="radio"
-                  name="venuePreference"
-                  value="both"
-                  defaultChecked={formData.venuePreference === "both"}
-                  className="w-5 h-5 text-rose-600"
-                />
-                <span>Both / Flexible</span>
-              </label>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Outdoor or Indoor Preference *</Label>
+              <RadioGroup value={venuePreference} onValueChange={setVenuePreference}>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="outdoor" id="outdoor" />
+                  <Label htmlFor="outdoor" className="cursor-pointer">Outdoor</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="indoor" id="indoor" />
+                  <Label htmlFor="indoor" className="cursor-pointer">Indoor</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <RadioGroupItem value="both" id="both" />
+                  <Label htmlFor="both" className="cursor-pointer">Both / Flexible</Label>
+                </div>
+              </RadioGroup>
+              {errors.venuePreference && (
+                <p className="text-sm text-red-600">{errors.venuePreference}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Formality Level */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Formality Level *
-            </label>
-            <select
-              name="formalityLevel"
-              defaultValue={formData.formalityLevel || ""}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 px-4"
-              required
-            >
-              <option value="" disabled>
-                Select formality level
-              </option>
-              <option value="casual">Casual</option>
-              <option value="semi-formal">Semi-Formal</option>
-              <option value="formal">Formal</option>
-              <option value="black-tie">Black Tie</option>
-            </select>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Formality Level *</Label>
+              <Select value={formalityLevel} onValueChange={setFormalityLevel} required>
+                <SelectTrigger className={cn(
+                  "w-full bg-gray-50 h-12",
+                  errors.formalityLevel && "border-red-500"
+                )}>
+                  <SelectValue placeholder="Select formality level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="casual">Casual</SelectItem>
+                  <SelectItem value="semi-formal">Semi-Formal</SelectItem>
+                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="black-tie">Black Tie</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.formalityLevel && (
+                <p className="text-sm text-red-600">{errors.formalityLevel}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Venue Types */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Venue Type Preferences
-            </label>
-            <div className="space-y-2">
-              {[
-                "Ballroom",
-                "Garden",
-                "Beach",
-                "Vineyard",
-                "Castle",
-                "Restaurant",
-                "Barn",
-              ].map((type) => (
-                <label
-                  key={type}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedVenueTypes.includes(type)}
-                    onChange={() => toggleVenueType(type)}
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>{type}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Venue Type Preferences</Label>
+              <div className="space-y-2">
+                {[
+                  "Ballroom",
+                  "Garden",
+                  "Beach",
+                  "Vineyard",
+                  "Castle",
+                  "Restaurant",
+                  "Barn",
+                ].map((type) => (
+                  <div key={type} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                    <Checkbox
+                      id={`venue-${type}`}
+                      checked={selectedVenueTypes.includes(type)}
+                      onCheckedChange={() => toggleVenueType(type)}
+                    />
+                    <Label htmlFor={`venue-${type}`} className="cursor-pointer">{type}</Label>
+                  </div>
+                ))}
+              </div>
+              {errors.venueTypes && (
+                <p className="text-sm text-red-600">{errors.venueTypes}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Music Style */}
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-            <label className="text-base font-bold text-gray-900">
-              Music Style Preferences
-            </label>
-            <div className="space-y-2">
-              {[
-                "Jazz",
-                "Pop",
-                "Traditional",
-                "Classical",
-                "Live Band",
-                "DJ",
-              ].map((style) => (
-                <label
-                  key={style}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMusicStyles.includes(style)}
-                    onChange={() => toggleMusicStyle(style)}
-                    className="w-5 h-5 rounded text-rose-600"
-                  />
-                  <span>{style}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-base font-bold">Music Style Preferences</Label>
+              <div className="space-y-2">
+                {[
+                  "Jazz",
+                  "Pop",
+                  "Traditional",
+                  "Classical",
+                  "Live Band",
+                  "DJ",
+                ].map((style) => (
+                  <div key={style} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                    <Checkbox
+                      id={`music-${style}`}
+                      checked={selectedMusicStyles.includes(style)}
+                      onCheckedChange={() => toggleMusicStyle(style)}
+                    />
+                    <Label htmlFor={`music-${style}`} className="cursor-pointer">{style}</Label>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </form>
       </main>
 
@@ -339,12 +353,13 @@ export const PlanningStep2 = () => {
         >
           Next: Vendor Needs
         </Button>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate("/planning/step-1")}
-          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600"
+          className="w-full text-sm font-medium text-gray-600 hover:text-rose-600 h-auto"
         >
           Back
-        </button>
+        </Button>
       </footer>
     </div>
   );
