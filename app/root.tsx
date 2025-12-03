@@ -8,6 +8,7 @@ import {
   useLoaderData,
 } from "react-router";
 import { AuthProvider } from "~/contexts/auth-context";
+import { ToastProvider } from "~/contexts/toast-context";
 
 import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
@@ -61,7 +62,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </AuthProvider>
   );
 }

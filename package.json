@@ -6,7 +6,8 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "npm run dev",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "gen:types": "npx supabase gen types typescript --project-id wwlilqpyvbknxlnlijrh --schema public > supabase/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
