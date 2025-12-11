@@ -816,7 +816,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const vendorCategory = conversationInfo?.vendorCategory || "Service";
 
   return (
-    <div className="w-screen flex flex-col h-screen bg-pink-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col bg-pink-50 overflow-hidden">
       {/* FIXED HEADER */}
       <header
         className="flex-none bg-white border-b border-gray-200 z-30 p-4 flex items-center gap-3"
