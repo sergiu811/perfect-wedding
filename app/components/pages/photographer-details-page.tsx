@@ -122,16 +122,16 @@ export const PhotographerDetailsPage = ({
     packages:
       service.packages && Array.isArray(service.packages)
         ? service.packages.map((pkg: any, idx: number) => ({
-            id: idx + 1,
-            name: pkg.name || `Package ${idx + 1}`,
-            price:
-              pkg.price ||
-              (service.price_min && service.price_max
-                ? `$${service.price_min.toLocaleString()} - $${service.price_max.toLocaleString()}`
-                : service.price_min
-                  ? `From $${service.price_min.toLocaleString()}`
-                  : "Contact for pricing"),
-          }))
+          id: idx + 1,
+          name: pkg.name || `Package ${idx + 1}`,
+          price:
+            pkg.price ||
+            (service.price_min && service.price_max
+              ? `$${service.price_min.toLocaleString()} - $${service.price_max.toLocaleString()}`
+              : service.price_min
+                ? `From $${service.price_min.toLocaleString()}`
+                : "Contact for pricing"),
+        }))
         : [],
     rating: service.rating || 0,
     reviewCount: service.review_count || 0,
@@ -159,38 +159,14 @@ export const PhotographerDetailsPage = ({
     { stars: 1, percentage: 0 },
   ];
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(photographer.name)}&category=photo-video`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${photographer.name} service.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(photographer.name)}&category=photo-video&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(photographer.name)}&category=photo-video&serviceId=${service.id}`
-      );
-    }
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(photographer.name)}&category=photo-video&serviceId=${service.id}`
+    );
   };
 
   return (
@@ -252,11 +228,10 @@ export const PhotographerDetailsPage = ({
                   {photographer.portfolio.map((_, index) => (
                     <div
                       key={index}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentImageIndex
+                      className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
                           ? "bg-white w-6"
                           : "bg-white/50"
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
@@ -362,59 +337,59 @@ export const PhotographerDetailsPage = ({
               </div>
 
               {/* Delivery Format */}
-              {(service.specific_fields.formatUSB || 
-                service.specific_fields.formatOnline || 
+              {(service.specific_fields.formatUSB ||
+                service.specific_fields.formatOnline ||
                 service.specific_fields.formatAlbum) && (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
-                    Delivery Format
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {service.specific_fields.formatUSB && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
-                        <span className="text-gray-700">USB Drive</span>
-                      </div>
-                    )}
-                    {service.specific_fields.formatOnline && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
-                        <span className="text-gray-700">Online Gallery</span>
-                      </div>
-                    )}
-                    {service.specific_fields.formatAlbum && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
-                        <span className="text-gray-700">Printed Album</span>
-                      </div>
-                    )}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
+                      Delivery Format
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {service.specific_fields.formatUSB && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
+                          <span className="text-gray-700">USB Drive</span>
+                        </div>
+                      )}
+                      {service.specific_fields.formatOnline && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
+                          <span className="text-gray-700">Online Gallery</span>
+                        </div>
+                      )}
+                      {service.specific_fields.formatAlbum && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-rose-600 rounded-full"></div>
+                          <span className="text-gray-700">Printed Album</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Additional Services */}
-              {(service.specific_fields.drone || 
+              {(service.specific_fields.drone ||
                 service.specific_fields.travel) && (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
-                    Additional Services
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {service.specific_fields.drone && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                        <span className="text-gray-700">Drone Option Available</span>
-                      </div>
-                    )}
-                    {service.specific_fields.travel && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                        <span className="text-gray-700">Travel Available</span>
-                      </div>
-                    )}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
+                      Additional Services
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {service.specific_fields.drone && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                          <span className="text-gray-700">Drone Option Available</span>
+                        </div>
+                      )}
+                      {service.specific_fields.travel && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                          <span className="text-gray-700">Travel Available</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
 

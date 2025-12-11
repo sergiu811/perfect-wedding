@@ -50,21 +50,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const [vendorProfiles, coupleProfiles, coupleWeddings] = await Promise.all([
       vendorIds.length > 0
         ? supabase
-            .from("profiles")
-            .select("id, business_name, avatar_url")
-            .in("id", [...new Set(vendorIds)] as string[])
+          .from("profiles")
+          .select("id, business_name, avatar_url")
+          .in("id", [...new Set(vendorIds)] as string[])
         : { data: [] },
       coupleIds.length > 0
         ? supabase
-            .from("profiles")
-            .select("id, first_name, last_name, avatar_url")
-            .in("id", [...new Set(coupleIds)] as string[])
+          .from("profiles")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", [...new Set(coupleIds)] as string[])
         : { data: [] },
       coupleIds.length > 0
         ? supabase
-            .from("weddings")
-            .select("user_id, partner1_name, partner2_name")
-            .in("user_id", [...new Set(coupleIds)] as string[])
+          .from("weddings")
+          .select("user_id, partner1_name, partner2_name")
+          .in("user_id", [...new Set(coupleIds)] as string[])
         : { data: [] },
     ]);
 
@@ -84,7 +84,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     let pendingOffersMap = new Map();
     let vendorResponsesMap = new Map();
     let allOffersMap = new Map();
-    
+
     if (conversationIds.length > 0) {
       // Fetch all offers
       const { data: allOffers } = await (supabase as any)
@@ -101,10 +101,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
           const conv = (conversations || []).find(
             (c: any) => c.id === offer.conversation_id
           );
-          
+
           if (conv) {
             const isVendorOffer = conv.vendor_id === offer.sender_id;
-            
+
             // Store all offers
             if (!allOffersMap.has(offer.conversation_id)) {
               allOffersMap.set(offer.conversation_id, {
@@ -112,7 +112,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 isVendorOffer,
               });
             }
-            
+
             // Store pending offers from vendors (for couples)
             if (
               !isVendor &&
@@ -173,7 +173,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const pendingOffer = !isVendor
         ? pendingOffersMap.get(conv.id)
         : null;
-      
+
       const hasVendorResponded = vendorResponsesMap.get(conv.id) || false;
       const latestOffer = allOffersMap.get(conv.id);
 
@@ -205,13 +205,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
         hasPendingOffer: !!pendingOffer,
         pendingOffer: pendingOffer
           ? {
-              id: pendingOffer.id,
-              price: pendingOffer.offer_data?.price,
-              date: pendingOffer.offer_data?.date,
-              services: pendingOffer.offer_data?.services || [],
-              createdAt: pendingOffer.created_at,
-            }
+            id: pendingOffer.id,
+            price: pendingOffer.offer_data?.price,
+            date: pendingOffer.offer_data?.date,
+            services: pendingOffer.offer_data?.services || [],
+            createdAt: pendingOffer.created_at,
+          }
           : null,
+        inquiryDetails: conv.inquiry_details || null,
       };
     });
 
@@ -239,7 +240,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const body = await request.json();
-    const { vendorId, serviceId, initialMessage } = body;
+    const { vendorId, serviceId, initialMessage, inquiryDetails } = body;
 
     if (!vendorId) {
       return Response.json(
@@ -274,12 +275,21 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (existing) {
       conversationId = existing.id;
+
+      // Update inquiry details if provided
+      if (inquiryDetails) {
+        await (supabase as any)
+          .from("conversations")
+          .update({ inquiry_details: inquiryDetails })
+          .eq("id", conversationId);
+      }
     } else {
       // Create new conversation (service_id is now optional/nullable)
       const conversationData: any = {
         couple_id: user.id,
         vendor_id: vendorId,
         service_id: null, // One conversation per vendor, not tied to specific service
+        inquiry_details: inquiryDetails || null,
       };
 
       const { data: conversation, error: convError } = await (supabase as any)
@@ -299,8 +309,26 @@ export async function action({ request }: ActionFunctionArgs) {
       conversationId = conversation.id;
     }
 
-    // If initial message provided, create it
-    if (initialMessage) {
+    // If inquiry details provided, create inquiry message
+    if (inquiryDetails) {
+      const { error: msgError } = await (supabase as any)
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          message_type: "inquiry",
+          content: "Event inquiry submitted",
+          inquiry_data: {
+            ...inquiryDetails,
+            serviceId: serviceId || null,
+          },
+        });
+
+      if (msgError) {
+        console.error("Error creating inquiry message:", msgError);
+      }
+    } else if (initialMessage) {
+      // Fallback: create text message if no inquiry details
       const { error: msgError } = await (supabase as any)
         .from("messages")
         .insert({
@@ -361,12 +389,12 @@ function getConversationStatus(
   // 2. Check for offers
   if (latestOffer) {
     const offerData = latestOffer.offer_data || {};
-    
+
     // If there's a pending offer from vendor (for couples)
     if (pendingOffer && !isVendor && offerData.status === "pending") {
       return "pending"; // Couple sees pending offer
     }
-    
+
     // If vendor sent an offer (for vendor view)
     if (isVendor && latestOffer.isVendorOffer) {
       if (offerData.status === "pending") {

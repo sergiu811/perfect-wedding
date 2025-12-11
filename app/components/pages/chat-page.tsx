@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { useRouter } from "~/contexts/router-context";
 import { useAuth } from "~/contexts/auth-context";
@@ -27,7 +28,7 @@ interface ChatMessage {
   sender: "couple" | "vendor";
   message: string;
   timestamp: string;
-  type: "text" | "offer" | "booking";
+  type: "text" | "offer" | "booking" | "inquiry";
   offerDetails?: {
     serviceId?: string;
     serviceName?: string;
@@ -44,7 +45,161 @@ interface ChatMessage {
     }>;
     status?: "pending" | "accepted" | "rejected" | "negotiated";
   };
+  inquiryDetails?: any;
 }
+
+const InquiryCard = ({ msg, isVendor, serviceId }: { msg: ChatMessage; isVendor: boolean; serviceId?: string }) => {
+  const [availability, setAvailability] = useState<"available" | "unavailable" | "booked" | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      // Only check for vendors and if we have necessary data
+      if (!isVendor || !msg.inquiryDetails?.weddingDate) return;
+
+      // Use serviceId from message details or fallback to conversation serviceId
+      const targetServiceId = msg.inquiryDetails?.serviceId || serviceId;
+      if (!targetServiceId) return;
+
+      try {
+        setChecking(true);
+        const response = await fetch(
+          `/api/availability?serviceId=${targetServiceId}&startDate=${msg.inquiryDetails.weddingDate}&endDate=${msg.inquiryDetails.weddingDate}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const status = data.availability?.[0]?.status || "available";
+          setAvailability(status);
+        }
+      } catch (error) {
+        console.error("Error checking availability:", error);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAvailability();
+  }, [isVendor, msg.inquiryDetails, serviceId]);
+
+  return (
+    <div className="max-w-[85%] lg:max-w-[70%] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 lg:p-5 border-2 border-blue-200 shadow-md">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+          <CalendarIcon className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-gray-900">Event Inquiry</p>
+          <p className="text-xs text-gray-500">{msg.timestamp}</p>
+        </div>
+        {isVendor && availability && (
+          <div className={`px-2 py-1 rounded text-xs font-bold border ${availability === "available"
+            ? "bg-green-100 text-green-700 border-green-200"
+            : "bg-red-100 text-red-700 border-red-200"
+            }`}>
+            {availability === "available" ? "✓ Available" : "✕ Unavailable"}
+          </div>
+        )}
+      </div>
+
+      {msg.inquiryDetails && (
+        <div className="space-y-3">
+          {/* Event Information */}
+          <div className="bg-white rounded-lg p-3">
+            <p className="text-xs text-gray-500 mb-2">Event Information</p>
+            <div className="space-y-2">
+              {msg.inquiryDetails.weddingDate && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Date:</span>
+                  <span className="font-semibold text-gray-900">
+                    {msg.inquiryDetails.weddingDate}
+                  </span>
+                </div>
+              )}
+              {msg.inquiryDetails.guestCount && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Guests:</span>
+                  <span className="font-semibold text-gray-900">
+                    {msg.inquiryDetails.guestCount}
+                  </span>
+                </div>
+              )}
+              {msg.inquiryDetails.budgetRange && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Budget:</span>
+                  <span className="font-semibold text-gray-900">
+                    {msg.inquiryDetails.budgetRange}
+                  </span>
+                </div>
+              )}
+              {msg.inquiryDetails.location && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Location:</span>
+                  <span className="font-semibold text-gray-900">
+                    {msg.inquiryDetails.location}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Service Requirements */}
+          {(msg.inquiryDetails.venueType ||
+            msg.inquiryDetails.musicType ||
+            msg.inquiryDetails.hoursNeeded ||
+            msg.inquiryDetails.cakeSize ||
+            msg.inquiryDetails.photoVideoType) && (
+              <div className="bg-white rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-2">Service Requirements</p>
+                <div className="space-y-2">
+                  {msg.inquiryDetails.venueType && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Venue:</span>
+                      <span className="font-semibold text-gray-900 capitalize">
+                        {msg.inquiryDetails.venueType}
+                      </span>
+                    </div>
+                  )}
+                  {msg.inquiryDetails.musicType && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Music:</span>
+                      <span className="font-semibold text-gray-900 capitalize">
+                        {msg.inquiryDetails.musicType}
+                      </span>
+                    </div>
+                  )}
+                  {msg.inquiryDetails.hoursNeeded && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Hours:</span>
+                      <span className="font-semibold text-gray-900">
+                        {msg.inquiryDetails.hoursNeeded} hrs
+                      </span>
+                    </div>
+                  )}
+                  {msg.inquiryDetails.cakeSize && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Cake:</span>
+                      <span className="font-semibold text-gray-900">
+                        {msg.inquiryDetails.cakeSize}
+                      </span>
+                    </div>
+                  )}
+                  {msg.inquiryDetails.photoVideoType && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Type:</span>
+                      <span className="font-semibold text-gray-900 capitalize">
+                        {msg.inquiryDetails.photoVideoType}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const ChatPage = ({ conversationId }: ChatPageProps) => {
   const { navigate } = useRouter();
@@ -66,6 +221,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
     vendorName: string;
     vendorAvatar: string;
     vendorCategory: string;
+    serviceId?: string;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -217,6 +373,7 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
             vendorCategory: isVendorView
               ? "Wedding Couple"
               : conv.vendorCategory,
+            serviceId: conv.serviceId,
           });
         }
 
@@ -835,6 +992,13 @@ export const ChatPage = ({ conversationId }: ChatPageProps) => {
                       ) : null}
                     </div>
                   </div>
+                ) : msg.type === "inquiry" ? (
+                  // Inquiry Card (Blue theme)
+                  <InquiryCard
+                    msg={msg}
+                    isVendor={isVendor}
+                    serviceId={conversationInfo?.serviceId}
+                  />
                 ) : (
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${msg.sender === (isVendor ? "vendor" : "couple")

@@ -133,6 +133,100 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          inquiry_data: Json | null
+          message_type: Database["public"]["Enums"]["message_type"] | null
+          offer_data: Json | null
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          inquiry_data?: Json | null
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          offer_data?: Json | null
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          inquiry_data?: Json | null
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          offer_data?: Json | null
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planning_tasks: {
+        Row: {
+          category: string
+          completed: boolean | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          order_index: number | null
+          priority: string | null
+          title: string
+          updated_at: string | null
+          wedding_id: string
+        }
+        Insert: {
+          category: string
+          completed?: boolean | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          priority?: string | null
+          title: string
+          updated_at?: string | null
+          wedding_id: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          priority?: string | null
+          title?: string
+          updated_at?: string | null
+          wedding_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_tasks_wedding_id_fkey"
+            columns: ["wedding_id"]
+            isOneToOne: false
+            referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -271,6 +365,41 @@ export type Database = {
             columns: ["wedding_id"]
             isOneToOne: true
             referencedRelation: "weddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_availability: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          service_id: string
+          status: Database["public"]["Enums"]["availability_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          service_id: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          service_id?: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_availability_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -451,11 +580,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mark_messages_read: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
+      availability_status: "available" | "unavailable" | "booked"
       booking_status: "pending" | "confirmed" | "rejected" | "completed"
       gift_status: "pending" | "received" | "na"
+      message_type: "text" | "offer" | "booking" | "inquiry"
       rsvp_status: "yes" | "no" | "pending"
       service_category:
         | "venue"

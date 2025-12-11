@@ -147,38 +147,15 @@ export const VenueDetailsPage = ({ venueId }: VenueDetailsPageProps) => {
     reviews: [], // Reviews would come from a separate API call
   };
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(venue.name)}&category=venue`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${venue.name} venue.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(venue.name)}&category=venue&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(venue.name)}&category=venue&serviceId=${service.id}`
-      );
-    }
+    // Navigate to contact form with vendor ID in path and other details as query params
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(venue.name)}&category=venue&serviceId=${service.id}`
+    );
   };
 
   return (

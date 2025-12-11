@@ -162,6 +162,7 @@ export type Database = {
           couple_unread_count: number | null
           created_at: string | null
           id: string
+          inquiry_details: Json | null
           last_message_at: string | null
           last_message_text: string | null
           service_id: string | null
@@ -175,6 +176,7 @@ export type Database = {
           couple_unread_count?: number | null
           created_at?: string | null
           id?: string
+          inquiry_details?: Json | null
           last_message_at?: string | null
           last_message_text?: string | null
           service_id?: string | null
@@ -188,6 +190,7 @@ export type Database = {
           couple_unread_count?: number | null
           created_at?: string | null
           id?: string
+          inquiry_details?: Json | null
           last_message_at?: string | null
           last_message_text?: string | null
           service_id?: string | null
@@ -274,6 +277,7 @@ export type Database = {
           conversation_id: string
           created_at: string | null
           id: string
+          inquiry_data: Json | null
           message_type: Database["public"]["Enums"]["message_type"] | null
           offer_data: Json | null
           read_at: string | null
@@ -284,6 +288,7 @@ export type Database = {
           conversation_id: string
           created_at?: string | null
           id?: string
+          inquiry_data?: Json | null
           message_type?: Database["public"]["Enums"]["message_type"] | null
           offer_data?: Json | null
           read_at?: string | null
@@ -294,6 +299,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string | null
           id?: string
+          inquiry_data?: Json | null
           message_type?: Database["public"]["Enums"]["message_type"] | null
           offer_data?: Json | null
           read_at?: string | null
@@ -501,6 +507,41 @@ export type Database = {
           },
         ]
       }
+      service_availability: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          service_id: string
+          status: Database["public"]["Enums"]["availability_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          service_id: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          service_id?: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_availability_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           available_days: string[] | null
@@ -683,9 +724,10 @@ export type Database = {
       }
     }
     Enums: {
+      availability_status: "available" | "unavailable" | "booked"
       booking_status: "pending" | "confirmed" | "rejected" | "completed"
       gift_status: "pending" | "received" | "na"
-      message_type: "text" | "offer" | "booking"
+      message_type: "text" | "offer" | "booking" | "inquiry"
       rsvp_status: "yes" | "no" | "pending"
       service_category:
         | "venue"
@@ -822,9 +864,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      availability_status: ["available", "unavailable", "booked"],
       booking_status: ["pending", "confirmed", "rejected", "completed"],
       gift_status: ["pending", "received", "na"],
-      message_type: ["text", "offer", "booking"],
+      message_type: ["text", "offer", "booking", "inquiry"],
       rsvp_status: ["yes", "no", "pending"],
       service_category: [
         "venue",

@@ -170,6 +170,9 @@ export const PlanningStep1 = () => {
                     selected={date}
                     onSelect={setDate}
                     initialFocus
+                    captionLayout="dropdown"
+                    fromYear={new Date().getFullYear()}
+                    toYear={new Date().getFullYear() + 5}
                   />
                 </PopoverContent>
               </Popover>

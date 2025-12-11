@@ -130,38 +130,14 @@ export const InvitationDetailsPage = ({
     { stars: 1, percentage: 2 },
   ];
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(invitation.name)}&category=invitations&serviceId=${service.id}`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${invitation.name} service.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(invitation.name)}&category=invitations&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(invitation.name)}&category=invitations&serviceId=${service.id}`
-      );
-    }
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(invitation.name)}&category=invitations&serviceId=${service.id}`
+    );
   };
 
   return (
@@ -241,9 +217,9 @@ export const InvitationDetailsPage = ({
           <div className="space-y-6">
             {/* Invitation Type */}
             {service.specific_fields && (
-              (service.specific_fields.typePrinted || 
-               service.specific_fields.typeDigital || 
-               service.specific_fields.typeHandmade) && (
+              (service.specific_fields.typePrinted ||
+                service.specific_fields.typeDigital ||
+                service.specific_fields.typeHandmade) && (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                   <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                     Invitation Type

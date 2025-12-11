@@ -125,38 +125,14 @@ export const DecorationDetailsPage = ({
     { stars: 1, percentage: 2 },
   ];
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(decoration.name)}&category=decorations&serviceId=${service.id}`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${decoration.name} service.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(decoration.name)}&category=decorations&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(decoration.name)}&category=decorations&serviceId=${service.id}`
-      );
-    }
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(decoration.name)}&category=decorations&serviceId=${service.id}`
+    );
   };
 
   return (
@@ -207,9 +183,8 @@ export const DecorationDetailsPage = ({
                 <div
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-2 h-2 rounded-full cursor-pointer transition-all ${
-                    index === currentImageIndex ? "bg-white w-6" : "bg-white/50"
-                  }`}
+                  className={`w-2 h-2 rounded-full cursor-pointer transition-all ${index === currentImageIndex ? "bg-white w-6" : "bg-white/50"
+                    }`}
                 />
               ))}
             </div>
@@ -260,10 +235,10 @@ export const DecorationDetailsPage = ({
           <div className="space-y-6 border-t border-gray-200 pt-6">
             {/* Decoration Type */}
             {service.specific_fields && (
-              (service.specific_fields.decorFloral || 
-               service.specific_fields.decorLighting || 
-               service.specific_fields.decorTable || 
-               service.specific_fields.decorStage) && (
+              (service.specific_fields.decorFloral ||
+                service.specific_fields.decorLighting ||
+                service.specific_fields.decorTable ||
+                service.specific_fields.decorStage) && (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                   <h2 className="text-xl lg:text-2xl font-bold mb-4 text-gray-900">
                     Decoration Type
@@ -306,15 +281,15 @@ export const DecorationDetailsPage = ({
                 </h2>
                 <div className="flex flex-wrap gap-3">
                   {service.specific_fields?.themeStyles ? (
-                    typeof service.specific_fields.themeStyles === 'string' 
+                    typeof service.specific_fields.themeStyles === 'string'
                       ? service.specific_fields.themeStyles.split(',').map((style: string, index: number) => (
-                          <span
-                            key={index}
-                            className="bg-rose-600/10 text-rose-600 px-4 py-2 rounded-full text-sm font-medium"
-                          >
-                            {style.trim()}
-                          </span>
-                        ))
+                        <span
+                          key={index}
+                          className="bg-rose-600/10 text-rose-600 px-4 py-2 rounded-full text-sm font-medium"
+                        >
+                          {style.trim()}
+                        </span>
+                      ))
                       : (
                         <span className="bg-rose-600/10 text-rose-600 px-4 py-2 rounded-full text-sm font-medium">
                           {service.specific_fields.themeStyles}

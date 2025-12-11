@@ -109,12 +109,12 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
     packages:
       service.packages && Array.isArray(service.packages)
         ? service.packages.map((pkg: any, idx: number) => ({
-            id: idx + 1,
-            name: pkg.name || `Package ${idx + 1}`,
-            price: pkg.price || pkg.price_range || "Contact for pricing",
-            features: pkg.features || pkg.included || [],
-            highlighted: pkg.highlighted || false,
-          }))
+          id: idx + 1,
+          name: pkg.name || `Package ${idx + 1}`,
+          price: pkg.price || pkg.price_range || "Contact for pricing",
+          features: pkg.features || pkg.included || [],
+          highlighted: pkg.highlighted || false,
+        }))
         : [],
     dietaryAccommodations:
       service.specific_fields?.dietary_accommodations ||
@@ -129,38 +129,14 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
     reviews: [], // Would come from a separate API call
   };
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(sweet.name)}&category=sweets&serviceId=${service.id}`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${sweet.name} service.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(sweet.name)}&category=sweets&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(sweet.name)}&category=sweets&serviceId=${service.id}`
-      );
-    }
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(sweet.name)}&category=sweets&serviceId=${service.id}`
+    );
   };
 
   return (
@@ -233,10 +209,10 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
           <div className="space-y-6">
             {/* Service Type */}
             {service.specific_fields && (
-              (service.specific_fields.sweetCake || 
-               service.specific_fields.sweetCandyBar || 
-               service.specific_fields.sweetCupcakes || 
-               service.specific_fields.sweetMacarons) && (
+              (service.specific_fields.sweetCake ||
+                service.specific_fields.sweetCandyBar ||
+                service.specific_fields.sweetCupcakes ||
+                service.specific_fields.sweetMacarons) && (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                   <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                     Service Type
@@ -278,15 +254,15 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
                   Flavors Offered
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {typeof service.specific_fields.flavors === 'string' 
+                  {typeof service.specific_fields.flavors === 'string'
                     ? service.specific_fields.flavors.split(',').map((flavor: string, index: number) => (
-                        <span
-                          key={index}
-                          className="bg-rose-600/10 text-rose-600 px-3 py-1 rounded-full text-sm font-medium"
-                        >
-                          {flavor.trim()}
-                        </span>
-                      ))
+                      <span
+                        key={index}
+                        className="bg-rose-600/10 text-rose-600 px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        {flavor.trim()}
+                      </span>
+                    ))
                     : (
                       <p className="text-gray-700 lg:text-lg">
                         {service.specific_fields.flavors}
@@ -332,9 +308,9 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
 
             {/* Dietary Options */}
             {service.specific_fields && (
-              (service.specific_fields.dietVegan || 
-               service.specific_fields.dietGluten || 
-               service.specific_fields.dietSugar) && (
+              (service.specific_fields.dietVegan ||
+                service.specific_fields.dietGluten ||
+                service.specific_fields.dietSugar) && (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                   <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                     Dietary Options
@@ -414,11 +390,10 @@ export const SweetDetailsPage = ({ sweetId }: SweetDetailsPageProps) => {
                 {sweet.packages.map((pkg) => (
                   <div
                     key={pkg.id}
-                    className={`flex flex-col gap-4 rounded-xl border p-6 shadow-sm ${
-                      pkg.highlighted
+                    className={`flex flex-col gap-4 rounded-xl border p-6 shadow-sm ${pkg.highlighted
                         ? "border-rose-600 bg-rose-600/5"
                         : "border-gray-200 bg-white"
-                    }`}
+                      }`}
                   >
                     <div className="space-y-1">
                       <h3 className="text-lg font-bold text-gray-900">

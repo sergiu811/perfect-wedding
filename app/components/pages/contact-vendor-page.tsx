@@ -1,31 +1,63 @@
 import {
   ArrowLeft,
-  Calendar,
+  Calendar as CalendarIcon,
   CheckCircle,
   DollarSign,
   MapPin,
   Send,
   Users,
+  X,
 } from "lucide-react";
 import React, { useState } from "react";
+import { format } from "date-fns";
+import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Calendar } from "~/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Textarea } from "~/components/ui/textarea";
 import { usePlanning } from "~/contexts/planning-context";
 import { useRouter } from "~/contexts/router-context";
+import { useAuth } from "~/contexts/auth-context";
+import { useSupabase } from "~/lib/supabase.client";
+import { getWeddingByUserId } from "~/lib/wedding";
 
 interface ContactVendorPageProps {
-  vendorId: string;
-  vendorName: string;
-  vendorCategory: string;
+  vendorId?: string;
+  vendorName?: string;
+  vendorCategory?: string;
 }
 
 export const ContactVendorPage = ({
-  vendorId,
-  vendorName,
-  vendorCategory,
+  vendorId: propsVendorId,
+  vendorName: propsVendorName,
+  vendorCategory: propsVendorCategory,
 }: ContactVendorPageProps) => {
   const { navigate } = useRouter();
   const { formData } = usePlanning();
+  const { user } = useAuth();
+  const supabase = useSupabase();
+
+  // Get params from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const pathMatch = window.location.pathname.match(/\/contact-vendor\/([^/?]+)/);
+  const urlVendorId = pathMatch ? pathMatch[1] : null;
+
+  const vendorId = propsVendorId || urlVendorId || "";
+  const vendorName = propsVendorName || urlParams.get("name") || "Vendor";
+  const vendorCategory = propsVendorCategory || urlParams.get("category") || "service";
+
   const [submitted, setSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({
     weddingDate: formData.weddingDate || "",
@@ -35,7 +67,6 @@ export const ContactVendorPage = ({
     message: "",
     // Category-specific fields
     venueType: "",
-    seatingCapacity: "",
     musicType: "",
     hoursNeeded: "",
     cakeSize: "",
@@ -45,6 +76,76 @@ export const ContactVendorPage = ({
     photoVideoType: "",
   });
 
+  const [availabilityStatus, setAvailabilityStatus] = useState<"available" | "unavailable" | null>(null);
+
+  // Check availability when date changes
+  React.useEffect(() => {
+    const checkAvailability = async () => {
+      // Need both date and serviceId (from URL) to check
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceId = urlParams.get("serviceId");
+
+      if (!formValues.weddingDate || !serviceId) {
+        setAvailabilityStatus(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/availability?serviceId=${serviceId}&startDate=${formValues.weddingDate}&endDate=${formValues.weddingDate}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const availability = data.availability || [];
+          const dateStatus = availability.find((a: any) => a.date === formValues.weddingDate);
+
+          if (dateStatus && (dateStatus.status === "booked" || dateStatus.status === "unavailable")) {
+            setAvailabilityStatus("unavailable");
+          } else {
+            setAvailabilityStatus("available");
+          }
+        }
+      } catch (error) {
+        console.error("Error checking availability:", error);
+      }
+    };
+
+    checkAvailability();
+  }, [formValues.weddingDate]);
+
+  // Fetch wedding details from database to pre-fill form
+  React.useEffect(() => {
+    const fetchWeddingDetails = async () => {
+      if (!user) return;
+
+      const { data: wedding, error } = await getWeddingByUserId(supabase, user.id);
+
+      if (wedding) {
+        setFormValues((prev) => ({
+          ...prev,
+          weddingDate: wedding.wedding_date || prev.weddingDate,
+          guestCount: wedding.guest_count?.toString() || prev.guestCount,
+          location: wedding.location || prev.location,
+          // Map budget if possible, otherwise keep default
+          budgetRange: mapBudgetToRange(wedding.budget_max) || prev.budgetRange,
+        }));
+      }
+    };
+
+    fetchWeddingDetails();
+  }, [user, supabase]);
+
+  // Helper to map numeric budget to range string
+  const mapBudgetToRange = (budgetMax: number | null | undefined) => {
+    if (!budgetMax) return "";
+    if (budgetMax < 5000) return "under-5000";
+    if (budgetMax <= 10000) return "5000-10000";
+    if (budgetMax <= 20000) return "10000-20000";
+    if (budgetMax <= 30000) return "20000-30000";
+    return "over-30000";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -52,6 +153,33 @@ export const ContactVendorPage = ({
       // Get serviceId from URL params if available
       const urlParams = new URLSearchParams(window.location.search);
       const serviceId = urlParams.get("serviceId");
+
+      // Build inquiry details object
+      const inquiryDetails = {
+        weddingDate: formValues.weddingDate,
+        guestCount: formValues.guestCount,
+        budgetRange: formValues.budgetRange,
+        location: formValues.location,
+        message: formValues.message,
+        vendorCategory: vendorCategory,
+        // Category-specific fields
+        ...(vendorCategory === "venue" && {
+          venueType: formValues.venueType,
+        }),
+        ...(vendorCategory === "music-dj" && {
+          musicType: formValues.musicType,
+          hoursNeeded: formValues.hoursNeeded,
+        }),
+        ...(vendorCategory === "sweets" && {
+          cakeSize: formValues.cakeSize,
+          cakeTheme: formValues.cakeTheme,
+          cakeFlavors: formValues.cakeFlavors,
+        }),
+        ...((vendorCategory === "photo-video" || vendorCategory === "photo_video") && {
+          photoVideoType: formValues.photoVideoType,
+          coverageHours: formValues.coverageHours,
+        }),
+      };
 
       // Create a conversation with the vendor
       const conversationResponse = await fetch("/api/conversations", {
@@ -61,6 +189,7 @@ export const ContactVendorPage = ({
           vendorId: vendorId,
           serviceId: serviceId || null,
           initialMessage: buildInquiryMessage(),
+          inquiryDetails: inquiryDetails,
         }),
       });
 
@@ -132,8 +261,6 @@ export const ContactVendorPage = ({
       message += `\n🏛️ Venue Preferences:\n`;
       if (formValues.venueType)
         message += `• Venue Type: ${formValues.venueType}\n`;
-      if (formValues.seatingCapacity)
-        message += `• Seating Capacity: ${formValues.seatingCapacity} guests\n`;
     } else if (vendorCategory === "music-dj" || vendorCategory === "music_dj") {
       message += `\n🎵 Music Preferences:\n`;
       if (formValues.musicType) message += `• Type: ${formValues.musicType}\n`;
@@ -188,31 +315,21 @@ export const ContactVendorPage = ({
               <label className="text-sm lg:text-base font-bold text-gray-900">
                 Venue Type Preference
               </label>
-              <select
-                name="venueType"
+              <Select
                 value={formValues.venueType}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
+                onValueChange={(value) =>
+                  setFormValues({ ...formValues, venueType: value })
+                }
               >
-                <option value="">Select preference</option>
-                <option value="indoor">Indoor</option>
-                <option value="outdoor">Outdoor</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
-              <label className="text-sm lg:text-base font-bold text-gray-900">
-                Seating Capacity Needed
-              </label>
-              <Input
-                name="seatingCapacity"
-                type="number"
-                value={formValues.seatingCapacity}
-                onChange={handleChange}
-                placeholder="e.g., 150"
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
-              />
+                <SelectTrigger className="w-full h-12 lg:h-14 text-base">
+                  <SelectValue placeholder="Select preference" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indoor">Indoor</SelectItem>
+                  <SelectItem value="outdoor">Outdoor</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </>
         );
@@ -224,17 +341,21 @@ export const ContactVendorPage = ({
               <label className="text-sm lg:text-base font-bold text-gray-900">
                 Music Type
               </label>
-              <select
-                name="musicType"
+              <Select
                 value={formValues.musicType}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
+                onValueChange={(value) =>
+                  setFormValues({ ...formValues, musicType: value })
+                }
               >
-                <option value="">Select type</option>
-                <option value="dj">DJ</option>
-                <option value="band">Live Band</option>
-                <option value="both">Both</option>
-              </select>
+                <SelectTrigger className="w-full h-12 lg:h-14 text-base">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dj">DJ</SelectItem>
+                  <SelectItem value="band">Live Band</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
@@ -305,17 +426,21 @@ export const ContactVendorPage = ({
               <label className="text-sm lg:text-base font-bold text-gray-900">
                 Service Type
               </label>
-              <select
-                name="photoVideoType"
+              <Select
                 value={formValues.photoVideoType}
-                onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
+                onValueChange={(value) =>
+                  setFormValues({ ...formValues, photoVideoType: value })
+                }
               >
-                <option value="">Select type</option>
-                <option value="photo">Photography Only</option>
-                <option value="video">Videography Only</option>
-                <option value="both">Both</option>
-              </select>
+                <SelectTrigger className="w-full h-12 lg:h-14 text-base">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo">Photography Only</SelectItem>
+                  <SelectItem value="video">Videography Only</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
@@ -444,17 +569,64 @@ export const ContactVendorPage = ({
 
             <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
               <label className="text-sm lg:text-base font-bold text-gray-900 flex items-center gap-2">
-                <Calendar className="w-4 h-4 lg:w-5 lg:h-5 text-rose-600" />
+                <CalendarIcon className="w-4 h-4 lg:w-5 lg:h-5 text-rose-600" />
                 Wedding Date *
               </label>
-              <Input
-                name="weddingDate"
-                type="date"
-                value={formValues.weddingDate}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
-              />
+              <div className="space-y-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full h-12 lg:h-14 justify-start text-left font-normal text-base",
+                        !formValues.weddingDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formValues.weddingDate ? (
+                        format(new Date(formValues.weddingDate), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formValues.weddingDate ? new Date(formValues.weddingDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Format to YYYY-MM-DD for consistency with existing logic
+                          const dateString = format(date, "yyyy-MM-dd");
+                          setFormValues({ ...formValues, weddingDate: dateString });
+                        }
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      defaultMonth={formValues.weddingDate ? new Date(formValues.weddingDate) : undefined}
+                      fromYear={new Date().getFullYear()}
+                      toYear={new Date().getFullYear() + 5}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {availabilityStatus && (
+                  <div className={`flex items-center gap-2 text-sm font-medium ${availabilityStatus === "available" ? "text-green-600" : "text-red-600"
+                    }`}>
+                    {availabilityStatus === "available" ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Available on this date</span>
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-4 h-4" />
+                        <span>Not available on this date</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
@@ -478,20 +650,24 @@ export const ContactVendorPage = ({
                 <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-rose-600" />
                 Budget Range *
               </label>
-              <select
-                name="budgetRange"
+              <Select
                 value={formValues.budgetRange}
-                onChange={handleChange}
+                onValueChange={(value) =>
+                  setFormValues({ ...formValues, budgetRange: value })
+                }
                 required
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg h-12 lg:h-14 px-4 text-base"
               >
-                <option value="">Select budget range</option>
-                <option value="under-5000">Under $5,000</option>
-                <option value="5000-10000">$5,000 - $10,000</option>
-                <option value="10000-20000">$10,000 - $20,000</option>
-                <option value="20000-30000">$20,000 - $30,000</option>
-                <option value="over-30000">Over $30,000</option>
-              </select>
+                <SelectTrigger className="w-full h-12 lg:h-14 text-base">
+                  <SelectValue placeholder="Select budget range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="under-5000">Under $5,000</SelectItem>
+                  <SelectItem value="5000-10000">$5,000 - $10,000</SelectItem>
+                  <SelectItem value="10000-20000">$10,000 - $20,000</SelectItem>
+                  <SelectItem value="20000-30000">$20,000 - $30,000</SelectItem>
+                  <SelectItem value="over-30000">Over $30,000</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm space-y-3">
@@ -524,7 +700,7 @@ export const ContactVendorPage = ({
             <label className="text-sm lg:text-base font-bold text-gray-900">
               Message to Vendor
             </label>
-            <textarea
+            <Textarea
               name="message"
               value={formValues.message}
               onChange={handleChange}

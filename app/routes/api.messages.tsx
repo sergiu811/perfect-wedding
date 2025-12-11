@@ -64,6 +64,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         timestamp: formatMessageTime(message.created_at),
         type: message.message_type,
         offerDetails: message.offer_data || undefined,
+        inquiryDetails: message.inquiry_data || undefined,
         read: !!message.read_at,
       };
 
@@ -96,6 +97,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       timestamp: formatMessageTime(msg.created_at),
       type: msg.message_type,
       offerDetails: msg.offer_data || undefined,
+      inquiryDetails: msg.inquiry_data || undefined,
       read: !!msg.read_at,
     }));
 
@@ -558,6 +560,7 @@ export async function action({ request }: ActionFunctionArgs) {
           timestamp: formatMessageTime(newMessage.created_at),
           type: newMessage.message_type,
           offerDetails: newMessage.offer_data || undefined,
+          inquiryDetails: newMessage.inquiry_data || undefined,
         },
         success: true,
       },

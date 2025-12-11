@@ -19,7 +19,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     try {
-        // Verify the service belongs to the vendor
+        // Verify the service exists
         const { data: service, error: serviceError } = await supabase
             .from("services")
             .select("id, vendor_id")
@@ -33,39 +33,80 @@ export async function loader({ request }: LoaderFunctionArgs) {
             );
         }
 
-        if (service.vendor_id !== user.id) {
-            return Response.json(
-                { error: "Unauthorized" },
-                { status: 403, headers }
-            );
-        }
+        // Note: We removed the vendor_id check here to allow couples to check availability
 
-        // Build query for availability
-        let query = supabase
+        // 1. Get manual availability settings
+        let availabilityQuery = supabase
             .from("service_availability")
             .select("*")
             .eq("service_id", serviceId)
             .order("date", { ascending: true });
 
         if (startDate) {
-            query = query.gte("date", startDate);
+            availabilityQuery = availabilityQuery.gte("date", startDate);
         }
         if (endDate) {
-            query = query.lte("date", endDate);
+            availabilityQuery = availabilityQuery.lte("date", endDate);
         }
 
-        const { data: availability, error } = await query;
+        const { data: manualAvailability, error: availabilityError } = await availabilityQuery;
 
-        if (error) {
-            console.error("Error fetching availability:", error);
-            return Response.json(
-                { error: error.message },
-                { status: 500, headers }
-            );
+        if (availabilityError) {
+            throw availabilityError;
         }
+
+        // 2. Get confirmed bookings
+        let bookingsQuery = supabase
+            .from("bookings")
+            .select("event_date")
+            .eq("service_id", serviceId)
+            .eq("status", "confirmed");
+
+        if (startDate) {
+            bookingsQuery = bookingsQuery.gte("event_date", startDate);
+        }
+        if (endDate) {
+            bookingsQuery = bookingsQuery.lte("event_date", endDate);
+        }
+
+        const { data: confirmedBookings, error: bookingsError } = await bookingsQuery;
+
+        if (bookingsError) {
+            throw bookingsError;
+        }
+
+        // 3. Merge results
+        // Start with manual availability
+        const availabilityMap = new Map();
+        (manualAvailability || []).forEach((item: any) => {
+            availabilityMap.set(item.date, item);
+        });
+
+        // Override with confirmed bookings (these are definitely booked)
+        (confirmedBookings || []).forEach((booking: any) => {
+            // If there's already an entry, update it to booked
+            if (availabilityMap.has(booking.event_date)) {
+                const existing = availabilityMap.get(booking.event_date);
+                availabilityMap.set(booking.event_date, {
+                    ...existing,
+                    status: "booked"
+                });
+            } else {
+                // Create new entry for booked date
+                availabilityMap.set(booking.event_date, {
+                    service_id: serviceId,
+                    date: booking.event_date,
+                    status: "booked",
+                    created_at: new Date().toISOString(), // Placeholder
+                    updated_at: new Date().toISOString()  // Placeholder
+                });
+            }
+        });
+
+        const mergedAvailability = Array.from(availabilityMap.values());
 
         return Response.json(
-            { availability: availability || [] },
+            { availability: mergedAvailability },
             { headers }
         );
     } catch (error) {

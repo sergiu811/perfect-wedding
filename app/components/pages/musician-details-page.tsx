@@ -110,17 +110,17 @@ export const MusicianDetailsPage = ({
     packages:
       service.packages && Array.isArray(service.packages)
         ? service.packages.map((pkg: any, idx: number) => ({
-            id: idx + 1,
-            name: pkg.name || `Package ${idx + 1}`,
-            title: pkg.name || `Package ${idx + 1}`,
-            description: pkg.description || "",
-            price: pkg.price || pkg.price_range || "Contact for pricing",
-            image:
-              pkg.image ||
-              service.images?.[0] ||
-              service.vendor?.avatar_url ||
-              "",
-          }))
+          id: idx + 1,
+          name: pkg.name || `Package ${idx + 1}`,
+          title: pkg.name || `Package ${idx + 1}`,
+          description: pkg.description || "",
+          price: pkg.price || pkg.price_range || "Contact for pricing",
+          image:
+            pkg.image ||
+            service.images?.[0] ||
+            service.vendor?.avatar_url ||
+            "",
+        }))
         : [],
     rating: service.rating || 0,
     reviewCount: service.review_count || 0,
@@ -140,38 +140,14 @@ export const MusicianDetailsPage = ({
     { stars: 1, percentage: 2 },
   ];
 
-  const handleContactClick = async () => {
+  const handleContactClick = () => {
     if (!service || !service.vendor_id) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(musician.name)}&category=music-dj`
-      );
       return;
     }
 
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: service.vendor_id,
-          serviceId: service.id,
-          initialMessage: `Hi! I'm interested in your ${musician.name} service.`,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/chat/${data.conversationId}`);
-      } else {
-        navigate(
-          `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(musician.name)}&category=music-dj&serviceId=${service.id}`
-        );
-      }
-    } catch (err) {
-      navigate(
-        `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(musician.name)}&category=music-dj&serviceId=${service.id}`
-      );
-    }
+    navigate(
+      `/contact-vendor/${service.vendor_id}?name=${encodeURIComponent(musician.name)}&category=music-dj&serviceId=${service.id}`
+    );
   };
 
   return (
@@ -295,7 +271,7 @@ export const MusicianDetailsPage = ({
               (Array.isArray(musician.genres)
                 ? musician.genres.length > 0
                 : musician.genres)) ||
-            service.specific_fields?.genres ? (
+              service.specific_fields?.genres ? (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                   Musical Genres

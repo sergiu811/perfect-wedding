@@ -1362,6 +1362,9 @@ export const VendorDashboard = () => {
                             onDayClick={handleDateClick}
                             disabled={{ before: new Date() }}
                             className="mx-auto"
+                            captionLayout="dropdown"
+                            fromYear={new Date().getFullYear()}
+                            toYear={new Date().getFullYear() + 5}
                           />
                         ) : (
                           <Calendar
@@ -1384,6 +1387,9 @@ export const VendorDashboard = () => {
                             onDayClick={handleDateClick}
                             disabled={{ before: new Date() }}
                             className="mx-auto"
+                            captionLayout="dropdown"
+                            fromYear={new Date().getFullYear()}
+                            toYear={new Date().getFullYear() + 5}
                           />
                         )}
                       </div>
